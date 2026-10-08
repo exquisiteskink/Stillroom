@@ -3,6 +3,9 @@ java = "temurin-21.0.12+101.0.LTS"
 
 [env]
 ANDROID_HOME = "{{config_root}}/.android-sdk"
+# GitHub-hosted runners already export ANDROID_SDK_ROOT to the image SDK.
+# AGP refuses to start when that path differs from ANDROID_HOME.
+ANDROID_SDK_ROOT = "{{config_root}}/.android-sdk"
 
 [tasks."android:install"]
 description = "Install pinned Linux Android command-line SDK and build packages"
