@@ -12,6 +12,7 @@ import java.io.ByteArrayOutputStream
 import java.io.DataInputStream
 import java.io.DataOutputStream
 import java.io.File
+import java.io.IOException
 import java.security.KeyStore
 import javax.crypto.Cipher
 import javax.crypto.KeyGenerator
@@ -37,29 +38,66 @@ class EncryptedAccountStore(context: Context, private val namespace: String = "a
         check(index.edit().putString("active", id?.value).commit()) { "Could not save active account." }
     }
 
+/**
+ * The Keystore key that protects this record is missing or unusable right now.
+ *
+ * Android Keystore keys become unavailable for reasons that are not permanent: some OEMs
+ * invalidate them on a lock-screen change, a restore onto new hardware loses them, and a
+ * locked device can refuse them. The record itself is intact, so this must never be
+ * treated as damage — retrying later can succeed.
+ */
+class AccountKeyUnavailable(id: AccountId) :
+    Exception("The encryption key for account ${id.value.take(8)} is unavailable.")
+
+/**
+ * The stored record is damaged: its GCM tag does not verify, or it no longer parses.
+ *
+ * Nothing can ever read these bytes again, so discarding them loses no recoverable data.
+ * That is the only condition under which this store may delete a record.
+ */
+class AccountRecordCorrupt(id: AccountId, cause: Throwable) :
+    Exception("Saved account ${id.value.take(8)} is damaged.", cause)
+
     @Synchronized fun list(): List<SavedAccount> = index.getStringSet("ids", emptySet()).orEmpty().toList().mapNotNull { text ->
         val id = runCatching { AccountId(text) }.getOrNull() ?: return@mapNotNull null
-        try { read(id) } catch (_: Exception) { delete(id); null }
+        try { read(id) }
+        // Unreadable by anything, now or later: drop the record and its index entry.
+        catch (_: AccountRecordCorrupt) { delete(id); null }
+        // A missing Keystore key or a transient IO failure is recoverable. Keep the record;
+        // deleting it would destroy an API key that exists nowhere else, and allowBackup is
+        // off, so there is no second copy to fall back to.
+        catch (_: Exception) { null }
     }
 
     @Synchronized fun read(id: AccountId): SavedAccount {
         val input = DataInputStream(ByteArrayInputStream(AtomicFile(encryptedFile(id)).readFully()))
-        val ivLength = input.readInt()
-        require(ivLength == 12) { "Invalid encrypted record." }
-        val iv = ByteArray(ivLength).also(input::readFully)
-        val cipher = Cipher.getInstance("AES/GCM/NoPadding")
-        val key = keyStore.getKey(alias(id), null) as? SecretKey ?: error("Account encryption key is unavailable.")
-        cipher.init(Cipher.DECRYPT_MODE, key, GCMParameterSpec(128, iv))
-        cipher.updateAAD(id.value.toByteArray())
-        val json = JSONObject(String(cipher.doFinal(input.readBytes()), Charsets.UTF_8))
-        val address = ServerAddress.parse(json.getString("base_url"), json.getBoolean("insecure"))
-        val userId = json.getLong("user_id")
-        require(AccountId.of(address, userId) == id) { "Account identity mismatch." }
-        val permissions = if (json.isNull("permissions")) null else json.getJSONArray("permissions").let { array ->
-            (0 until array.length()).map { array.getString(it) }.toSet()
+        // Keystore unavailability is the one failure that must not be reported as damage.
+        val key = keyStore.getKey(alias(id), null) as? SecretKey ?: throw AccountKeyUnavailable(id)
+        return try {
+            val ivLength = input.readInt()
+            require(ivLength == 12) { "Invalid encrypted record." }
+            val iv = ByteArray(ivLength).also(input::readFully)
+            val cipher = Cipher.getInstance("AES/GCM/NoPadding")
+            cipher.init(Cipher.DECRYPT_MODE, key, GCMParameterSpec(128, iv))
+            cipher.updateAAD(id.value.toByteArray())
+            val json = JSONObject(String(cipher.doFinal(input.readBytes()), Charsets.UTF_8))
+            val address = ServerAddress.parse(json.getString("base_url"), json.getBoolean("insecure"))
+            val userId = json.getLong("user_id")
+            require(AccountId.of(address, userId) == id) { "Account identity mismatch." }
+            val permissions = if (json.isNull("permissions")) null else json.getJSONArray("permissions").let { array ->
+                (0 until array.length()).map { array.getString(it) }.toSet()
+            }
+            val verifier = if (json.isNull("verifier")) null else AccountId(json.getString("verifier"))
+            SavedAccount(Account(id, address, userId, json.getString("username"), json.getString("version"), permissions, verifier), json.getString("api_key"))
+        } catch (error: IOException) {
+            // Storage hiccups are transient. The record is fine; retry later.
+            throw error
+        } catch (error: Exception) {
+            // GCM authenticates the ciphertext against the account id, so a tag failure, an
+            // unparseable payload, bad framing, or an identity mismatch all mean the same
+            // thing: these bytes are unreadable by anyone, now or later.
+            throw AccountRecordCorrupt(id, error)
         }
-        val verifier = if (json.isNull("verifier")) null else AccountId(json.getString("verifier"))
-        return SavedAccount(Account(id, address, userId, json.getString("username"), json.getString("version"), permissions, verifier), json.getString("api_key"))
     }
 
     @Synchronized fun save(saved: SavedAccount) {
