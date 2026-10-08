@@ -1,8 +1,16 @@
 package app.stillroom.ui
 
 import android.graphics.BitmapFactory
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.produceState
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asImageBitmap
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
+
+/** Pixel budget for a recipe tile in a grid; a tile is far smaller than the header image. */
+const val TILE_DECODED_PIXELS: Long = 1_000_000L
 
 /**
  * Decode [bytes] downsampled to [budget] pixels.
@@ -20,4 +28,20 @@ fun decodeDownsampled(bytes: ByteArray, budget: Long = MAX_DECODED_PIXELS): Imag
         inSampleSize = decodeSampleSize(bounds.outWidth, bounds.outHeight, budget)
     }
     return BitmapFactory.decodeByteArray(bytes, 0, bytes.size, options)?.asImageBitmap()
+}
+
+/**
+ * The single display path for picture bytes: downsampled and decoded off the main thread.
+ *
+ * Keyed on the array instance. The view model keeps one instance per picture name, so a
+ * recomposition never re-decodes; a different picture clears the previous image first, so a
+ * recipe never briefly shows another recipe's photo while its own decodes.
+ */
+@Composable
+fun rememberDownsampledImage(bytes: ByteArray?, budget: Long = MAX_DECODED_PIXELS): ImageBitmap? {
+    val image by produceState<ImageBitmap?>(null, bytes, budget) {
+        value = null
+        value = bytes?.let { withContext(Dispatchers.Default) { decodeDownsampled(it, budget) } }
+    }
+    return image
 }

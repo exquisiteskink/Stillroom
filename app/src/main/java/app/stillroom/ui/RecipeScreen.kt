@@ -15,8 +15,6 @@ import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.ImageBitmap
-import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
@@ -166,15 +164,7 @@ private fun number(amount:BigDecimal)=Json.parseToJsonElement(amount.toPlainStri
                 item { CookingMode(row,s) }
             } else {
                 item {
-                    // Key on the content hash, not the array: ByteArray uses identity equality,
-                    // so a fresh array with identical bytes would otherwise invalidate remember
-                    // and re-decode on every recomposition. Decoding also moves off the
-                    // composition thread and is downsampled, so a 12MP photo is ~48MB of
-                    // ARGB_8888 on the main thread no longer.
-                    val pictureKey=remember(picture){picture?.contentHashCode()}
-                    val bitmap by produceState<ImageBitmap?>(null,pictureKey) {
-                        value=withContext(Dispatchers.IO){picture?.let { decodeDownsampled(it) } }
-                    }
+                    val bitmap=rememberDownsampledImage(picture)
                     if(bitmap!=null) Image(bitmap,row.recipeText("name"),contentScale=ContentScale.Crop,modifier=Modifier.fillMaxWidth().height(220.dp).clip(MaterialTheme.shapes.large))
 
                 }
@@ -226,7 +216,7 @@ private fun number(amount:BigDecimal)=Json.parseToJsonElement(amount.toPlainStri
     if(newIngredient || ingredient!=null)IngredientEditor(s,selected!!,ingredient,{newIngredient=false;ingredient=null}) { fields->model.save("recipes_pos",ingredient?.recipeId("id"),fields);newIngredient=false;ingredient=null }
     if(newMeal || meal!=null)MealEditor(s,meal,{newMeal=false;meal=null}) { fields->model.save("meal_plan",meal?.recipeId("id"),fields);newMeal=false;meal=null }
     delete?.let { (entity,id)->AlertDialog(onDismissRequest={delete=null},title={Text(if(entity=="recipes") "Delete recipe?" else if(entity=="recipes_pos") "Remove ingredient?" else "Delete meal?")},text={Text("This deletes the record in Grocy.")},dismissButton={QuietButton(onClick={delete=null}){Text("Cancel")}},confirmButton={PrimaryButton(onClick={model.delete(entity,id);delete=null}){Text("Delete")}}) }
-    picked?.let { bytes->RecipeDialog("Review image",{picked=null},save={selected?.let { model.attachImage(it,bytes) };picked=null}) { Text("Save this selected image to Grocy?");val bmp=remember(bytes){android.graphics.BitmapFactory.decodeByteArray(bytes,0,bytes.size)};if(bmp!=null)Image(bmp.asImageBitmap(),"Selected image",Modifier.heightIn(max=220.dp)) } }
+    picked?.let { bytes->RecipeDialog("Review image",{picked=null},save={selected?.let { model.attachImage(it,bytes) };picked=null}) { Text("Save this selected image to Grocy?");val bmp=rememberDownsampledImage(bytes);if(bmp!=null)Image(bmp,"Selected image",Modifier.heightIn(max=220.dp)) } }
     state.review?.let { review->AlertDialog(onDismissRequest=model::closeReview,title={Text("Review consumption")},text={Column(Modifier.verticalScroll(rememberScrollState())) {
         Text("${qty(review.servings)} servings · stock units")
         review.lines.forEach { line->Text("${s.name("products",line.product)}: consume ${qty(line.required)} ${s.name("quantity_units",line.unit)} · available ${qty(line.available)}") }
