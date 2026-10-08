@@ -12,13 +12,16 @@ import java.io.ByteArrayOutputStream
 import java.io.DataInputStream
 import java.io.DataOutputStream
 import java.io.File
-import java.io.IOException
+import java.io.EOFException
+import java.io.FileNotFoundException
 import java.security.KeyStore
+import javax.crypto.AEADBadTagException
 import javax.crypto.Cipher
 import javax.crypto.KeyGenerator
 import javax.crypto.SecretKey
 import javax.crypto.spec.GCMParameterSpec
 import org.json.JSONArray
+import org.json.JSONException
 import org.json.JSONObject
 
 /** Never allow a credential record's generated toString to include its API key. */
@@ -38,41 +41,25 @@ class EncryptedAccountStore(context: Context, private val namespace: String = "a
         check(index.edit().putString("active", id?.value).commit()) { "Could not save active account." }
     }
 
-/**
- * The Keystore key that protects this record is missing or unusable right now.
- *
- * Android Keystore keys become unavailable for reasons that are not permanent: some OEMs
- * invalidate them on a lock-screen change, a restore onto new hardware loses them, and a
- * locked device can refuse them. The record itself is intact, so this must never be
- * treated as damage — retrying later can succeed.
- */
-class AccountKeyUnavailable(id: AccountId) :
-    Exception("The encryption key for account ${id.value.take(8)} is unavailable.")
-
-/**
- * The stored record is damaged: its GCM tag does not verify, or it no longer parses.
- *
- * Nothing can ever read these bytes again, so discarding them loses no recoverable data.
- * That is the only condition under which this store may delete a record.
- */
-class AccountRecordCorrupt(id: AccountId, cause: Throwable) :
-    Exception("Saved account ${id.value.take(8)} is damaged.", cause)
-
     @Synchronized fun list(): List<SavedAccount> = index.getStringSet("ids", emptySet()).orEmpty().toList().mapNotNull { text ->
         val id = runCatching { AccountId(text) }.getOrNull() ?: return@mapNotNull null
         try { read(id) }
-        // Unreadable by anything, now or later: drop the record and its index entry.
+        // Provably unreadable by anything, now or later: drop the record and its index entry.
         catch (_: AccountRecordCorrupt) { delete(id); null }
-        // A missing Keystore key or a transient IO failure is recoverable. Keep the record;
-        // deleting it would destroy an API key that exists nowhere else, and allowBackup is
-        // off, so there is no second copy to fall back to.
+        // Anything else (missing/unusable Keystore key, Keystore daemon or provider failure,
+        // storage error) may be transient. Keep the record: deleting it would destroy an API key
+        // that exists nowhere else, and allowBackup is off, so there is no second copy.
         catch (_: Exception) { null }
     }
 
     @Synchronized fun read(id: AccountId): SavedAccount {
-        val input = DataInputStream(ByteArrayInputStream(AtomicFile(encryptedFile(id)).readFully()))
-        // Keystore unavailability is the one failure that must not be reported as damage.
-        val key = keyStore.getKey(alias(id), null) as? SecretKey ?: throw AccountKeyUnavailable(id)
+        val bytes = try { AtomicFile(encryptedFile(id)).readFully() }
+            // No file means there is nothing left to protect; any other IO error is retried later.
+            catch (error: FileNotFoundException) { throw AccountRecordCorrupt(id, error) }
+        val key = try { keyStore.getKey(alias(id), null) as? SecretKey }
+            catch (error: Exception) { throw AccountKeyUnavailable(id, error) }
+            ?: throw AccountKeyUnavailable(id)
+        val input = DataInputStream(ByteArrayInputStream(bytes))
         return try {
             val ivLength = input.readInt()
             require(ivLength == 12) { "Invalid encrypted record." }
@@ -89,14 +76,8 @@ class AccountRecordCorrupt(id: AccountId, cause: Throwable) :
             }
             val verifier = if (json.isNull("verifier")) null else AccountId(json.getString("verifier"))
             SavedAccount(Account(id, address, userId, json.getString("username"), json.getString("version"), permissions, verifier), json.getString("api_key"))
-        } catch (error: IOException) {
-            // Storage hiccups are transient. The record is fine; retry later.
-            throw error
         } catch (error: Exception) {
-            // GCM authenticates the ciphertext against the account id, so a tag failure, an
-            // unparseable payload, bad framing, or an identity mismatch all mean the same
-            // thing: these bytes are unreadable by anyone, now or later.
-            throw AccountRecordCorrupt(id, error)
+            throw if (provesRecordCorruption(error)) AccountRecordCorrupt(id, error) else error
         }
     }
 
@@ -134,4 +115,32 @@ class AccountRecordCorrupt(id: AccountId, cause: Throwable) :
         if (preferred() == id) editor.remove("active")
         check(editor.commit()) { "Could not clear account index." }
     }
+}
+
+/**
+ * The Keystore key that protects this record is missing, or the Keystore refused to return it.
+ * The encrypted record is left in place; it is never treated as damage.
+ */
+class AccountKeyUnavailable(id: AccountId, cause: Throwable? = null) :
+    Exception("The encryption key for account ${id.value.take(8)} is unavailable.", cause)
+
+/** The stored record is provably unreadable. Only this condition allows the store to delete it. */
+class AccountRecordCorrupt(id: AccountId, cause: Throwable) :
+    Exception("Saved account ${id.value.take(8)} is damaged.", cause)
+
+/**
+ * True only for failures that prove the record bytes themselves are bad. The record is read
+ * fully into memory first, so an EOF here means truncation, not a storage hiccup. GCM
+ * authenticates the ciphertext and the account id, so a tag failure means the bytes can
+ * never decrypt with this key. After a successful decrypt, unparseable JSON, bad framing or
+ * an identity mismatch are permanent too.
+ *
+ * Everything else, notably `ProviderException`, `KeyStoreException`, `InvalidKeyException`
+ * and `UnrecoverableKeyException` from a Keystore daemon or hardware-backed provider that is
+ * temporarily failing, says nothing about the record and must not cause a delete.
+ */
+internal fun provesRecordCorruption(error: Throwable): Boolean = when (error) {
+    is AEADBadTagException, is JSONException, is EOFException -> true
+    is IllegalArgumentException -> true // framing, address parse, account-id format, identity mismatch
+    else -> false
 }
