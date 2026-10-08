@@ -15,6 +15,7 @@
 
 <p align="center">
   <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-8B4A32?style=flat-square" alt="MIT License"></a>
+  <a href="https://github.com/exquisiteskink/Stillroom/releases/latest"><img src="https://img.shields.io/github/v/release/exquisiteskink/Stillroom?style=flat-square&color=8B4A32" alt="GitHub release"></a>
   <a href="https://github.com/exquisiteskink/Stillroom/actions/workflows/unit-tests.yml"><img src="https://github.com/exquisiteskink/Stillroom/actions/workflows/unit-tests.yml/badge.svg" alt="Unit tests"></a>
   <img src="https://img.shields.io/badge/Android-8.0%2B-8B4A32?style=flat-square" alt="Android 8.0+">
   <img src="https://img.shields.io/badge/package-app.stillroom-8B4A32?style=flat-square" alt="app.stillroom">
@@ -99,7 +100,15 @@ You need a reachable Grocy URL. Stillroom does not host your pantry.
 
 ## Install
 
-There is no Play Store listing yet. Build the debug APK and sideload it.
+There is no Play Store listing yet. Sideload the signed APK from GitHub.
+
+### GitHub Releases
+
+1. Download `Stillroom-0.0.1.apk` from [Releases](https://github.com/exquisiteskink/Stillroom/releases/latest).
+2. Open the APK on your phone (allow installs from your browser or Files if Android asks).
+3. Connect with a Grocy API key as described below.
+
+The APK is signed with Stillroom's first release certificate (`CN=Stillroom`). Later 0.0.x updates will use the same certificate so they can replace this install.
 
 ### From source (Omarchy / Linux)
 
@@ -118,6 +127,8 @@ Debug APK: `app/build/outputs/apk/debug/app-debug.apk`
 ```sh
 adb install -r app/build/outputs/apk/debug/app-debug.apk
 ```
+
+`assembleRelease` produces an unsigned APK. Distribution builds are signed privately; keep signing keys out of the repository.
 
 Run JVM tests with `mise run unit-test`. Stage gates (`mise run stage:0` … `stage:11`) and disposable Grocy fixtures are documented in [STATUS](docs/STATUS.md).
 
