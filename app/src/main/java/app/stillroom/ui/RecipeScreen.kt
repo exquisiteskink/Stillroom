@@ -15,6 +15,7 @@ import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
@@ -78,7 +79,8 @@ private fun number(amount:BigDecimal)=Json.parseToJsonElement(amount.toPlainStri
                 val options=android.graphics.BitmapFactory.Options().apply { inJustDecodeBounds=true }
                 android.graphics.BitmapFactory.decodeByteArray(bytes,0,bytes.size,options)
                 require(options.outWidth>0 && options.outHeight>0 && options.outWidth.toLong()*options.outHeight<=40_000_000) { "Image is too large." }
-                val bitmap=android.graphics.BitmapFactory.decodeByteArray(bytes,0,bytes.size) ?: error("Invalid image.")
+                val scaled=android.graphics.BitmapFactory.Options().apply { inSampleSize=decodeSampleSize(options.outWidth,options.outHeight) }
+                val bitmap=android.graphics.BitmapFactory.decodeByteArray(bytes,0,bytes.size,scaled) ?: error("Invalid image.")
                 java.io.ByteArrayOutputStream().use { out->bitmap.compress(android.graphics.Bitmap.CompressFormat.JPEG,85,out);bitmap.recycle();out.toByteArray().also { require(it.size<=5_242_880) } }
             } }catch(e:CancellationException){throw e}catch(e:Exception){imageError=e.message}
         }
@@ -164,7 +166,15 @@ private fun number(amount:BigDecimal)=Json.parseToJsonElement(amount.toPlainStri
                 item { CookingMode(row,s) }
             } else {
                 item {
-                    val bitmap=remember(picture){picture?.let { android.graphics.BitmapFactory.decodeByteArray(it,0,it.size)?.asImageBitmap() }}
+                    // Key on the content hash, not the array: ByteArray uses identity equality,
+                    // so a fresh array with identical bytes would otherwise invalidate remember
+                    // and re-decode on every recomposition. Decoding also moves off the
+                    // composition thread and is downsampled, so a 12MP photo is ~48MB of
+                    // ARGB_8888 on the main thread no longer.
+                    val pictureKey=remember(picture){picture?.contentHashCode()}
+                    val bitmap by produceState<ImageBitmap?>(null,pictureKey) {
+                        value=withContext(Dispatchers.IO){picture?.let { decodeDownsampled(it) } }
+                    }
                     if(bitmap!=null) Image(bitmap,row.recipeText("name"),contentScale=ContentScale.Crop,modifier=Modifier.fillMaxWidth().height(220.dp).clip(MaterialTheme.shapes.large))
 
                 }
