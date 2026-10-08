@@ -1,5 +1,7 @@
 package app.stillroom.domain
 
+import app.stillroom.fractions.QuantityStyle
+
 enum class Section { Today, Pantry, Shop, Meals, Household }
 enum class ThemeChoice { System, Light, Dark }
 
@@ -9,6 +11,8 @@ data class ShellPreferences(
     val theme: ThemeChoice = ThemeChoice.System,
     val dynamicColor: Boolean = false,
     val reducedMotion: Boolean = false,
+    // Fractions matches what every screen showed before this setting existed.
+    val quantityStyle: QuantityStyle = QuantityStyle.Fractions,
 ) {
     fun normalized(): ShellPreferences = copy(
         visibleSections = when {

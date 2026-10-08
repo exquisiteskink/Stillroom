@@ -1,5 +1,6 @@
 package app.stillroom.domain
 
+import app.stillroom.fractions.QuantityFormatter
 import app.stillroom.fractions.QuantityFractions
 import java.math.BigDecimal
 import java.util.Locale
@@ -14,8 +15,8 @@ fun JsonObject.recipeId(key:String)=recipeText(key).toLongOrNull()
 fun JsonObject.recipeDecimal(key:String)=recipeText(key).toBigDecimalOrNull()
 
 /** Formatting may approximate. A clean editor always saves the original server decimal. */
-class RecipeAmountInput(val original:BigDecimal,private val locale:Locale) {
-    var text=QuantityFractions().format(original,locale).text;private set
+class RecipeAmountInput(val original:BigDecimal,private val locale:Locale,formatter:QuantityFormatter=QuantityFormatter()) {
+    var text=formatter.format(original,locale);private set
     private var dirty=false
     fun change(value:String) { text=value;dirty=true }
     fun saved():BigDecimal=if(!dirty) original else QuantityFractions().parse(text,locale)?.value ?: error("Enter a quantity.")

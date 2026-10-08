@@ -21,8 +21,8 @@ import java.math.BigDecimal
 import java.math.MathContext
 import java.util.Locale
 
-private val shoppingFractions = QuantityFractions()
-internal fun shoppingQuantity(value: BigDecimal) = shoppingFractions.format(value, Locale.getDefault()).text
+@Composable @ReadOnlyComposable
+internal fun shoppingQuantity(value: BigDecimal) = quantityText(value)
 
 @Composable
 fun ShoppingScreen(model: ShoppingViewModel, grants: Set<String>?) {

@@ -16,13 +16,14 @@ import java.util.Locale
 
 @Composable
 internal fun ShoppingItemForm(listId: Long, snapshot: ShoppingSnapshot, baseline: JsonObject?, seed: String?, busy: Boolean, onBack: () -> Unit, onSave: (ShoppingDraft) -> Unit) {
+    val quantities=LocalQuantityFormatter.current
     val initial = seed?.let { Json.parseToJsonElement(it).jsonObject } ?: baseline
     var productId by remember { mutableStateOf(initial?.shoppingText("product_id").orEmpty()) }
     var unit by remember { mutableStateOf(initial?.shoppingText("qu_id").orEmpty()) }
     var note by remember { mutableStateOf(initial?.shoppingText("note").orEmpty()) }
     val initialFactor = remember { snapshot.factor(productId, unit) ?: BigDecimal.ONE }
     val originalAmount = remember { initial?.shoppingDecimal("amount") ?: BigDecimal.ONE }
-    var amount by remember { mutableStateOf(shoppingQuantity(originalAmount.divide(initialFactor, MathContext.DECIMAL128))) }
+    var amount by remember { mutableStateOf(quantities.format(originalAmount.divide(initialFactor, MathContext.DECIMAL128), Locale.getDefault())) }
     var amountChanged by remember { mutableStateOf(false) }
     var error by remember { mutableStateOf<String?>(null) }
     Text(if (seed != null) "Review merged edit" else if (baseline == null) "Add item" else "Edit item", style = MaterialTheme.typography.headlineMedium)
@@ -55,13 +56,14 @@ internal fun ShoppingItemForm(listId: Long, snapshot: ShoppingSnapshot, baseline
 
 @Composable
 internal fun PurchaseFromListReview(row: JsonObject, snapshot: ShoppingSnapshot, busy: Boolean, onBack: () -> Unit, onConfirm: (StockBooking) -> Unit) {
+    val quantities=LocalQuantityFormatter.current
     val product = snapshot.rows("products").find { it.shoppingText("id") == row.shoppingText("product_id") }
     if (product == null) {
         Text("This product is unavailable. Return to the list and refresh.")
         QuietButton(onClick = onBack) { Text("Back to list") }
         return
     }
-    val quantityInput = remember { RecipeAmountInput(row.shoppingDecimal("amount") ?: BigDecimal.ZERO, Locale.getDefault()) }
+    val quantityInput = remember { RecipeAmountInput(row.shoppingDecimal("amount") ?: BigDecimal.ZERO,Locale.getDefault(),quantities) }
     var amount by remember { mutableStateOf(quantityInput.text) }
     var price by remember { mutableStateOf(snapshot.price(row.shoppingText("product_id"))?.toPlainString().orEmpty()) }
     var date by remember { mutableStateOf("") }

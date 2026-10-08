@@ -31,12 +31,13 @@ import java.math.BigDecimal
 import java.util.Locale
 
 private val recipeFractions=QuantityFractions()
-private fun qty(amount:BigDecimal)=recipeFractions.format(amount,Locale.getDefault()).text
+@Composable @ReadOnlyComposable private fun qty(amount:BigDecimal)=quantityText(amount)
 private fun decimal(text:String)=recipeFractions.parse(text,Locale.getDefault())?.value ?: error("Enter a quantity.")
 private fun number(amount:BigDecimal)=Json.parseToJsonElement(amount.toPlainString())
 
 @Composable internal fun RecipeServings(row: JsonObject, busy: Boolean, save: (BigDecimal) -> Unit) {
-    val input = remember(row) { RecipeAmountInput(row.recipeDecimal("desired_servings") ?: BigDecimal.ONE, Locale.getDefault()) }
+    val quantities=LocalQuantityFormatter.current
+    val input = remember(row) { RecipeAmountInput(row.recipeDecimal("desired_servings") ?: BigDecimal.ONE,Locale.getDefault(),quantities) }
     var servings by remember(row) { mutableStateOf(input.text) }
     LabeledTextField(servings, { servings = it; input.change(it) }, label = "Desired servings", isError=!runCatching { input.saved().signum()>0 }.getOrDefault(false), supportingText=if(!runCatching { input.saved().signum()>0 }.getOrDefault(false)) "Enter servings greater than zero." else null)
     SecondaryButton(onClick = { save(input.saved()) }, enabled = !busy && runCatching { input.saved().signum() > 0 }.getOrDefault(false)) { Text("Scale servings") }
@@ -226,11 +227,12 @@ private fun number(amount:BigDecimal)=Json.parseToJsonElement(amount.toPlainStri
 }
 
 @Composable private fun RecipeEditor(row:JsonObject?,close:()->Unit,save:(JsonObject)->Unit) {
+    val quantities=LocalQuantityFormatter.current
     var name by remember { mutableStateOf(row?.recipeText("name").orEmpty()) }
     val original=row?.recipeText("description").orEmpty()
     var instructions by remember { mutableStateOf(recipeSteps(original).joinToString("\n")) };var changed by remember { mutableStateOf(false) }
     var source by remember { mutableStateOf(recipeSource(original)) }
-    val amount=remember { RecipeAmountInput(row?.recipeDecimal("base_servings") ?: BigDecimal.ONE,Locale.getDefault()) };var servings by remember { mutableStateOf(amount.text) }
+    val amount=remember { RecipeAmountInput(row?.recipeDecimal("base_servings") ?: BigDecimal.ONE,Locale.getDefault(),quantities) };var servings by remember { mutableStateOf(amount.text) }
     val valid=name.isNotBlank() && runCatching { amount.saved().signum()>0 && (source.isBlank() || recipeDescription("",source).isNotBlank()) }.getOrDefault(false)
     RecipeDialog(if(row==null)"Create recipe" else "Edit recipe",close,save={save(buildJsonObject {
         put("name",name);put("base_servings",number(amount.saved()));put("description",if(!changed && source==recipeSource(original))original else recipeDescription(instructions,source))
@@ -243,8 +245,9 @@ private fun number(amount:BigDecimal)=Json.parseToJsonElement(amount.toPlainStri
     }
 }
 @Composable private fun IngredientEditor(s:RecipeSnapshot,recipe:Long,row:JsonObject?,close:()->Unit,save:(JsonObject)->Unit) {
+    val quantities=LocalQuantityFormatter.current
     var product by remember { mutableStateOf(row?.recipeId("product_id")) };var unit by remember { mutableStateOf(row?.recipeId("qu_id")) }
-    val amount=remember { RecipeAmountInput(row?.recipeDecimal("amount") ?: BigDecimal.ONE,Locale.getDefault()) };var text by remember { mutableStateOf(amount.text) }
+    val amount=remember { RecipeAmountInput(row?.recipeDecimal("amount") ?: BigDecimal.ONE,Locale.getDefault(),quantities) };var text by remember { mutableStateOf(amount.text) }
     var note by remember { mutableStateOf(row?.recipeText("note").orEmpty()) };var group by remember { mutableStateOf(row?.recipeText("ingredient_group").orEmpty()) }
     var variable by remember { mutableStateOf(row?.recipeText("variable_amount").orEmpty()) }
     var single by remember { mutableStateOf(row?.recipeText("only_check_single_unit_in_stock")=="1") };var skip by remember { mutableStateOf(row?.recipeText("not_check_stock_fulfillment")=="1") };var round by remember { mutableStateOf(row?.recipeText("round_up")=="1") }
@@ -262,10 +265,11 @@ private fun number(amount:BigDecimal)=Json.parseToJsonElement(amount.toPlainStri
     }
 }
 @Composable private fun MealEditor(s:RecipeSnapshot,row:JsonObject?,close:()->Unit,save:(JsonObject)->Unit) {
+    val quantities=LocalQuantityFormatter.current
     var day by remember { mutableStateOf(row?.recipeText("day") ?: java.time.LocalDate.now().toString()) };var type by remember { mutableStateOf(row?.recipeText("type") ?: "recipe") }
     var recipe by remember { mutableStateOf(row?.recipeId("recipe_id")) };var section by remember { mutableStateOf(row?.recipeId("section_id")) }
     var product by remember { mutableStateOf(row?.recipeId("product_id")) };var unit by remember { mutableStateOf(row?.recipeId("product_qu_id")) }
-    val amount=remember { RecipeAmountInput(row?.recipeDecimal(if(type=="product")"product_amount" else "recipe_servings") ?: BigDecimal.ONE,Locale.getDefault()) };var text by remember { mutableStateOf(amount.text) };var note by remember { mutableStateOf(row?.recipeText("note").orEmpty()) }
+    val amount=remember { RecipeAmountInput(row?.recipeDecimal(if(type=="product")"product_amount" else "recipe_servings") ?: BigDecimal.ONE,Locale.getDefault(),quantities) };var text by remember { mutableStateOf(amount.text) };var note by remember { mutableStateOf(row?.recipeText("note").orEmpty()) }
     val valid=runCatching { java.time.LocalDate.parse(day);amount.saved().signum()>0 }.getOrDefault(false) && section!=null && (type=="note" || (type=="recipe" && recipe!=null) || (type=="product" && product!=null && unit!=null && s.factor(product!!,unit!!)!=null))
     RecipeDialog("Meal plan entry",close,save={save(buildJsonObject {
         put("day",day);put("type",type);put("section_id",section!!);put("note",note)
@@ -304,8 +308,9 @@ private fun number(amount:BigDecimal)=Json.parseToJsonElement(amount.toPlainStri
 }
 
 @Composable internal fun ImportRecipeReview(draft:RecipeImport,s:RecipeSnapshot,busy:Boolean,load:()->Unit,close:()->Unit,save:(JsonObject,List<JsonObject>)->Unit) {
+    val quantities=LocalQuantityFormatter.current
     var name by remember(draft){mutableStateOf(draft.name)};var instructions by remember(draft){mutableStateOf(draft.instructions)}
-    val amount=remember(draft){draft.servings?.let { RecipeAmountInput(it,Locale.getDefault()) }};var servings by remember(draft){mutableStateOf(amount?.text.orEmpty())}
+    val amount=remember(draft){draft.servings?.let { RecipeAmountInput(it,Locale.getDefault(),quantities) }};var servings by remember(draft){mutableStateOf(amount?.text.orEmpty())}
     fun currentServings()=amount?.saved() ?: decimal(servings)
     var mapped by remember(draft){mutableStateOf(List(draft.ingredients.size){JsonObject(emptyMap())})}
     var raw by remember(draft){mutableStateOf(draft.ingredients)};var add by remember(draft){mutableStateOf("")}

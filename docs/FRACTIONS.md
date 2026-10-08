@@ -33,3 +33,13 @@ Use domain-specific decimal formatting instead when even this marked approximati
 Run `mise run stage:4`. It builds the debug APK/preview, runs existing app JVM regressions and the pure module suite, and generates/checks JaCoCo coverage (minimum 80%). No emulator, Grocy mutation, or phone test is part of this gate.
 
 Seeded property loops exercise thousands of exact round trips across US/German/Arabic locales, zero and negative rejection, repeating decimal denominators, and 256-bit whole values. Example tests cover malformed grammar, approximation markers, conservative decimal fallback, denominator configuration, excluded fields, and preservation of stored decimal values. Seeds are fixed for reproducibility. The test and coverage reports are `fractions/build/reports/tests/test/index.html` and `fractions/build/reports/jacoco/test/html/index.html`; actual gate results are recorded in `STATUS.md`.
+
+## Display style setting
+
+Settings → Appearance → **Show quantities as** offers **Fractions** (default, matching what screens showed before the setting) or **Decimals**. The choice is stored with the other device-local shell preferences (`shell_preferences`, key `quantity_style`). Every quantity display reads one shared `QuantityFormatter` (`:fractions`), provided to Compose as `LocalQuantityFormatter` by `StillroomShell`.
+
+- Fractions: whole part plus the closest of ⅛ ¼ ⅓ ½ ⅔ ¾ (`1½`, `2¾`) when the fractional part is within **0.01** of it, otherwise the decimal display. A fraction more than **0.001** away from the value is prefixed with `≈`, so `0.333`/`0.6667` show `⅓`/`⅔` and `0.33` shows `≈⅓`. 3/8, 5/8, 7/8 and other fractions fall back to decimals.
+- Decimals: half-up to 3 places, trailing zeros trimmed, locale separator, no grouping or exponent; a nonzero amount that would round to 0 keeps 3 significant digits.
+- Negative journal amounts get a leading `-`.
+
+This is display only. Editors still save the original server decimal unless the field is edited, and every quantity input still accepts `1 1/2`, `1½` and `1.5` in either style. Conflict-review rows in Shop deliberately show the raw server value.

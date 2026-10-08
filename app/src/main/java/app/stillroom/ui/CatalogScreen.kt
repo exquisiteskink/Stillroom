@@ -102,11 +102,12 @@ private enum class HouseholdTab { Chores, Tasks, Catalog }
 }
 
 @Composable internal fun CatalogEditor(entity:CatalogEntity,row:JsonObject?,s:CatalogSnapshot,close:()->Unit,save:(JsonObject,JsonObject)->Unit) {
+    val quantities=LocalQuantityFormatter.current
     val definitions=remember(entity){CatalogFields.fields(entity)}
     var values by remember { mutableStateOf(definitions.associate { f->f.name to (row?.get(f.name) ?: if(f.kind==CatalogKind.Toggle)JsonPrimitive(if(f.name=="active")1 else 0) else JsonNull) }) }
     val amounts=remember { definitions.filter { it.kind==CatalogKind.Decimal }.associate { field->
         val original=(row?.get(field.name) as? JsonPrimitive)?.contentOrNull?.toBigDecimalOrNull()
-        field.name to original?.let { RecipeAmountInput(it,Locale.getDefault()) }
+        field.name to original?.let { RecipeAmountInput(it,Locale.getDefault(),quantities) }
     } }
     var decimalTexts by remember { mutableStateOf(amounts.mapValues { it.value?.text.orEmpty() }) }
     var advanced by remember { mutableStateOf(false) }
