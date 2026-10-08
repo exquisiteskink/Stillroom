@@ -15,6 +15,7 @@
 
 <p align="center">
   <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-8B4A32?style=flat-square" alt="MIT License"></a>
+  <a href="https://github.com/exquisiteskink/Stillroom/actions/workflows/unit-tests.yml"><img src="https://github.com/exquisiteskink/Stillroom/actions/workflows/unit-tests.yml/badge.svg" alt="Unit tests"></a>
   <img src="https://img.shields.io/badge/Android-8.0%2B-8B4A32?style=flat-square" alt="Android 8.0+">
   <img src="https://img.shields.io/badge/package-app.stillroom-8B4A32?style=flat-square" alt="app.stillroom">
   <img src="https://img.shields.io/badge/Grocy-4.6%20·%204.7-8B4A32?style=flat-square" alt="Grocy 4.6 and 4.7">
@@ -41,13 +42,17 @@
 
 Captured on a Galaxy Z Fold 6 cover display. Live pantry and recipe names stay off GitHub.
 
+> Drop extra portrait frames in `docs/screenshots/` (Pantry, Scan, Settings). Leave household product names and Grocy URLs out of the tree.
+
 ---
 
 ## What it is
 
-Stillroom is a native Android app for households that already run **Grocy**. It is a companion, not a replacement: the official Grocy web app remains authoritative, and every write is meant to show up there after sync.
+Stillroom is the phone you keep on the counter. [Grocy](https://grocy.info/) stays the ledger.
 
-Sign in with a Grocy **API key** (one key per Grocy user). Child accounts are separate Grocy users with their own keys. The kitchen UI is one terracotta-and-cream palette, with time-of-day photography on Today and a photo grid for recipes.
+It is a native Android companion for households that already run Grocy — pantry, shopping, meals, chores, and a barcode scanner — in one terracotta-and-cream kitchen. The official Grocy web app remains authoritative. Every write is meant to show up there after sync.
+
+Sign in with a Grocy **API key** (one key per Grocy user). Child accounts are separate Grocy users with their own keys. Today swaps a breakfast, lunch, or dinner still-life by the hour; recipes are a photo grid.
 
 Package `app.stillroom` · Kotlin · Jetpack Compose · Material 3 · minSdk 26 · MIT.
 
@@ -181,7 +186,7 @@ These are the only donation channels. Donations are optional; every feature is a
 
 ## Contributing
 
-Bug reports, ideas, and pull requests are welcome. Please keep Grocy as the only backend, keep household API keys and live pantry screenshots out of the repository, and read [AGENTS.md](AGENTS.md) before changing product boundaries.
+Bug reports, ideas, and pull requests are welcome. See [CONTRIBUTING.md](CONTRIBUTING.md). Keep Grocy as the only backend, keep household API keys and live pantry screenshots out of the repository, and read [AGENTS.md](AGENTS.md) before changing product boundaries.
 
 ---
 
