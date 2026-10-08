@@ -15,17 +15,16 @@ data class StockUiState(
     val selected: Long? = null, val bookingOperation: String? = null, val operations: List<PendingChange> = emptyList(),
 )
 class StockViewModel(private val accounts: AndroidAccountsRepository) : ViewModel() {
-    private val mutable = MutableStateFlow(StockUiState())
-    val state = mutable.asStateFlow()
+    private val ui = AccountBoundState(StockUiState())
+    val state = ui.flow
     private var work: Job? = null
     private var identity: Account? = null
-    private var generation=0L
     init {
         viewModelScope.launch {
             accounts.state.collect { accountState ->
                 if (accountState.active != identity) {
-                    generation++;identity = accountState.active; work?.cancel()
-                    mutable.value = StockUiState(denied = !StockAccess.canRead(accountState.active?.permissions))
+                    identity = accountState.active; work?.cancel()
+                    ui.reset(StockUiState(denied = !StockAccess.canRead(accountState.active?.permissions)))
                     if (!state.value.denied) refresh()
                 }
             }
@@ -38,17 +37,19 @@ class StockViewModel(private val accounts: AndroidAccountsRepository) : ViewMode
         load(paths)
         load(locationPaths())
     }
-    fun select(id: Long?) { if (state.value.busy) return; mutable.value = state.value.copy(selected = id,bookingOperation=if(id!=state.value.selected) null else state.value.bookingOperation); refresh() }
+    fun select(id: Long?) { if (state.value.busy) return; ui.update { it.copy(selected = id,bookingOperation=if(id!=it.selected) null else it.bookingOperation) }; refresh() }
     fun book(booking: StockBooking) = execute {
         val operation = accounts.withStock { it.book(booking) }
-        mutable.value = state.value.copy(bookingOperation = operation)
+        publish { it.copy(bookingOperation = operation) }
         // Expose the durable pending record before transport begins; quantities remain confirmed reads.
-        mutable.value = state.value.copy(operations = accounts.withStock { it.operations() })
+        val queued = accounts.withStock { it.operations() }
+        publish { it.copy(operations = queued) }
         accounts.drainStock()
-        mutable.value=state.value.copy(operations=accounts.withStock { it.operations() })
+        val sent = accounts.withStock { it.operations() }
+        publish { it.copy(operations = sent) }
         load(listOf("/stock", "/stock/volatile", "/objects/stock_log") + listOf("", "/locations", "/entries", "/price-history").map { "/stock/products/${booking.productId}$it" } + locationPaths())
     }
-    fun clearBookingOutcome() { if (!state.value.busy) mutable.value = state.value.copy(bookingOperation = null) }
+    fun clearBookingOutcome() { if (!state.value.busy) ui.update { it.copy(bookingOperation = null) } }
     fun undo(id: Long) = execute {
         accounts.withStock { it.undo(id) }; accounts.drainStock()
         reloadAfterUndo()
@@ -56,34 +57,34 @@ class StockViewModel(private val accounts: AndroidAccountsRepository) : ViewMode
     fun undoTransaction(id: String) = execute {
         accounts.withStock { it.undoTransaction(id) }; accounts.drainStock(); reloadAfterUndo()
     }
-    private suspend fun reloadAfterUndo() {
+    private suspend fun AccountBoundState<StockUiState>.Publisher.reloadAfterUndo() {
         load(listOf("/stock", "/stock/volatile", "/objects/stock_log") + state.value.selected?.let { listOf("/stock/products/$it", "/stock/products/$it/locations", "/stock/products/$it/entries", "/stock/products/$it/price-history") }.orEmpty() + locationPaths())
     }
     private fun locationPaths() = state.value.rows("/objects/locations").map { "/stock/locations/${it.text("id")}/entries" }
-    private suspend fun load(paths: List<String>) {
-        val result = state.value.resources.toMutableMap()
-        val stalePaths = state.value.stalePaths.toMutableSet()
-        accounts.withStock { stock ->
-            for (path in paths) {
-                val read = stock.read(path)
-                result[path] = read.value
-                if (read.stale) stalePaths.add(path) else stalePaths.remove(path)
-            }
-            mutable.value = state.value.copy(resources = result, stale = stalePaths.isNotEmpty(), stalePaths = stalePaths, operations = stock.operations())
+    private suspend fun AccountBoundState<StockUiState>.Publisher.load(paths: List<String>) {
+        val reads = mutableMapOf<String, StockRead>()
+        val operations = accounts.withStock { stock ->
+            for (path in paths) reads[path] = stock.read(path)
+            stock.operations()
+        }
+        publish { current ->
+            val stalePaths = current.stalePaths.toMutableSet()
+            reads.forEach { (path, read) -> if (read.stale) stalePaths.add(path) else stalePaths.remove(path) }
+            current.copy(resources = current.resources + reads.mapValues { it.value.value }, stale = stalePaths.isNotEmpty(), stalePaths = stalePaths, operations = operations)
         }
     }
-    private fun execute(block: suspend () -> Unit) {
+    private fun execute(block: suspend AccountBoundState<StockUiState>.Publisher.() -> Unit) {
         if (state.value.busy || state.value.denied) return
-        val boundGeneration=generation
-        mutable.value = state.value.copy(busy = true, error = null)
+        val bound = ui.publisher()
+        ui.update { it.copy(busy = true, error = null) }
         work = viewModelScope.launch {
-            try { block() }
+            try { bound.block() }
             catch (error: CancellationException) { throw error }
             catch (error: Exception) {
                 val denied = (error is GrocyFailure && error.status in setOf(401, 403)) || error.message == "Stock access denied."
-                mutable.value = state.value.copy(denied = denied, resources = if (denied) emptyMap() else state.value.resources,
-                    error = if (denied) "Stock access denied." else "Stock could not be refreshed. Check the connection or booking fields.")
-            } finally { if(generation==boundGeneration) mutable.value = state.value.copy(busy = false) }
+                bound.publish { it.copy(denied = denied, resources = if (denied) emptyMap() else it.resources,
+                    error = if (denied) "Stock access denied." else "Stock could not be refreshed. Check the connection or booking fields.") }
+            } finally { bound.publish { it.copy(busy = false) } }
         }
     }
 }

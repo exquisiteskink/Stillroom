@@ -11,14 +11,14 @@ import kotlinx.serialization.json.JsonObject
 
 data class ShoppingUiState(val snapshot: ShoppingSnapshot = ShoppingSnapshot(emptyMap(), false), val changes: List<ShoppingChange> = emptyList(), val busy: Boolean = false, val denied: Boolean = true, val error: String? = null)
 class ShoppingViewModel(private val accounts: AndroidAccountsRepository) : ViewModel() {
-    private val mutable = MutableStateFlow(ShoppingUiState())
-    val state = mutable.asStateFlow()
+    private val ui = AccountBoundState(ShoppingUiState())
+    val state = ui.flow
     private var work: Job? = null
     private var identity: Account? = null
     init { viewModelScope.launch { accounts.state.collect {
         if (identity != it.active) {
             work?.cancel(); identity = it.active
-            mutable.value = ShoppingUiState(denied = !ShoppingAccess.allowed(it.active?.permissions))
+            ui.reset(ShoppingUiState(denied = !ShoppingAccess.allowed(it.active?.permissions)))
             if (!state.value.denied) refresh()
         }
     } } }
@@ -29,22 +29,26 @@ class ShoppingViewModel(private val accounts: AndroidAccountsRepository) : ViewM
     fun purchase(row: JsonObject, booking: StockBooking) = execute { it.purchase(row, booking); pending(it); it.sync() }
     fun acceptServer(id: String) = execute { it.acceptServer(id) }
     fun merge(id: String, draft: ShoppingDraft, observed: JsonObject) = execute { it.acceptServer(id); it.save(draft, observed); pending(it); it.sync() }
-    private suspend fun pending(shopping: ManageShopping) { mutable.value = state.value.copy(changes = shopping.changes()) }
-    private fun execute(action: suspend (ManageShopping) -> Unit) {
+    private suspend fun AccountBoundState<ShoppingUiState>.Publisher.pending(shopping: ManageShopping) {
+        val changes = shopping.changes(); publish { it.copy(changes = changes) }
+    }
+    private fun execute(action: suspend AccountBoundState<ShoppingUiState>.Publisher.(ManageShopping) -> Unit) {
         if (state.value.busy || state.value.denied) return
+        val bound = ui.publisher()
         work = viewModelScope.launch {
-            mutable.value = state.value.copy(busy = true, error = null)
+            bound.publish { it.copy(busy = true, error = null) }
             try {
                 accounts.withShopping { shopping ->
-                    action(shopping); pending(shopping)
-                    mutable.value = state.value.copy(snapshot = shopping.snapshot(), changes = shopping.changes())
+                    bound.action(shopping)
+                    val snapshot = shopping.snapshot(); val changes = shopping.changes()
+                    bound.publish { it.copy(snapshot = snapshot, changes = changes) }
                 }
             } catch (error: CancellationException) { throw error }
             catch (error: Exception) {
                 val denied = (error is GrocyFailure && error.status in setOf(401, 403)) || error.message == "Shopping access denied."
-                mutable.value = state.value.copy(denied = denied, snapshot = if (denied) ShoppingSnapshot(emptyMap(), false) else state.value.snapshot,
-                    error = if (denied) "Shopping access denied." else "Could not synchronize shopping. Your queued changes are retained; review their status and refresh.")
-            } finally { mutable.value = state.value.copy(busy = false) }
+                bound.publish { it.copy(denied = denied, snapshot = if (denied) ShoppingSnapshot(emptyMap(), false) else it.snapshot,
+                    error = if (denied) "Shopping access denied." else "Could not synchronize shopping. Your queued changes are retained; review their status and refresh.") }
+            } finally { bound.publish { it.copy(busy = false) } }
         }
     }
 }
