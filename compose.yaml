@@ -1,0 +1,22 @@
+# Disposable compatibility fixtures only. Never connect household data here.
+name: stillroom-test
+services:
+  grocy-stable:
+    image: linuxserver/grocy:version-v4.7.1@sha256:c0d0d9d22d3a54fe3f779a743baa2d7bab96b73fad5597ff1a631e2be4b863c8
+    ports: ["127.0.0.1:9283:80"]
+    environment:
+      PUID: "1000"
+      PGID: "1000"
+      TZ: UTC
+    volumes: ["grocy-stable-test:/config"]
+  grocy-previous-minor:
+    image: linuxserver/grocy:version-v4.6.0@sha256:e05cef69d982b8a478abfb5761694ea9fa948449794a5d42a3b830564a513001
+    ports: ["127.0.0.1:9284:80"]
+    environment:
+      PUID: "1000"
+      PGID: "1000"
+      TZ: UTC
+    volumes: ["grocy-previous-test:/config"]
+volumes:
+  grocy-stable-test:
+  grocy-previous-test:

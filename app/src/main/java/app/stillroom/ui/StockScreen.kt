@@ -1,0 +1,318 @@
+package app.stillroom.ui
+
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.liveRegion
+import androidx.compose.ui.unit.dp
+import app.stillroom.R
+import app.stillroom.domain.*
+import app.stillroom.fractions.QuantityFractions
+import kotlinx.serialization.json.*
+import java.math.BigDecimal
+import java.time.LocalDate
+import java.util.Locale
+
+private val fractions = QuantityFractions()
+private fun quantity(value: BigDecimal): String {
+    val shown = fractions.format(value.abs(), Locale.getDefault()).text
+    return if (value.signum() < 0) "-$shown" else shown
+}
+
+@Composable
+fun StockScreen(model: StockViewModel, grants: Set<String>?, barcodeOnly: Boolean = false, scannerActions: Boolean = false, searchAll: Boolean = false) {
+    val state by model.state.collectAsState()
+    var query by remember { mutableStateOf("") }
+    var filter by remember { mutableStateOf(if(searchAll) "All" else "In stock") }
+    var location by remember { mutableStateOf<Long?>(null) }
+    LaunchedEffect(Unit) { if (!state.denied) model.refresh() }
+    if (state.denied || !StockAccess.canRead(grants)) { PermissionDeniedState(); return }
+    val selected = state.selected
+    androidx.activity.compose.BackHandler(enabled=selected!=null) { if(!state.busy) model.select(null) }
+    if (selected != null) {
+        KitchenList(state.busy, model::refresh) {
+            item { QuietButton(onClick = { model.select(null) }) { Text("Back to pantry") } }
+            item { key(selected) { StockDetail(state, selected, model, grants, scannerActions) } }
+        }
+        return
+    }
+    val tabs = listOf("All", "In stock", "Use soon", "Running low", "Opened")
+    val barcodeIds = state.rows("/objects/product_barcodes").filter { it.text("barcode") == query }.map { it.text("product_id") }.toSet()
+    val volatile = state.resources["/stock/volatile"] as? JsonObject
+    val useSoonIds = pantryUseSoonIds(volatile)
+    val runningLowIds = pantryRunningLowIds(volatile)
+    val attentionIds = when (filter) {
+        "Use soon" -> useSoonIds
+        "Running low" -> runningLowIds
+        else -> null
+    }
+    val stock = state.rows("/stock")
+    val catalog = state.rows("/objects/products")
+    val today = remember { LocalDate.now() }
+    val locale = remember { Locale.getDefault() }
+    val searching = barcodeOnly || query.isNotBlank()
+    val products = catalog.filter { product ->
+        val id = product.text("id")
+        val row = stock.find { it.text("product_id") == id }
+        val matches = if (barcodeOnly) query.isNotEmpty() && id in barcodeIds else query.isBlank() || product.text("name").contains(query, true) || id in barcodeIds
+        matches && (filter != "In stock" || query.isNotBlank() || (product.text("hide_on_stock_overview") != "1" && product.text("active") != "0")) && (location == null || state.rows("/stock/locations/$location/entries").any { it.text("product_id") == id }) && when {
+            attentionIds != null -> id in attentionIds
+            filter == "In stock" -> (row?.decimal("amount") ?: BigDecimal.ZERO).signum() > 0
+            filter == "Opened" -> (row?.decimal("amount_opened") ?: BigDecimal.ZERO).signum() > 0
+            else -> true
+        }
+    }
+    fun labeled(tab: String) = when (tab) {
+        "Use soon" -> if (useSoonIds.isEmpty()) tab else "$tab · ${useSoonIds.size}"
+        "Running low" -> if (runningLowIds.isEmpty()) tab else "$tab · ${runningLowIds.size}"
+        else -> tab
+    }
+    KitchenList(state.busy, model::refresh, spacedBy = 0.dp) {
+        item {
+            Column(Modifier.padding(bottom = 8.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                KitchenWhisper(if (state.stale) "Showing last synced stock." else null)
+                KitchenError(state.error)
+                LabeledTextField(query, { query = it }, label = if (barcodeOnly) "Barcode" else "Search products", modifier = Modifier.fillMaxWidth())
+                Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    tabs.forEach { tab -> FilterChip(filter == tab, { filter = tab }, { Text(labeled(tab)) }) }
+                }
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    QuietButton(onClick={filter="Locations"}) { Text("Browse locations") }
+                    QuietButton(onClick={filter="Journal"}) { Text("View stock history") }
+                }
+                location?.let { id ->
+                    Text("In " + (state.rows("/objects/locations").find { it.text("id") == id.toString() }?.text("name") ?: "this location"), color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    QuietButton(onClick = { location = null }) { Text("Show every location") }
+                }
+            }
+        }
+        if (filter == "Journal") item { Journal(state, null, model, grants) }
+        else if (filter == "Locations") {
+            val locations = state.rows("/objects/locations")
+            if (locations.isEmpty()) item { KitchenEmpty("No locations yet", "Locations from Grocy will appear here.", R.drawable.empty_pantry) }
+            else items(locations, key = { it.text("id") }) { row ->
+                KitchenStockRow(row.text("name"), amount = "", onClick = { location = row.text("id").toLong(); filter = "All" })
+            }
+        } else {
+            val showAttention = filter == "In stock" && !searching && location == null && (useSoonIds.isNotEmpty() || runningLowIds.isNotEmpty())
+            fun byDue(ids: Set<String>) = catalog.filter { it.text("id") in ids }.sortedBy { product ->
+                stock.find { it.text("product_id") == product.text("id") }?.text("best_before_date").orEmpty()
+            }
+            if (showAttention) {
+                if (useSoonIds.isNotEmpty()) {
+                    item { KitchenSectionTitle("Use soon", Modifier.padding(top = 8.dp)) }
+                    items(byDue(useSoonIds), key = { "soon"+it.text("id") }) { product ->
+                        PantryProductRow(product, stock, state, location, today, locale) { model.select(product.text("id").toLong()) }
+                    }
+                }
+                if (runningLowIds.isNotEmpty()) {
+                    item { KitchenSectionTitle("Running low", Modifier.padding(top = 12.dp)) }
+                    items(catalog.filter { it.text("id") in runningLowIds }, key = { "low"+it.text("id") }) { product ->
+                        PantryProductRow(product, stock, state, location, today, locale) { model.select(product.text("id").toLong()) }
+                    }
+                }
+                item { KitchenSectionTitle("In the pantry", Modifier.padding(top = 12.dp)) }
+            }
+            val rest = if (showAttention) products.filter { it.text("id") !in useSoonIds && it.text("id") !in runningLowIds } else products
+            if (rest.isEmpty() && !showAttention) item {
+                KitchenEmpty(
+                    if (barcodeOnly) "No matching barcode"
+                    else if (filter == "Use soon") "Nothing to use soon"
+                    else if (filter == "Running low") "Nothing is running low"
+                    else "Nothing in this view",
+                    if (barcodeOnly) "Try another code from the package."
+                    else if (filter == "Use soon") "Grocy will list food that is due, overdue, or expired here."
+                    else if (filter == "Running low") "Items below Grocy's minimum stock will show here."
+                    else "Products from Grocy will show with their amounts here.",
+                    R.drawable.empty_pantry,
+                )
+            } else if (rest.isEmpty() && showAttention) {
+                item { Text("Everything else is already listed above.", color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(vertical = 12.dp)) }
+            } else items(rest, key = { it.text("id") }) { product ->
+                PantryProductRow(product, stock, state, location, today, locale) { model.select(product.text("id").toLong()) }
+            }
+        }
+    }
+}
+
+@Composable
+private fun PantryProductRow(
+    product: JsonObject,
+    stock: List<JsonObject>,
+    state: StockUiState,
+    location: Long?,
+    today: LocalDate,
+    locale: Locale,
+    onClick: () -> Unit,
+) {
+    val row = stock.find { it.text("product_id") == product.text("id") }
+    val amount = if (location == null) row?.decimal("amount") ?: BigDecimal.ZERO else state.rows("/stock/locations/$location/entries").filter { it.text("product_id") == product.text("id") }.fold(BigDecimal.ZERO) { total, entry -> total + entry.decimal("amount") }
+    val unit = state.rows("/objects/quantity_units").find { it.text("id") == product.text("qu_id_stock") }?.text("name").orEmpty()
+    val due = pantryDue(row?.text("best_before_date").orEmpty(), today, locale)
+    KitchenStockRow(
+        name = product.text("name"),
+        amount = "${quantity(amount)} $unit".trim(),
+        due = due?.text,
+        tone = when (due?.urgency) {
+            PantryDueUrgency.Overdue -> ColorTone.Overdue
+            PantryDueUrgency.Soon -> ColorTone.Expiring
+            else -> ColorTone.Neutral
+        },
+        onClick = onClick,
+    )
+}
+
+@Composable
+private fun StockDetail(state: StockUiState, id: Long, model: StockViewModel, grants: Set<String>?, scannerActions: Boolean) {
+    val detail = state.resources["/stock/products/$id"] as? JsonObject
+    if (detail == null) {
+        if (state.busy) Text("Loading product…")
+        else ErrorState("Could not load this product.",model::refresh)
+        return
+    }
+    val product = detail["product"] as? JsonObject
+    if (product == null) { ErrorState("Could not load this product.", model::refresh); return }
+    Text(product.text("name"), style = MaterialTheme.typography.titleLarge)
+    KitchenError(state.error)
+    if(state.busy) TaskProgress()
+    if(product.text("description").isNotBlank()) Text(product.text("description"))
+    Text("Stock ${quantity(detail.decimal("stock_amount"))} · opened ${quantity(detail.decimal("stock_amount_opened"))} · due ${detail.text("next_due_date")}")
+    StockForm(state, product, model::book, model::clearBookingOutcome, grants, scannerActions)
+    var showDetails by remember(id) { mutableStateOf(false) }
+    QuietButton(onClick={showDetails=!showDetails}) { Text(if(showDetails) "Hide product details" else "Show product details") }
+    if(showDetails) {
+    if (product.text("parent_product_id").isNotBlank()) Text("Parent product: ${product.text("parent_product_id")}")
+    val overview = state.rows("/stock").find { it.text("product_id") == id.toString() }
+    overview?.let { Text("Including subproducts: ${quantity(it.decimal("amount_aggregated"))}") }
+    Text("Stock unit: ${detail["quantity_unit_stock"]?.jsonObject?.text("name")}")
+    Text("Current price: ${detail.text("current_price")} · last: ${detail.text("last_price")} · average: ${detail.text("avg_price")}")
+    Text("Barcodes: " + state.rows("/objects/product_barcodes").filter { it.text("product_id") == id.toString() }.joinToString { it.text("barcode") })
+    Text("Locations", style = MaterialTheme.typography.titleMedium)
+    state.rows("/stock/products/$id/locations").forEach { row ->
+        val name = state.rows("/objects/locations").find { it.text("id") == row.text("location_id") }?.text("name") ?: row.text("location_name")
+        Text("$name · ${quantity(row.decimal("amount"))}")
+    }
+    Text("Stock entries", style = MaterialTheme.typography.titleMedium)
+    state.rows("/stock/products/$id/entries").forEach { row -> Text("${quantity(row.decimal("amount"))} · location ${row.text("location_id")} · due ${row.text("best_before_date")} · opened ${row.text("open")} · price ${row.text("price")}") }
+    Text("Price history", style = MaterialTheme.typography.titleMedium)
+    state.rows("/stock/products/$id/price-history").forEach { row -> Text("${row.text("date")} ${row.text("purchased_date")} · ${row.text("price")} · store ${(row["shopping_location"] as? JsonObject)?.text("name").orEmpty()}") }
+    Journal(state, id, model, grants)
+    }
+}
+
+@Composable internal fun StockJournalEntry(row: JsonObject, productName: String, locationName: String) {
+    val action=when(row.text("transaction_type")) { "purchase"->"Added";"consume"->if(row.text("spoiled")=="1") "Spoiled" else "Used";"inventory"->"Counted";"transfer"->"Moved";"product-opened"->"Opened";else->"Changed" }
+    Column(Modifier.fillMaxWidth().padding(vertical=8.dp),verticalArrangement=Arrangement.spacedBy(8.dp)) {
+        Text(productName,style=MaterialTheme.typography.titleMedium)
+        Text("$action · ${quantity(row.decimal("amount"))}" + if(locationName.isBlank()) "" else " · $locationName")
+        Text(row.text("row_created_timestamp"),style=MaterialTheme.typography.bodySmall,color=MaterialTheme.colorScheme.onSurfaceVariant)
+        if(row.text("undone")=="1") Text("Undone",style=MaterialTheme.typography.labelMedium)
+    }
+}
+
+@Composable
+private fun Journal(state: StockUiState, product: Long?, model: StockViewModel, grants: Set<String>?) {
+    Text("Stock history", style = MaterialTheme.typography.titleMedium)
+    val paths = (state.resources["/openapi/specification"] as? JsonObject)?.get("paths") as? JsonObject
+    val undoSupported = paths?.containsKey("/stock/bookings/{bookingId}/undo") == true && !state.stale
+    val transactionUndoSupported = paths?.containsKey("/stock/transactions/{transactionId}/undo") == true && !state.stale
+    val transactionsShown = mutableSetOf<String>()
+    state.rows("/objects/stock_log").filter { product == null || it.text("product_id") == product.toString() }.asReversed().forEach { row ->
+        val productName = state.rows("/objects/products").find { it.text("id") == row.text("product_id") }?.text("name") ?: row.text("product_id")
+        val locationName = state.rows("/objects/locations").find { it.text("id") == row.text("location_id") }?.text("name").orEmpty()
+        StockJournalEntry(row, productName, locationName)
+        if (row.text("note").isNotBlank()) Text(row.text("note"))
+        if (StockAccess.canRead(grants) && row.text("undone") != "1" && row.text("transaction_type") != "stock-edit") {
+            val transaction = row.text("transaction_id")
+            if (transactionUndoSupported && transaction.isNotBlank()) {
+                if (transactionsShown.add(transaction)) QuietButton(onClick = { model.undoTransaction(transaction) }, enabled = !state.busy) { Text("Undo transaction $transaction") }
+            } else if (undoSupported) {
+                QuietButton(onClick = { model.undo(row.text("id").toLong()) }, enabled = !state.busy) { Text("Undo booking ${row.text("id")}") }
+            }
+        }
+    }
+}
+
+@Composable
+internal fun StockForm(state: StockUiState, product: JsonObject, book: (StockBooking) -> Unit, clearBookingOutcome: () -> Unit, grants: Set<String>?, scannerActions: Boolean, scanAction:StockAction?=null) {
+    var chosenAction by remember(product.text("id")) { mutableStateOf(StockAction.entries.firstOrNull { StockAccess.canWrite(grants,it) } ?: StockAction.Purchase) }
+    val action=scanAction ?: chosenAction
+    val unresolved=state.operations.firstOrNull { it.path=="/stock/products/${product.text("id")}/${action.endpoint}" && it.state in setOf("pending","guarded","in-flight","needs-review") }
+    val boundOperation=state.bookingOperation ?: unresolved?.clientOperationId
+    val submitted = boundOperation != null
+    val enabled = !state.busy && !submitted
+    var amount by remember { mutableStateOf("1") }
+    var unit by remember { mutableStateOf<Long?>(null) }
+    var location by remember { mutableStateOf<Long?>(null) }
+    var destination by remember { mutableStateOf<Long?>(null) }
+    var date by remember { mutableStateOf("") }
+    var price by remember { mutableStateOf("") }
+    var error by remember { mutableStateOf<String?>(null) }
+    var showPrice by remember { mutableStateOf(false) }
+    if(scanAction==null) ChoiceField("Stock action",StockAction.entries.filter { StockAccess.canWrite(grants,it) && (!scannerActions || it in setOf(StockAction.Purchase,StockAction.Consume)) }.map { it.ordinal.toLong() to stockActionLabel(it) },chosenAction.ordinal.toLong(),{ selected-> selected?.let { chosenAction=StockAction.entries[it.toInt()] } },enabled=enabled)
+    val stockUnit = product.text("qu_id_stock").toLong()
+    val conversions = state.rows("/objects/quantity_unit_conversions_resolved").filter { it.text("product_id") == product.text("id") && it.text("to_qu_id") == stockUnit.toString() }
+    val selectedUnit = unit ?: stockUnit
+    val factor = if (selectedUnit == stockUnit) BigDecimal.ONE else conversions.find { it.text("from_qu_id") == selectedUnit.toString() }?.decimal("factor")
+    ChoiceField("Quantity unit",state.rows("/objects/quantity_units").filter { it.text("id") == stockUnit.toString() || conversions.any { conversion -> conversion.text("from_qu_id") == it.text("id") } }.map { it.text("id").toLong() to it.text("name") },selectedUnit,{unit=it},enabled=enabled)
+    val parsedQuantity = fractions.parse(amount, Locale.getDefault())
+    val quantityError=if(parsedQuantity==null || (parsedQuantity.value.signum()<=0 && !(action==StockAction.Inventory && parsedQuantity.value.signum()==0))) "Enter a positive quantity" else null
+    val purchaseFields=action==StockAction.Purchase || action==StockAction.Inventory
+    val dateError=if(!purchaseFields) null else if(date.isNotBlank() && runCatching { LocalDate.parse(date) }.isFailure) "Use YYYY-MM-DD" else if(scannerActions && action==StockAction.Purchase && date.isBlank()) "Enter the package due date" else null
+    val priceError=if(!purchaseFields) null else if(price.isNotBlank() && (price.toBigDecimalOrNull()==null || price.toBigDecimalOrNull()!!.signum()<0)) "Enter a price of zero or more" else null
+    LabeledTextField(amount, { amount = it;error=null }, label = if (action == StockAction.Inventory) "New total quantity" else "Quantity",supportingText=quantityError ?: "Decimals and fractions accepted",isError=quantityError!=null,enabled=enabled,modifier=Modifier.fillMaxWidth())
+    parsedQuantity?.let { Text("Input: ${fractions.format(it, Locale.getDefault()).text} · stock quantity: ${quantity(it.value.multiply(factor ?: BigDecimal.ONE))}") }
+    val locationChoices=state.rows("/objects/locations").map { it.text("id").toLong() to it.text("name") }
+    if (action != StockAction.Open) {
+        ChoiceField(if(action==StockAction.Transfer) "From location (required)" else "Location",locationChoices,location,{location=it},allowNone=action!=StockAction.Transfer,noneLabel="Product default",enabled=enabled)
+    }
+    if (action == StockAction.Transfer) ChoiceField("To location (required)",locationChoices,destination,{destination=it},enabled=enabled)
+    if (action == StockAction.Purchase || action == StockAction.Inventory) {
+        if (scannerActions) Text("Read the due date from the package.")
+        LabeledTextField(date, { date = it;error=null }, label = if(scannerActions) "Due date (required)" else "Due date (optional)",supportingText=dateError ?: "YYYY-MM-DD",isError=date.isNotBlank() && dateError!=null,enabled=enabled,modifier=Modifier.fillMaxWidth())
+        if(scannerActions) QuietButton(onClick={showPrice=!showPrice},enabled=enabled) { Text(if(showPrice) "Hide price" else "Add price") }
+        if(!scannerActions || showPrice) LabeledTextField(price, { price = it;error=null }, label = "Price per stock unit (optional)",supportingText=priceError,isError=priceError!=null,enabled=enabled,modifier=Modifier.fillMaxWidth())
+    }
+    if (product.text("enable_tare_weight_handling") == "1" && action != StockAction.Consume && action != StockAction.Spoilage && action != StockAction.Open) Text("Tare handling: purchase/inventory quantity is gross weight. Grocy calculates net stock. Transfer is unavailable.")
+    if(action==StockAction.Transfer && (location==null || destination==null || location==destination)) Text("Choose two different locations.",color=MaterialTheme.colorScheme.onSurfaceVariant)
+    error?.let { Text(it,color=MaterialTheme.colorScheme.error) }
+    scanBookingOutcome(boundOperation,state.operations)?.let { Text(it,modifier=Modifier.semantics { liveRegion=androidx.compose.ui.semantics.LiveRegionMode.Polite }) }
+    if(!scannerActions && state.operations.any { it.clientOperationId==state.bookingOperation && it.state=="confirmed" }) QuietButton(onClick=clearBookingOutcome,enabled=!state.busy) { Text("Record another change") }
+    if(scannerActions && action==StockAction.Purchase && runCatching { LocalDate.parse(date) }.isFailure) Text("Enter the package due date to add stock.",color=MaterialTheme.colorScheme.onSurfaceVariant)
+    PrimaryButton(onClick = {
+        try {
+            val parsed = fractions.parse(amount, Locale.getDefault()) ?: error("Invalid quantity")
+            val booking = StockBooking(action, product.text("id").toLong(), parsed.value, factor ?: error("No unit conversion"), location, destination, date.takeIf { purchaseFields && it.isNotBlank() }, price.takeIf { purchaseFields && it.isNotBlank() }?.toBigDecimal())
+            booking.payload(); error = null; book(booking)
+        } catch (_: Exception) { error = "Enter a valid quantity, decimal price, date, and required locations." }
+    }, enabled = enabled && quantityError==null && priceError==null && dateError==null && (action!=StockAction.Transfer || (location!=null && destination!=null && location!=destination)) && factor != null && (!scannerActions || action != StockAction.Purchase || runCatching { java.time.LocalDate.parse(date) }.isSuccess) && StockAccess.canWrite(grants, action) && !(action == StockAction.Transfer && product.text("enable_tare_weight_handling") == "1") && !(action == StockAction.Open && product.text("disable_open") == "1"), modifier=Modifier.fillMaxWidth()) { Text(if(state.busy) "Saving…" else if(scannerActions) if(action==StockAction.Purchase) "Confirm add" else "Confirm use" else stockActionLabel(action)) }
+}
+
+internal fun stockActionLabel(action:StockAction):String = when(action) {
+    StockAction.Purchase->"Add stock"
+    StockAction.Consume->"Use stock"
+    StockAction.Open->"Mark opened"
+    StockAction.Transfer->"Move stock"
+    StockAction.Inventory->"Set stock total"
+    StockAction.Spoilage->"Record spoilage"
+}
+
+@Composable
+internal fun ScannerStockReview(state:StockUiState,id:Long,model:StockViewModel,grants:Set<String>?,action:StockAction) {
+    val detail=state.resources["/stock/products/$id"] as? JsonObject
+    val product=(detail?.get("product") as? JsonObject)
+    if(product==null || state.selected!=id) {
+        if(state.busy) Text("Loading product…") else ErrorState("Could not load this product.",model::refresh)
+        return
+    }
+    Text(product.text("name"),style=MaterialTheme.typography.titleLarge)
+    Text("In stock: ${quantity(detail.decimal("stock_amount"))} ${detail["quantity_unit_stock"]?.jsonObject?.text("name").orEmpty()}")
+    KitchenWhisper(if(state.stale) "Showing last synced stock." else null)
+    KitchenError(state.error)
+    key(id,action) { StockForm(state,product,model::book,model::clearBookingOutcome,grants,true,action) }
+}

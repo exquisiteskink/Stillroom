@@ -1,0 +1,7 @@
+<resources>
+    <string name="app_name">Stillroom</string>
+    <string name="widget_open">Open Stillroom</string>
+    <string name="widget_chores">Stillroom chores</string>
+    <string name="widget_shopping">Stillroom shopping</string>
+    <string name="widget_scan">Stillroom scan</string>
+</resources>

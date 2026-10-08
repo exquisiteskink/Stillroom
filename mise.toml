@@ -1,0 +1,82 @@
+[tools]
+java = "temurin-21.0.12+101.0.LTS"
+
+[env]
+ANDROID_HOME = "{{config_root}}/.android-sdk"
+
+[tasks."android:install"]
+description = "Install pinned Linux Android command-line SDK and build packages"
+run = "bash scripts/install-android-sdk.sh"
+
+[tasks."unit-test"]
+description = "Run JVM unit tests"
+depends = ["android:install"]
+run = "./gradlew --no-daemon testDebugUnitTest"
+
+[tasks."stage:0"]
+description = "Stage 0 gate: debug APK and JVM unit tests"
+depends = ["android:install"]
+run = "./gradlew --no-daemon assembleDebug testDebugUnitTest"
+
+[tasks."grocy:up"]
+description = "Start two disposable Grocy compatibility fixtures"
+run = 'bash scripts/docker-fixture.sh compose --project-directory "$PWD" -f "$PWD/compose.yaml" up -d'
+
+[tasks."grocy:down"]
+description = "Stop Grocy compatibility fixtures"
+run = 'bash scripts/docker-fixture.sh compose --project-directory "$PWD" -f "$PWD/compose.yaml" down'
+
+[tasks."stage:1"]
+description = "Check Stage 1 documentation and archived live-response integrity (no network replay)"
+run = "bash scripts/check-stage1.sh"
+
+[tasks."android:test-install"]
+description = "Install emulator and API 35 x86_64 image for real Compose UI tests"
+depends = ["android:install"]
+run = "bash scripts/install-android-test-sdk.sh"
+
+[tasks."stage:2"]
+description = "Stage 2 gate: debug build, JVM tests, Compose tests in both themes at phone/tablet widths and large text"
+depends = ["android:test-install"]
+run = "bash scripts/check-stage2.sh"
+
+[tasks."stage:3"]
+description = "Stage 3 gate: encrypted account isolation, Compose UI, live parent/child login and Stage 1 denial on both Grocy fixtures"
+depends = ["android:test-install"]
+run = "bash scripts/check-stage3.sh"
+
+[tasks."stage:4"]
+description = "Stage 4 gate: pure Kotlin fraction properties, coverage, JVM regression tests, and debug preview build"
+depends = ["android:install"]
+run = "bash scripts/check-stage4.sh"
+
+[tasks."stage:5"]
+description = "Stage 5 gate: Room persistence, MockWebServer mutation safety, regressions, lint, debug build"
+depends = ["android:install"]
+run = "bash scripts/check-stage5.sh"
+
+[tasks."stage:6"]
+description = "Stage 6 gate: stock outbox/cache tests, live Grocy stock/journal parity on both containers, lint, build"
+depends = ["android:install"]
+run = "bash scripts/check-stage6.sh"
+
+[tasks."stage:7"]
+description = "Stage 7 gate: shopping lists, offline replay, conflicts, two-client/no-duplicate purchases on both Grocy containers, regressions, lint, build"
+depends = ["android:install"]
+run = "bash scripts/check-stage7.sh"
+
+[tasks."stage:8"]
+description = "Stage 8 gate: existing local Grocy child chore attribution, parent CRUD/recurrence/assignment, tasks, regressions, lint, build"
+run = "bash scripts/check-stage8.sh"
+
+[tasks."stage:9"]
+description = "Stage 9 gate: instrumented fixture-image scan, local Grocy product review / stock / undo, privacy, regressions, lint, build"
+run = "bash scripts/check-stage9.sh"
+
+[tasks."stage:10"]
+description = "Stage 10 gate: existing local Grocy recipe / meal-plan parity, reviewed stock consumption, regressions, coverage, lint, build"
+run = "bash scripts/check-stage10.sh"
+
+[tasks."stage:11"]
+description = "Last build gate: existing local Grocy batteries/conversions, cached Today, widgets/reminders, regressions, coverage, lint, build"
+run = "bash scripts/check-stage11.sh"

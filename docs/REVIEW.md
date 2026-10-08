@@ -1,0 +1,49 @@
+# Defect review — 2026-10-07
+
+Scope: the user's post-Stage-11 defect/cleanup request. No new feature stage, backend, integration, or deployment. Read AGENTS.md, STATUS.md, DECISIONS.md, production source and tests before editing. Used the everything-claude-code review, TDD and verification guidance.
+
+## Fixes and regression evidence
+
+Paths below are relative to `app/src/main/java/app/stillroom/`; tests are under `app/src/test/java/app/stillroom/`.
+
+| Bug | Production file | Regression that failed before the fix |
+| --- | --- | --- |
+| Saving a shopping note reparsed approximate display text and changed the stored amount; repeating display-unit division also lost precision. | `ui/ShoppingForms.kt` | `ShoppingFormsTest.noteOnlyEditPreservesApproximateQuantity`, `noteOnlyEditPreservesQuantityAcrossRepeatingUnitConversion` |
+| Purchase review reparsed an unchanged approximate quantity, e.g. 0.5001 became 0.5. | `ui/ShoppingForms.kt` | `ShoppingFormsTest.purchaseReviewPreservesUnchangedApproximateQuantity` |
+| Scaling without changing desired servings reparsed the displayed fraction. | `ui/RecipeScreen.kt` | `ShoppingFormsTest.scalingWithoutEditingPreservesStoredServings` |
+| Recipe shortages multiplied existing shopping stock amounts by their display-unit factor a second time. | `data/GrocyRecipeRepository.kt` | `RecipeIntegrationTest.localGrocyScaleMissingConsumeAndWebRecords`: real local Grocy returned zero new rows instead of the required one. |
+| After a 403, going offline could expose last-good private JSON again, including after database reopen. | `data/CachedGrocyRepository.kt` | `OutboxTest.revokedCacheCannotReappearOfflineAfterReopen` |
+| Recipe images had the same denial-then-offline leak and did not block cached background publication. | `data/GrocyRecipeRepository.kt` | `RecipeIntegrationTest.deniedImageCannotReappearFromCacheOffline` |
+| External scanner lookup denial did not set the account's background access-denied marker. | `data/GrocyScanRepository.kt` | Strengthened `ScannerIntegrationTest.lookupOrderPrivacyAndDisabledPlugin` |
+| Remembered feature drafts could survive an account switch because the shell content had no account key. | `ui/StillroomShell.kt` | `ShellAccountIsolationTest.rememberedFeatureFormsResetOnAccountSwitch` |
+| A shopping replay permission denial could escape the account-activation launch coroutine and crash the app. | `data/AndroidAccountsRepository.kt` | `ShoppingIntegrationTest.activationReplayDenialDoesNotEscapeAndKeepsQueuedIntent` |
+| Connected fallback still said chores were unimplemented. | `ui/AccountScreen.kt` | `ShellAccountIsolationTest.connectedFallbackDoesNotClaimImplementedChoresAreMissing` |
+| Shared-recipe review formatted base servings and saved the parsed fraction. 0.5001 displayed as ≈½ and was stored as 0.5. | `ui/RecipeScreen.kt` | `ShoppingFormsTest.importReviewWithoutEditingPreservesBaseServings` |
+| Editing a product treated an absent decimal, including calories, as zero and included that zero in the Grocy write. | `ui/CatalogScreen.kt` | `ShoppingFormsTest.productEditDoesNotInventZeroForUnsetDecimals` |
+| Changing only the shopping unit reparsed the approximate quantity. An unedited 0.5001 in a unit whose factor is 3 was stored as 1.5 stock units. | `ui/ShoppingForms.kt` | `ShoppingFormsTest.unitChangePreservesUneditedApproximateQuantity` failed with `expected:<0> but was:<1>` before the fix |
+| Opening a second account database marked an in-flight outbox row needs-review, so the original request's success updated no row and dropped the confirmation. | `data/AccountDatabase.kt` | `OutboxTest.secondLeaseRecoverDoesNotDropAnInFlightSuccess` expected `confirmed` and observed `needs-review` before the fix |
+| The stock journal called quantity formatting on a negative consume amount and crashed during composition. | `ui/StockScreen.kt` | `StockScreenTest.consumeJournalAmountDoesNotCrash` threw `Quantity cannot be negative` before the fix |
+| Activating a saved child after the verifying administrator was gone replaced the child's verified grants with null, because that user cannot read `/users/{id}/permissions`. | `domain/Accounts.kt`, `data/AndroidAccountsRepository.kt` | `AccountPolicyTest.reactivationKeepsVerifiedChildGrantsWhenPermissionReadIsUnavailable` |
+
+The servings control, import review, catalog editor, and activation replay were exposed to host tests without a behavior change before their failing regressions ran. `importReviewEditedServingsUsesTheEnteredQuantity` and `productEditCanRecordAPreviouslyUnsetCalorieCount` lock the edited paths. `AndroidAccountsRepository.readCached` and `enqueueMutation` had no callers; feature code already uses `CachedGrocyRepository`. Removing them has no separate red test. The version-mismatch sentence now lists `GrocyCompatibility.testedVersions`. Existing passing tests were retained. The application-identity comment was also corrected. Compose tests run under Robolectric on the host; they are not device tests. The image-denial test injects a file transport and the scanner-denial test uses MockWebServer; neither claims a live server result.
+
+The cache denial marker is conservative and account-local: offline private cache stays hidden until account re-verification clears it. Independently successful live reads remain usable. Unknown writes and queue identities are unchanged; denial handling does not resend or discard an intent.
+
+An unedited shopping quantity keeps its original decimal across a unit change. The stored stock amount is the original amount multiplied by the new factor and divided by the original factor. Typing a new quantity still parses the text in the selected unit. A negative journal amount is shown with a leading minus; prices, dates, barcodes, and IDs stay text. `QuantityFractions` still rejects a negative quantity. Outbox completion updates a row that is `in-flight` or `needs-review`. A confirmed or failed row is left as recorded. A request that never returns stays `needs-review` and is not sent again. Reactivation keeps the last verified grant set and verifier when this login's permission read is null and no administrator is available. `AccountPolicyTest.freshConnectionAndUnverifiedChildDoNotInventGrants` keeps a first connection, a different account, and an unverified child at null grants. That grant test calls the decision `connect` and `activate` use. It does not open Android Keystore or Grocy. The permission cache row stores the same retained set as the saved account.
+
+## Left unchanged and remaining risks
+
+- Grocy remains authoritative. Account-specific Keystore encryption, logout database/queue deletion, child identity, checksums/leading zeros, scan review, durable outbox claims, unknown-write reconciliation, and shopping receipt logic were retained.
+- Grocy's upstream child API permission gaps remain. Stillroom's UI restrictions are not server isolation; no proxy was added.
+- Shopping detects observed conflicts, but uncoordinated web/API changes can race its final GET→PUT. Grocy supplies no atomic conditional-write guarantee. Other absolute record edits also do not have shopping's distributed conflict protocol.
+- A child assignment is checked before queuing completion, not atomically with execution; later server reassignment can race that completion.
+- Multi-product recipe consumption can partially commit or be partially queued if interrupted. Existing operation IDs prevent replay of the same reviewed operations; pending/review states must be inspected before starting a new review.
+- An ambiguous create without a reliable acknowledgement can remain unresolved. Do not create a replacement merely because confirmation is missing. Logout intentionally deletes that account's pending local changes.
+- Blanking a decimal that Grocy already stores omits that key. Grocy 4.7.1 keeps omitted fields, so the editor does not clear a previously stored calorie or minimum-stock value.
+- Stock and shopping refreshes cancel on account switch but do not ignore a late snapshot write. A cancelled refresh can still publish the previous account's rows if it resumes after the switch. Household, recipes, catalog, scanner, and Today check generation only around the final busy flag.
+- A master-data card whose `id` is missing or not an integer still throws while composing. Empty lists and an authorization denial do not.
+- `EncryptedAccountStore.list()` still removes an account whose credential cannot be read, and it does not delete that account's Room file. A later login of the same server user can open the surviving database and drain a pending queue. The host suite cannot construct Android Keystore, and no device was connected, so this path was not executed. The store was left unchanged: deleting the database on every read exception would also delete it when the keystore is temporarily unavailable.
+- A child's saved grants can stay in effect locally until an administrator account is present and the child is activated again. Grocy remains the authority for the actual call. A first connection still stores no grants unless this login or a present administrator reads them.
+- No physical phone, emulator, camera hardware, launcher, browser UI, Android process-kill, or notification-delivery test was run in this review. Existing encrypted-account instrumentation was read but not rerun. File-backed Room reopen and host tests do not establish those device results.
+
+Validation results are recorded in STATUS.md. Build-only artifacts and red/green logs are under the ignored `app/build/review/` directory. The repository was entirely untracked at review start; a local pre-edit archive was kept there for comparison, and nothing was committed.

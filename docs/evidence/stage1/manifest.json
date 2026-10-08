@@ -1,0 +1,78 @@
+{
+  "captured_utc_date": "2026-10-07",
+  "local_date": "2026-10-06 (America/New_York)",
+  "scope": "Disposable synthetic Grocy fixtures only. No Android feature implementation.",
+  "redactions": [
+    "Authentication headers, cookies, passwords and API key material not captured.",
+    "system/config response limited to FEATURE_FLAG_* and DEFAULT_PERMISSIONS.",
+    "system/info response limited to Grocy version, PHP, SQLite and database versions.",
+    "Error stack traces (error_details) omitted; error_message retained.",
+    "Web responses stored as status and minimal excerpt, not full session HTML."
+  ],
+  "servers": [
+    {
+      "version": "4.7.1",
+      "base_url": "http://127.0.0.1:9283/api",
+      "image": "linuxserver/grocy:version-v4.7.1@sha256:c0d0d9d22d3a54fe3f779a743baa2d7bab96b73fad5597ff1a631e2be4b863c8",
+      "response_count": 210,
+      "first_at_utc": "2026-10-07T01:57:57.711961+00:00",
+      "last_at_utc": "2026-10-07T02:00:21.007755+00:00",
+      "parent_user_id": 2,
+      "child_user_id": 3,
+      "parent_explicit_permission_names": [
+        "ADMIN"
+      ],
+      "child_final_explicit_permission_names": [
+        "CHORES",
+        "CHORE_TRACK_EXECUTION"
+      ],
+      "openapi": {
+        "path": "/openapi/specification",
+        "status": 200,
+        "file": "grocy-4.7.1-openapi.json",
+        "raw_sha256": "aa9f8352601da52f236d95a3c00b5d097778c5c19ff687178092d36a2cfd7a51",
+        "paths": 74
+      },
+      "permission_hierarchy": {
+        "path": "/objects/permission_hierarchy",
+        "status": 200,
+        "file": "grocy-4.7.1-permissions.json",
+        "raw_sha256": "d79ba7dba395f5f7b911336bf030d1b1a212e0dd7c21745bed70c19c8f4b389b"
+      },
+      "responses_file": "grocy-4.7.1-responses.json",
+      "chore_form_file": "grocy-4.7.1-chore-form.json"
+    },
+    {
+      "version": "4.6.0",
+      "base_url": "http://127.0.0.1:9284/api",
+      "image": "linuxserver/grocy:version-v4.6.0@sha256:e05cef69d982b8a478abfb5761694ea9fa948449794a5d42a3b830564a513001",
+      "response_count": 220,
+      "first_at_utc": "2026-10-07T01:58:02.220609+00:00",
+      "last_at_utc": "2026-10-07T02:05:06.397834+00:00",
+      "parent_user_id": 2,
+      "child_user_id": 3,
+      "parent_explicit_permission_names": [
+        "ADMIN"
+      ],
+      "child_final_explicit_permission_names": [
+        "CHORES",
+        "CHORE_TRACK_EXECUTION"
+      ],
+      "openapi": {
+        "path": "/openapi/specification",
+        "status": 200,
+        "file": "grocy-4.6.0-openapi.json",
+        "raw_sha256": "0b166130ba7ae55465f9a8879fcd1778b59c054e4c62d70b5f76103cde49ffe4",
+        "paths": 73
+      },
+      "permission_hierarchy": {
+        "path": "/objects/permission_hierarchy",
+        "status": 200,
+        "file": "grocy-4.6.0-permissions.json",
+        "raw_sha256": "d79ba7dba395f5f7b911336bf030d1b1a212e0dd7c21745bed70c19c8f4b389b"
+      },
+      "responses_file": "grocy-4.6.0-responses.json",
+      "chore_form_file": "grocy-4.6.0-chore-form.json"
+    }
+  ]
+}

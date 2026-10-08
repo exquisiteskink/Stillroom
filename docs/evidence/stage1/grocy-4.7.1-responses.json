@@ -1,0 +1,6893 @@
+[
+  {
+    "label": "system-info",
+    "at_utc": "2026-10-07T01:57:57.711961+00:00",
+    "role": "parent",
+    "method": "GET",
+    "path": "/system/info",
+    "request_json": null,
+    "request_text": null,
+    "status": 200,
+    "content_type": "application/json",
+    "response": {
+      "grocy_version": {
+        "Version": "4.7.1",
+        "ReleaseDate": "2026-09-04"
+      },
+      "php_version": "8.5.6",
+      "sqlite_version": "3.53.4",
+      "db_version": 257
+    }
+  },
+  {
+    "label": "feature-config",
+    "at_utc": "2026-10-07T01:57:57.729248+00:00",
+    "role": "parent",
+    "method": "GET",
+    "path": "/system/config",
+    "request_json": null,
+    "request_text": null,
+    "status": 200,
+    "content_type": "application/json",
+    "response": {
+      "DEFAULT_PERMISSIONS": [
+        "ADMIN"
+      ],
+      "FEATURE_FLAG_STOCK": true,
+      "FEATURE_FLAG_SHOPPINGLIST": true,
+      "FEATURE_FLAG_RECIPES": true,
+      "FEATURE_FLAG_CHORES": true,
+      "FEATURE_FLAG_TASKS": true,
+      "FEATURE_FLAG_BATTERIES": true,
+      "FEATURE_FLAG_EQUIPMENT": true,
+      "FEATURE_FLAG_CALENDAR": true,
+      "FEATURE_FLAG_LABEL_PRINTER": false,
+      "FEATURE_FLAG_STOCK_PRICE_TRACKING": true,
+      "FEATURE_FLAG_STOCK_LOCATION_TRACKING": true,
+      "FEATURE_FLAG_STOCK_BEST_BEFORE_DATE_TRACKING": true,
+      "FEATURE_FLAG_STOCK_PRODUCT_OPENED_TRACKING": true,
+      "FEATURE_FLAG_STOCK_PRODUCT_FREEZING": true,
+      "FEATURE_FLAG_STOCK_BEST_BEFORE_DATE_FIELD_NUMBER_PAD": true,
+      "FEATURE_FLAG_SHOPPINGLIST_MULTIPLE_LISTS": true,
+      "FEATURE_FLAG_RECIPES_MEALPLAN": true,
+      "FEATURE_FLAG_CHORES_ASSIGNMENTS": true,
+      "FEATURE_FLAG_THERMAL_PRINTER": false,
+      "FEATURE_FLAG_DISABLE_BROWSER_BARCODE_CAMERA_SCANNING": false,
+      "FEATURE_FLAG_AUTO_TORCH_ON_WITH_CAMERA": true
+    }
+  },
+  {
+    "label": "permission-hierarchy",
+    "at_utc": "2026-10-07T01:57:57.749794+00:00",
+    "role": "parent",
+    "method": "GET",
+    "path": "/objects/permission_hierarchy",
+    "request_json": null,
+    "request_text": null,
+    "status": 200,
+    "content_type": "application/json",
+    "response": [
+      {
+        "id": 1,
+        "name": "ADMIN",
+        "parent": null
+      },
+      {
+        "id": 2,
+        "name": "USERS",
+        "parent": 1
+      },
+      {
+        "id": 3,
+        "name": "USERS_CREATE",
+        "parent": 2
+      },
+      {
+        "id": 4,
+        "name": "USERS_EDIT",
+        "parent": 3
+      },
+      {
+        "id": 5,
+        "name": "USERS_READ",
+        "parent": 4
+      },
+      {
+        "id": 6,
+        "name": "USERS_EDIT_SELF",
+        "parent": 1
+      },
+      {
+        "id": 7,
+        "name": "STOCK",
+        "parent": 1
+      },
+      {
+        "id": 8,
+        "name": "SHOPPINGLIST",
+        "parent": 1
+      },
+      {
+        "id": 9,
+        "name": "RECIPES",
+        "parent": 1
+      },
+      {
+        "id": 10,
+        "name": "CHORES",
+        "parent": 1
+      },
+      {
+        "id": 11,
+        "name": "BATTERIES",
+        "parent": 1
+      },
+      {
+        "id": 12,
+        "name": "TASKS",
+        "parent": 1
+      },
+      {
+        "id": 13,
+        "name": "EQUIPMENT",
+        "parent": 1
+      },
+      {
+        "id": 14,
+        "name": "CALENDAR",
+        "parent": 1
+      },
+      {
+        "id": 15,
+        "name": "STOCK_PURCHASE",
+        "parent": 7
+      },
+      {
+        "id": 16,
+        "name": "STOCK_CONSUME",
+        "parent": 7
+      },
+      {
+        "id": 17,
+        "name": "STOCK_INVENTORY",
+        "parent": 7
+      },
+      {
+        "id": 18,
+        "name": "STOCK_TRANSFER",
+        "parent": 7
+      },
+      {
+        "id": 19,
+        "name": "STOCK_OPEN",
+        "parent": 7
+      },
+      {
+        "id": 20,
+        "name": "STOCK_EDIT",
+        "parent": 7
+      },
+      {
+        "id": 21,
+        "name": "SHOPPINGLIST_ITEMS_ADD",
+        "parent": 8
+      },
+      {
+        "id": 22,
+        "name": "SHOPPINGLIST_ITEMS_DELETE",
+        "parent": 8
+      },
+      {
+        "id": 23,
+        "name": "RECIPES_MEALPLAN",
+        "parent": 9
+      },
+      {
+        "id": 24,
+        "name": "CHORE_TRACK_EXECUTION",
+        "parent": 10
+      },
+      {
+        "id": 25,
+        "name": "CHORE_UNDO_EXECUTION",
+        "parent": 10
+      },
+      {
+        "id": 26,
+        "name": "BATTERIES_TRACK_CHARGE_CYCLE",
+        "parent": 11
+      },
+      {
+        "id": 27,
+        "name": "BATTERIES_UNDO_CHARGE_CYCLE",
+        "parent": 11
+      },
+      {
+        "id": 28,
+        "name": "TASKS_UNDO_EXECUTION",
+        "parent": 12
+      },
+      {
+        "id": 29,
+        "name": "TASKS_MARK_COMPLETED",
+        "parent": 12
+      },
+      {
+        "id": 30,
+        "name": "MASTER_DATA_EDIT",
+        "parent": 1
+      }
+    ]
+  },
+  {
+    "label": "parent-identity",
+    "at_utc": "2026-10-07T01:57:57.766790+00:00",
+    "role": "parent",
+    "method": "GET",
+    "path": "/user",
+    "request_json": null,
+    "request_text": null,
+    "status": 200,
+    "content_type": "application/json",
+    "response": [
+      {
+        "id": 2,
+        "username": "stillroom_stage1_parent",
+        "first_name": "Stage1",
+        "last_name": "parent",
+        "row_created_timestamp": "2026-10-07 01:55:03",
+        "display_name": "Stage1 parent",
+        "picture_file_name": null
+      }
+    ]
+  },
+  {
+    "label": "parent-explicit-grants",
+    "at_utc": "2026-10-07T01:57:57.784160+00:00",
+    "role": "parent",
+    "method": "GET",
+    "path": "/users/2/permissions",
+    "request_json": null,
+    "request_text": null,
+    "status": 200,
+    "content_type": "application/json",
+    "response": [
+      {
+        "id": 3,
+        "permission_id": 1,
+        "user_id": 2
+      }
+    ]
+  },
+  {
+    "label": "child-identity",
+    "at_utc": "2026-10-07T01:57:57.806216+00:00",
+    "role": "child",
+    "method": "GET",
+    "path": "/user",
+    "request_json": null,
+    "request_text": null,
+    "status": 200,
+    "content_type": "application/json",
+    "response": [
+      {
+        "id": 3,
+        "username": "stillroom_stage1_child",
+        "first_name": "Stage1",
+        "last_name": "child",
+        "row_created_timestamp": "2026-10-07 01:55:03",
+        "display_name": "Stage1 child",
+        "picture_file_name": null
+      }
+    ]
+  },
+  {
+    "label": "child-explicit-grants",
+    "at_utc": "2026-10-07T01:57:57.822958+00:00",
+    "role": "parent",
+    "method": "GET",
+    "path": "/users/3/permissions",
+    "request_json": null,
+    "request_text": null,
+    "status": 200,
+    "content_type": "application/json",
+    "response": [
+      {
+        "id": 5,
+        "permission_id": 10,
+        "user_id": 3
+      },
+      {
+        "id": 6,
+        "permission_id": 24,
+        "user_id": 3
+      }
+    ]
+  },
+  {
+    "label": "bad-key-control",
+    "at_utc": "2026-10-07T01:57:57.838102+00:00",
+    "role": "invalid",
+    "method": "GET",
+    "path": "/stock",
+    "request_json": null,
+    "request_text": null,
+    "status": 401,
+    "content_type": "text/html; charset=UTF-8",
+    "response": ""
+  },
+  {
+    "label": "seed-existing-locations",
+    "at_utc": "2026-10-07T01:57:57.857809+00:00",
+    "role": "parent",
+    "method": "GET",
+    "path": "/objects/locations",
+    "request_json": null,
+    "request_text": null,
+    "status": 200,
+    "content_type": "application/json",
+    "response": [
+      {
+        "id": 2,
+        "name": "Fridge",
+        "description": null,
+        "row_created_timestamp": "2026-10-07 01:53:59",
+        "is_freezer": 0,
+        "active": 1
+      },
+      {
+        "id": 3,
+        "name": "Stage 1 synthetic shelf",
+        "description": null,
+        "row_created_timestamp": "2026-10-07 01:57:30",
+        "is_freezer": 0,
+        "active": 1
+      }
+    ]
+  },
+  {
+    "label": "seed-existing-quantity_units",
+    "at_utc": "2026-10-07T01:57:57.877752+00:00",
+    "role": "parent",
+    "method": "GET",
+    "path": "/objects/quantity_units",
+    "request_json": null,
+    "request_text": null,
+    "status": 200,
+    "content_type": "application/json",
+    "response": [
+      {
+        "id": 2,
+        "name": "Piece",
+        "description": null,
+        "row_created_timestamp": "2026-10-07 01:53:59",
+        "name_plural": "Pieces",
+        "plural_forms": null,
+        "active": 1
+      },
+      {
+        "id": 3,
+        "name": "Pack",
+        "description": null,
+        "row_created_timestamp": "2026-10-07 01:53:59",
+        "name_plural": "Packs",
+        "plural_forms": null,
+        "active": 1
+      },
+      {
+        "id": 4,
+        "name": "stage1 unit",
+        "description": null,
+        "row_created_timestamp": "2026-10-07 01:57:30",
+        "name_plural": "stage1 units",
+        "plural_forms": null,
+        "active": 1
+      }
+    ]
+  },
+  {
+    "label": "seed-existing-products",
+    "at_utc": "2026-10-07T01:57:57.898061+00:00",
+    "role": "parent",
+    "method": "GET",
+    "path": "/objects/products",
+    "request_json": null,
+    "request_text": null,
+    "status": 200,
+    "content_type": "application/json",
+    "response": [
+      {
+        "id": 1,
+        "name": "Stage 1 synthetic product",
+        "description": null,
+        "product_group_id": null,
+        "active": 1,
+        "location_id": 3,
+        "shopping_location_id": null,
+        "qu_id_purchase": 4,
+        "qu_id_stock": 4,
+        "min_stock_amount": 0,
+        "default_best_before_days": 0,
+        "default_best_before_days_after_open": 0,
+        "default_best_before_days_after_freezing": 0,
+        "default_best_before_days_after_thawing": 0,
+        "picture_file_name": null,
+        "enable_tare_weight_handling": 0,
+        "tare_weight": 0,
+        "not_check_stock_fulfillment_for_recipes": 0,
+        "parent_product_id": null,
+        "calories": null,
+        "cumulate_min_stock_amount_of_sub_products": 0,
+        "due_type": 1,
+        "quick_consume_amount": 1,
+        "hide_on_stock_overview": 0,
+        "default_stock_label_type": 0,
+        "should_not_be_frozen": 0,
+        "treat_opened_as_out_of_stock": 1,
+        "no_own_stock": 0,
+        "default_consume_location_id": null,
+        "move_on_open": 0,
+        "row_created_timestamp": "2026-10-07 01:57:30",
+        "qu_id_consume": 4,
+        "auto_reprint_stock_label": 0,
+        "quick_open_amount": 1,
+        "qu_id_price": 4,
+        "disable_open": 0,
+        "default_purchase_price_type": 1
+      }
+    ]
+  },
+  {
+    "label": "seed-existing-product_barcodes",
+    "at_utc": "2026-10-07T01:57:57.918605+00:00",
+    "role": "parent",
+    "method": "GET",
+    "path": "/objects/product_barcodes",
+    "request_json": null,
+    "request_text": null,
+    "status": 200,
+    "content_type": "application/json",
+    "response": [
+      {
+        "id": 1,
+        "product_id": 1,
+        "barcode": "STILLROOM-STAGE1-001",
+        "qu_id": 4,
+        "amount": 1,
+        "shopping_location_id": null,
+        "last_price": null,
+        "row_created_timestamp": "2026-10-07 01:57:30",
+        "note": null
+      }
+    ]
+  },
+  {
+    "label": "seed-existing-recipes",
+    "at_utc": "2026-10-07T01:57:57.938409+00:00",
+    "role": "parent",
+    "method": "GET",
+    "path": "/objects/recipes",
+    "request_json": null,
+    "request_text": null,
+    "status": 200,
+    "content_type": "application/json",
+    "response": [
+      {
+        "id": -8,
+        "name": "2026-10-07#1",
+        "description": null,
+        "row_created_timestamp": "2026-10-07 01:57:30",
+        "picture_file_name": null,
+        "base_servings": 1,
+        "desired_servings": 1,
+        "not_check_shoppinglist": 0,
+        "type": "mealplan-shadow",
+        "product_id": null
+      },
+      {
+        "id": -7,
+        "name": "2026-40",
+        "description": null,
+        "row_created_timestamp": "2026-10-07 01:57:30",
+        "picture_file_name": null,
+        "base_servings": 1,
+        "desired_servings": 1,
+        "not_check_shoppinglist": 0,
+        "type": "mealplan-week",
+        "product_id": null
+      },
+      {
+        "id": -6,
+        "name": "2026-10-07",
+        "description": null,
+        "row_created_timestamp": "2026-10-07 01:57:30",
+        "picture_file_name": null,
+        "base_servings": 1,
+        "desired_servings": 1,
+        "not_check_shoppinglist": 0,
+        "type": "mealplan-day",
+        "product_id": null
+      },
+      {
+        "id": 1,
+        "name": "Stage 1 synthetic recipe",
+        "description": null,
+        "row_created_timestamp": "2026-10-07 01:57:30",
+        "picture_file_name": null,
+        "base_servings": 1,
+        "desired_servings": 1,
+        "not_check_shoppinglist": 0,
+        "type": "normal",
+        "product_id": null
+      }
+    ]
+  },
+  {
+    "label": "seed-existing-meal_plan_sections",
+    "at_utc": "2026-10-07T01:57:57.958482+00:00",
+    "role": "parent",
+    "method": "GET",
+    "path": "/objects/meal_plan_sections",
+    "request_json": null,
+    "request_text": null,
+    "status": 200,
+    "content_type": "application/json",
+    "response": [
+      {
+        "id": -1,
+        "name": null,
+        "sort_number": -1,
+        "row_created_timestamp": "2026-10-07 01:54:00",
+        "time_info": null
+      },
+      {
+        "id": 1,
+        "name": "Stage 1 synthetic section",
+        "sort_number": null,
+        "row_created_timestamp": "2026-10-07 01:57:30",
+        "time_info": null
+      }
+    ]
+  },
+  {
+    "label": "seed-existing-meal_plan",
+    "at_utc": "2026-10-07T01:57:57.978972+00:00",
+    "role": "parent",
+    "method": "GET",
+    "path": "/objects/meal_plan",
+    "request_json": null,
+    "request_text": null,
+    "status": 200,
+    "content_type": "application/json",
+    "response": [
+      {
+        "id": 1,
+        "day": "2026-10-07",
+        "type": "recipe",
+        "recipe_id": 1,
+        "recipe_servings": 1,
+        "note": null,
+        "product_id": null,
+        "product_amount": 0,
+        "product_qu_id": null,
+        "row_created_timestamp": "2026-10-07 01:57:30",
+        "done": 0,
+        "section_id": 1
+      }
+    ]
+  },
+  {
+    "label": "seed-existing-tasks",
+    "at_utc": "2026-10-07T01:57:57.999996+00:00",
+    "role": "parent",
+    "method": "GET",
+    "path": "/objects/tasks",
+    "request_json": null,
+    "request_text": null,
+    "status": 200,
+    "content_type": "application/json",
+    "response": [
+      {
+        "id": 1,
+        "name": "Stage 1 synthetic task",
+        "description": null,
+        "due_date": null,
+        "done": 0,
+        "done_timestamp": null,
+        "category_id": null,
+        "assigned_to_user_id": null,
+        "row_created_timestamp": "2026-10-07 01:57:30"
+      }
+    ]
+  },
+  {
+    "label": "seed-existing-batteries",
+    "at_utc": "2026-10-07T01:57:58.024258+00:00",
+    "role": "parent",
+    "method": "GET",
+    "path": "/objects/batteries",
+    "request_json": null,
+    "request_text": null,
+    "status": 200,
+    "content_type": "application/json",
+    "response": [
+      {
+        "id": 1,
+        "name": "Stage 1 synthetic battery",
+        "description": null,
+        "used_in": null,
+        "charge_interval_days": 30,
+        "row_created_timestamp": "2026-10-07 01:57:30",
+        "active": 1
+      }
+    ]
+  },
+  {
+    "label": "seed-existing-equipment",
+    "at_utc": "2026-10-07T01:57:58.044481+00:00",
+    "role": "parent",
+    "method": "GET",
+    "path": "/objects/equipment",
+    "request_json": null,
+    "request_text": null,
+    "status": 200,
+    "content_type": "application/json",
+    "response": [
+      {
+        "id": 1,
+        "name": "Stage 1 synthetic equipment",
+        "description": null,
+        "instruction_manual_file_name": null,
+        "row_created_timestamp": "2026-10-07 01:57:30"
+      }
+    ]
+  },
+  {
+    "label": "seed-existing-userentities",
+    "at_utc": "2026-10-07T01:57:58.064264+00:00",
+    "role": "parent",
+    "method": "GET",
+    "path": "/objects/userentities",
+    "request_json": null,
+    "request_text": null,
+    "status": 200,
+    "content_type": "application/json",
+    "response": []
+  },
+  {
+    "label": "seed-userentities",
+    "at_utc": "2026-10-07T01:57:58.090751+00:00",
+    "role": "parent",
+    "method": "POST",
+    "path": "/objects/userentities",
+    "request_json": {
+      "name": "stage1_boxes",
+      "caption": "Stage 1 box"
+    },
+    "request_text": null,
+    "status": 200,
+    "content_type": "application/json",
+    "response": {
+      "created_object_id": "1"
+    }
+  },
+  {
+    "label": "seed-existing-userobjects",
+    "at_utc": "2026-10-07T01:57:58.110684+00:00",
+    "role": "parent",
+    "method": "GET",
+    "path": "/objects/userobjects",
+    "request_json": null,
+    "request_text": null,
+    "status": 200,
+    "content_type": "application/json",
+    "response": []
+  },
+  {
+    "label": "seed-userobjects",
+    "at_utc": "2026-10-07T01:57:58.136333+00:00",
+    "role": "parent",
+    "method": "POST",
+    "path": "/objects/userobjects",
+    "request_json": {
+      "userentity_id": 1
+    },
+    "request_text": null,
+    "status": 200,
+    "content_type": "application/json",
+    "response": {
+      "created_object_id": "1"
+    }
+  },
+  {
+    "label": "seed-existing-userfields",
+    "at_utc": "2026-10-07T01:57:58.156355+00:00",
+    "role": "parent",
+    "method": "GET",
+    "path": "/objects/userfields",
+    "request_json": null,
+    "request_text": null,
+    "status": 200,
+    "content_type": "application/json",
+    "response": []
+  },
+  {
+    "label": "seed-userfields",
+    "at_utc": "2026-10-07T01:57:58.182855+00:00",
+    "role": "parent",
+    "method": "POST",
+    "path": "/objects/userfields",
+    "request_json": {
+      "entity": "products",
+      "name": "stage1_note",
+      "caption": "Stage 1 note",
+      "type": "text"
+    },
+    "request_text": null,
+    "status": 200,
+    "content_type": "application/json",
+    "response": {
+      "created_object_id": "1"
+    }
+  },
+  {
+    "label": "set-userfield",
+    "at_utc": "2026-10-07T01:57:58.208963+00:00",
+    "role": "parent",
+    "method": "PUT",
+    "path": "/userfields/products/1",
+    "request_json": {
+      "stage1_note": "Synthetic field value"
+    },
+    "request_text": null,
+    "status": 204,
+    "content_type": "application/json",
+    "response": ""
+  },
+  {
+    "label": "shopping-add-product",
+    "at_utc": "2026-10-07T01:57:58.234307+00:00",
+    "role": "parent",
+    "method": "POST",
+    "path": "/stock/shoppinglist/add-product",
+    "request_json": {
+      "product_id": 1,
+      "product_amount": 2.5,
+      "qu_id": 4,
+      "list_id": 1,
+      "note": "Synthetic linked row"
+    },
+    "request_text": null,
+    "status": 204,
+    "content_type": "application/json",
+    "response": ""
+  },
+  {
+    "label": "seed-existing-shopping_list",
+    "at_utc": "2026-10-07T01:57:58.254746+00:00",
+    "role": "parent",
+    "method": "GET",
+    "path": "/objects/shopping_list",
+    "request_json": null,
+    "request_text": null,
+    "status": 200,
+    "content_type": "application/json",
+    "response": [
+      {
+        "id": 1,
+        "product_id": 1,
+        "note": "Synthetic linked row",
+        "amount": 2.5,
+        "row_created_timestamp": "2026-10-07 01:57:58",
+        "shopping_list_id": 1,
+        "done": 0,
+        "qu_id": 4
+      }
+    ]
+  },
+  {
+    "label": "seed-shopping_list",
+    "at_utc": "2026-10-07T01:57:58.281474+00:00",
+    "role": "parent",
+    "method": "POST",
+    "path": "/objects/shopping_list",
+    "request_json": {
+      "shopping_list_id": 1,
+      "product_id": null,
+      "note": "Synthetic note-only row",
+      "amount": 1,
+      "qu_id": 4
+    },
+    "request_text": null,
+    "status": 200,
+    "content_type": "application/json",
+    "response": {
+      "created_object_id": "2"
+    }
+  },
+  {
+    "label": "shopping-set-done",
+    "at_utc": "2026-10-07T01:57:58.306829+00:00",
+    "role": "parent",
+    "method": "PUT",
+    "path": "/objects/shopping_list/2",
+    "request_json": {
+      "done": 1
+    },
+    "request_text": null,
+    "status": 204,
+    "content_type": "application/json",
+    "response": ""
+  },
+  {
+    "label": "shopping-rows",
+    "at_utc": "2026-10-07T01:57:58.327642+00:00",
+    "role": "parent",
+    "method": "GET",
+    "path": "/objects/shopping_list",
+    "request_json": null,
+    "request_text": null,
+    "status": 200,
+    "content_type": "application/json",
+    "response": [
+      {
+        "id": 1,
+        "product_id": 1,
+        "note": "Synthetic linked row",
+        "amount": 2.5,
+        "row_created_timestamp": "2026-10-07 01:57:58",
+        "shopping_list_id": 1,
+        "done": 0,
+        "qu_id": 4
+      },
+      {
+        "id": 2,
+        "product_id": null,
+        "note": "Synthetic note-only row",
+        "amount": 1,
+        "row_created_timestamp": "2026-10-07 01:57:58",
+        "shopping_list_id": 1,
+        "done": 1,
+        "qu_id": 4
+      }
+    ]
+  },
+  {
+    "label": "shopping-uihelper",
+    "at_utc": "2026-10-07T01:57:58.349474+00:00",
+    "role": "parent",
+    "method": "GET",
+    "path": "/objects/uihelper_shopping_list",
+    "request_json": null,
+    "request_text": null,
+    "status": 200,
+    "content_type": "application/json",
+    "response": [
+      {
+        "id": 1,
+        "product_id": 1,
+        "note": "Synthetic linked row",
+        "amount": 2.5,
+        "row_created_timestamp": "2026-10-07 01:57:58",
+        "shopping_list_id": 1,
+        "done": 0,
+        "qu_id": 4,
+        "product_name": "Stage 1 synthetic product",
+        "last_price_unit": null,
+        "last_price_total": null,
+        "price": null,
+        "default_shopping_location_name": null,
+        "qu_name": "stage1 unit",
+        "qu_name_plural": "stage1 units",
+        "product_group_id": null,
+        "product_group_name": null,
+        "product_barcodes": "STILLROOM-STAGE1-001"
+      },
+      {
+        "id": 2,
+        "product_id": null,
+        "note": "Synthetic note-only row",
+        "amount": 1,
+        "row_created_timestamp": "2026-10-07 01:57:58",
+        "shopping_list_id": 1,
+        "done": 1,
+        "qu_id": 4,
+        "product_name": null,
+        "last_price_unit": null,
+        "last_price_total": null,
+        "price": null,
+        "default_shopping_location_name": null,
+        "qu_name": "stage1 unit",
+        "qu_name_plural": "stage1 units",
+        "product_group_id": null,
+        "product_group_name": null,
+        "product_barcodes": null
+      }
+    ]
+  },
+  {
+    "label": "stock-purchase",
+    "at_utc": "2026-10-07T01:57:58.398598+00:00",
+    "role": "parent",
+    "method": "POST",
+    "path": "/stock/products/1/add",
+    "request_json": {
+      "amount": 5,
+      "best_before_date": "2027-01-01",
+      "transaction_type": "purchase",
+      "price": 1.25
+    },
+    "request_text": null,
+    "status": 200,
+    "content_type": "application/json",
+    "response": [
+      {
+        "id": 1,
+        "product_id": 1,
+        "amount": 5,
+        "best_before_date": "2027-01-01",
+        "purchased_date": "2026-10-07",
+        "used_date": null,
+        "spoiled": 0,
+        "stock_id": "6ac5a7265b320",
+        "transaction_type": "purchase",
+        "price": 1.25,
+        "undone": 0,
+        "undone_timestamp": null,
+        "opened_date": null,
+        "location_id": 3,
+        "recipe_id": null,
+        "correlation_id": null,
+        "transaction_id": "6ac5a7265b31d",
+        "stock_row_id": null,
+        "shopping_location_id": null,
+        "user_id": 2,
+        "row_created_timestamp": "2026-10-07 01:57:58",
+        "note": null
+      }
+    ]
+  },
+  {
+    "label": "stock-before-undo",
+    "at_utc": "2026-10-07T01:57:58.418119+00:00",
+    "role": "parent",
+    "method": "GET",
+    "path": "/stock",
+    "request_json": null,
+    "request_text": null,
+    "status": 200,
+    "content_type": "application/json",
+    "response": [
+      {
+        "amount": 5,
+        "amount_aggregated": 5,
+        "value": 6.25,
+        "best_before_date": "2027-01-01",
+        "amount_opened": 0,
+        "amount_opened_aggregated": 0,
+        "is_aggregated_amount": 0,
+        "due_type": 1,
+        "product_id": 1,
+        "product": {
+          "id": 1,
+          "name": "Stage 1 synthetic product",
+          "description": null,
+          "product_group_id": null,
+          "active": 1,
+          "location_id": 3,
+          "shopping_location_id": null,
+          "qu_id_purchase": 4,
+          "qu_id_stock": 4,
+          "min_stock_amount": 0,
+          "default_best_before_days": 0,
+          "default_best_before_days_after_open": 0,
+          "default_best_before_days_after_freezing": 0,
+          "default_best_before_days_after_thawing": 0,
+          "picture_file_name": null,
+          "enable_tare_weight_handling": 0,
+          "tare_weight": 0,
+          "not_check_stock_fulfillment_for_recipes": 0,
+          "parent_product_id": null,
+          "calories": null,
+          "cumulate_min_stock_amount_of_sub_products": 0,
+          "due_type": 1,
+          "quick_consume_amount": 1,
+          "hide_on_stock_overview": 0,
+          "default_stock_label_type": 0,
+          "should_not_be_frozen": 0,
+          "treat_opened_as_out_of_stock": 1,
+          "no_own_stock": 0,
+          "default_consume_location_id": null,
+          "move_on_open": 0,
+          "row_created_timestamp": "2026-10-07 01:57:30",
+          "qu_id_consume": 4,
+          "auto_reprint_stock_label": 0,
+          "quick_open_amount": 1,
+          "qu_id_price": 4,
+          "disable_open": 0,
+          "default_purchase_price_type": 1
+        }
+      }
+    ]
+  },
+  {
+    "label": "stock-booking-read",
+    "at_utc": "2026-10-07T01:57:58.435143+00:00",
+    "role": "parent",
+    "method": "GET",
+    "path": "/stock/bookings/1",
+    "request_json": null,
+    "request_text": null,
+    "status": 200,
+    "content_type": "application/json",
+    "response": {
+      "id": 1,
+      "product_id": 1,
+      "amount": 5,
+      "best_before_date": "2027-01-01",
+      "purchased_date": "2026-10-07",
+      "used_date": null,
+      "spoiled": 0,
+      "stock_id": "6ac5a7265b320",
+      "transaction_type": "purchase",
+      "price": 1.25,
+      "undone": 0,
+      "undone_timestamp": null,
+      "opened_date": null,
+      "location_id": 3,
+      "recipe_id": null,
+      "correlation_id": null,
+      "transaction_id": "6ac5a7265b31d",
+      "stock_row_id": null,
+      "shopping_location_id": null,
+      "user_id": 2,
+      "row_created_timestamp": "2026-10-07 01:57:58",
+      "note": null
+    }
+  },
+  {
+    "label": "stock-booking-undo",
+    "at_utc": "2026-10-07T01:57:58.468586+00:00",
+    "role": "parent",
+    "method": "POST",
+    "path": "/stock/bookings/1/undo",
+    "request_json": null,
+    "request_text": null,
+    "status": 204,
+    "content_type": "application/json",
+    "response": ""
+  },
+  {
+    "label": "stock-after-booking-undo",
+    "at_utc": "2026-10-07T01:57:58.487567+00:00",
+    "role": "parent",
+    "method": "GET",
+    "path": "/stock",
+    "request_json": null,
+    "request_text": null,
+    "status": 200,
+    "content_type": "application/json",
+    "response": []
+  },
+  {
+    "label": "stock-booking-after-undo",
+    "at_utc": "2026-10-07T01:57:58.503943+00:00",
+    "role": "parent",
+    "method": "GET",
+    "path": "/stock/bookings/1",
+    "request_json": null,
+    "request_text": null,
+    "status": 200,
+    "content_type": "application/json",
+    "response": {
+      "id": 1,
+      "product_id": 1,
+      "amount": 5,
+      "best_before_date": "2027-01-01",
+      "purchased_date": "2026-10-07",
+      "used_date": null,
+      "spoiled": 0,
+      "stock_id": "6ac5a7265b320",
+      "transaction_type": "purchase",
+      "price": 1.25,
+      "undone": 1,
+      "undone_timestamp": "2026-10-07 01:57:58",
+      "opened_date": null,
+      "location_id": 3,
+      "recipe_id": null,
+      "correlation_id": null,
+      "transaction_id": "6ac5a7265b31d",
+      "stock_row_id": null,
+      "shopping_location_id": null,
+      "user_id": 2,
+      "row_created_timestamp": "2026-10-07 01:57:58",
+      "note": null
+    }
+  },
+  {
+    "label": "stock-purchase-2",
+    "at_utc": "2026-10-07T01:57:58.550467+00:00",
+    "role": "parent",
+    "method": "POST",
+    "path": "/stock/products/1/add",
+    "request_json": {
+      "amount": 5,
+      "best_before_date": "2027-01-01",
+      "transaction_type": "purchase"
+    },
+    "request_text": null,
+    "status": 200,
+    "content_type": "application/json",
+    "response": [
+      {
+        "id": 2,
+        "product_id": 1,
+        "amount": 5,
+        "best_before_date": "2027-01-01",
+        "purchased_date": "2026-10-07",
+        "used_date": null,
+        "spoiled": 0,
+        "stock_id": "6ac5a72680b2c",
+        "transaction_type": "purchase",
+        "price": null,
+        "undone": 0,
+        "undone_timestamp": null,
+        "opened_date": null,
+        "location_id": 3,
+        "recipe_id": null,
+        "correlation_id": null,
+        "transaction_id": "6ac5a72680b28",
+        "stock_row_id": null,
+        "shopping_location_id": null,
+        "user_id": 2,
+        "row_created_timestamp": "2026-10-07 01:57:58",
+        "note": null
+      }
+    ]
+  },
+  {
+    "label": "stock-consume",
+    "at_utc": "2026-10-07T01:57:58.595941+00:00",
+    "role": "parent",
+    "method": "POST",
+    "path": "/stock/products/1/consume",
+    "request_json": {
+      "amount": 2,
+      "transaction_type": "consume"
+    },
+    "request_text": null,
+    "status": 200,
+    "content_type": "application/json",
+    "response": [
+      {
+        "id": 3,
+        "product_id": 1,
+        "amount": -2,
+        "best_before_date": "2027-01-01",
+        "purchased_date": "2026-10-07",
+        "used_date": "2026-10-07",
+        "spoiled": 0,
+        "stock_id": "6ac5a72680b2c",
+        "transaction_type": "consume",
+        "price": null,
+        "undone": 0,
+        "undone_timestamp": null,
+        "opened_date": null,
+        "location_id": 3,
+        "recipe_id": null,
+        "correlation_id": null,
+        "transaction_id": "6ac5a7268c32b",
+        "stock_row_id": null,
+        "shopping_location_id": null,
+        "user_id": 2,
+        "row_created_timestamp": "2026-10-07 01:57:58",
+        "note": null
+      }
+    ]
+  },
+  {
+    "label": "stock-after-consume",
+    "at_utc": "2026-10-07T01:57:58.616151+00:00",
+    "role": "parent",
+    "method": "GET",
+    "path": "/stock",
+    "request_json": null,
+    "request_text": null,
+    "status": 200,
+    "content_type": "application/json",
+    "response": [
+      {
+        "amount": 3,
+        "amount_aggregated": 3,
+        "value": 0,
+        "best_before_date": "2027-01-01",
+        "amount_opened": 0,
+        "amount_opened_aggregated": 0,
+        "is_aggregated_amount": 0,
+        "due_type": 1,
+        "product_id": 1,
+        "product": {
+          "id": 1,
+          "name": "Stage 1 synthetic product",
+          "description": null,
+          "product_group_id": null,
+          "active": 1,
+          "location_id": 3,
+          "shopping_location_id": null,
+          "qu_id_purchase": 4,
+          "qu_id_stock": 4,
+          "min_stock_amount": 0,
+          "default_best_before_days": 0,
+          "default_best_before_days_after_open": 0,
+          "default_best_before_days_after_freezing": 0,
+          "default_best_before_days_after_thawing": 0,
+          "picture_file_name": null,
+          "enable_tare_weight_handling": 0,
+          "tare_weight": 0,
+          "not_check_stock_fulfillment_for_recipes": 0,
+          "parent_product_id": null,
+          "calories": null,
+          "cumulate_min_stock_amount_of_sub_products": 0,
+          "due_type": 1,
+          "quick_consume_amount": 1,
+          "hide_on_stock_overview": 0,
+          "default_stock_label_type": 0,
+          "should_not_be_frozen": 0,
+          "treat_opened_as_out_of_stock": 1,
+          "no_own_stock": 0,
+          "default_consume_location_id": null,
+          "move_on_open": 0,
+          "row_created_timestamp": "2026-10-07 01:57:30",
+          "qu_id_consume": 4,
+          "auto_reprint_stock_label": 0,
+          "quick_open_amount": 1,
+          "qu_id_price": 4,
+          "disable_open": 0,
+          "default_purchase_price_type": 1
+        }
+      }
+    ]
+  },
+  {
+    "label": "stock-transaction-read",
+    "at_utc": "2026-10-07T01:57:58.633353+00:00",
+    "role": "parent",
+    "method": "GET",
+    "path": "/stock/transactions/6ac5a7268c32b",
+    "request_json": null,
+    "request_text": null,
+    "status": 200,
+    "content_type": "application/json",
+    "response": [
+      {
+        "id": 3,
+        "product_id": 1,
+        "amount": -2,
+        "best_before_date": "2027-01-01",
+        "purchased_date": "2026-10-07",
+        "used_date": "2026-10-07",
+        "spoiled": 0,
+        "stock_id": "6ac5a72680b2c",
+        "transaction_type": "consume",
+        "price": null,
+        "undone": 0,
+        "undone_timestamp": null,
+        "opened_date": null,
+        "location_id": 3,
+        "recipe_id": null,
+        "correlation_id": null,
+        "transaction_id": "6ac5a7268c32b",
+        "stock_row_id": null,
+        "shopping_location_id": null,
+        "user_id": 2,
+        "row_created_timestamp": "2026-10-07 01:57:58",
+        "note": null
+      }
+    ]
+  },
+  {
+    "label": "stock-transaction-undo",
+    "at_utc": "2026-10-07T01:57:58.667475+00:00",
+    "role": "parent",
+    "method": "POST",
+    "path": "/stock/transactions/6ac5a7268c32b/undo",
+    "request_json": null,
+    "request_text": null,
+    "status": 204,
+    "content_type": "application/json",
+    "response": ""
+  },
+  {
+    "label": "stock-after-transaction-undo",
+    "at_utc": "2026-10-07T01:57:58.687330+00:00",
+    "role": "parent",
+    "method": "GET",
+    "path": "/stock",
+    "request_json": null,
+    "request_text": null,
+    "status": 200,
+    "content_type": "application/json",
+    "response": [
+      {
+        "amount": 5,
+        "amount_aggregated": 5,
+        "value": 0,
+        "best_before_date": "2027-01-01",
+        "amount_opened": 0,
+        "amount_opened_aggregated": 0,
+        "is_aggregated_amount": 0,
+        "due_type": 1,
+        "product_id": 1,
+        "product": {
+          "id": 1,
+          "name": "Stage 1 synthetic product",
+          "description": null,
+          "product_group_id": null,
+          "active": 1,
+          "location_id": 3,
+          "shopping_location_id": null,
+          "qu_id_purchase": 4,
+          "qu_id_stock": 4,
+          "min_stock_amount": 0,
+          "default_best_before_days": 0,
+          "default_best_before_days_after_open": 0,
+          "default_best_before_days_after_freezing": 0,
+          "default_best_before_days_after_thawing": 0,
+          "picture_file_name": null,
+          "enable_tare_weight_handling": 0,
+          "tare_weight": 0,
+          "not_check_stock_fulfillment_for_recipes": 0,
+          "parent_product_id": null,
+          "calories": null,
+          "cumulate_min_stock_amount_of_sub_products": 0,
+          "due_type": 1,
+          "quick_consume_amount": 1,
+          "hide_on_stock_overview": 0,
+          "default_stock_label_type": 0,
+          "should_not_be_frozen": 0,
+          "treat_opened_as_out_of_stock": 1,
+          "no_own_stock": 0,
+          "default_consume_location_id": null,
+          "move_on_open": 0,
+          "row_created_timestamp": "2026-10-07 01:57:30",
+          "qu_id_consume": 4,
+          "auto_reprint_stock_label": 0,
+          "quick_open_amount": 1,
+          "qu_id_price": 4,
+          "disable_open": 0,
+          "default_purchase_price_type": 1
+        }
+      }
+    ]
+  },
+  {
+    "label": "stock-transaction-after-undo",
+    "at_utc": "2026-10-07T01:57:58.704137+00:00",
+    "role": "parent",
+    "method": "GET",
+    "path": "/stock/transactions/6ac5a7268c32b",
+    "request_json": null,
+    "request_text": null,
+    "status": 200,
+    "content_type": "application/json",
+    "response": [
+      {
+        "id": 3,
+        "product_id": 1,
+        "amount": -2,
+        "best_before_date": "2027-01-01",
+        "purchased_date": "2026-10-07",
+        "used_date": "2026-10-07",
+        "spoiled": 0,
+        "stock_id": "6ac5a72680b2c",
+        "transaction_type": "consume",
+        "price": null,
+        "undone": 1,
+        "undone_timestamp": "2026-10-07 01:57:58",
+        "opened_date": null,
+        "location_id": 3,
+        "recipe_id": null,
+        "correlation_id": null,
+        "transaction_id": "6ac5a7268c32b",
+        "stock_row_id": null,
+        "shopping_location_id": null,
+        "user_id": 2,
+        "row_created_timestamp": "2026-10-07 01:57:58",
+        "note": null
+      }
+    ]
+  },
+  {
+    "label": "barcode-found",
+    "at_utc": "2026-10-07T01:57:58.729332+00:00",
+    "role": "parent",
+    "method": "GET",
+    "path": "/stock/products/by-barcode/STILLROOM-STAGE1-001",
+    "request_json": null,
+    "request_text": null,
+    "status": 200,
+    "content_type": "application/json",
+    "response": {
+      "product": {
+        "id": 1,
+        "name": "Stage 1 synthetic product",
+        "description": null,
+        "product_group_id": null,
+        "active": 1,
+        "location_id": 3,
+        "shopping_location_id": null,
+        "qu_id_purchase": 4,
+        "qu_id_stock": 4,
+        "min_stock_amount": 0,
+        "default_best_before_days": 0,
+        "default_best_before_days_after_open": 0,
+        "default_best_before_days_after_freezing": 0,
+        "default_best_before_days_after_thawing": 0,
+        "picture_file_name": null,
+        "enable_tare_weight_handling": 0,
+        "tare_weight": 0,
+        "not_check_stock_fulfillment_for_recipes": 0,
+        "parent_product_id": null,
+        "calories": null,
+        "cumulate_min_stock_amount_of_sub_products": 0,
+        "due_type": 1,
+        "quick_consume_amount": 1,
+        "hide_on_stock_overview": 0,
+        "default_stock_label_type": 0,
+        "should_not_be_frozen": 0,
+        "treat_opened_as_out_of_stock": 1,
+        "no_own_stock": 0,
+        "default_consume_location_id": null,
+        "move_on_open": 0,
+        "row_created_timestamp": "2026-10-07 01:57:30",
+        "qu_id_consume": 4,
+        "auto_reprint_stock_label": 0,
+        "quick_open_amount": 1,
+        "qu_id_price": 4,
+        "disable_open": 0,
+        "default_purchase_price_type": 1
+      },
+      "product_barcodes": [
+        {
+          "id": 1,
+          "product_id": 1,
+          "barcode": "STILLROOM-STAGE1-001",
+          "qu_id": 4,
+          "amount": 1,
+          "shopping_location_id": null,
+          "last_price": null,
+          "row_created_timestamp": "2026-10-07 01:57:30",
+          "note": null
+        }
+      ],
+      "last_purchased": "2026-10-07",
+      "last_used": null,
+      "stock_amount": 5,
+      "stock_value": 0,
+      "stock_amount_opened": 0,
+      "stock_amount_aggregated": 5,
+      "stock_amount_opened_aggregated": 0,
+      "quantity_unit_stock": {
+        "id": 4,
+        "name": "stage1 unit",
+        "description": null,
+        "row_created_timestamp": "2026-10-07 01:57:30",
+        "name_plural": "stage1 units",
+        "plural_forms": null,
+        "active": 1
+      },
+      "default_quantity_unit_purchase": {
+        "id": 4,
+        "name": "stage1 unit",
+        "description": null,
+        "row_created_timestamp": "2026-10-07 01:57:30",
+        "name_plural": "stage1 units",
+        "plural_forms": null,
+        "active": 1
+      },
+      "default_quantity_unit_consume": {
+        "id": 4,
+        "name": "stage1 unit",
+        "description": null,
+        "row_created_timestamp": "2026-10-07 01:57:30",
+        "name_plural": "stage1 units",
+        "plural_forms": null,
+        "active": 1
+      },
+      "quantity_unit_price": {
+        "id": 4,
+        "name": "stage1 unit",
+        "description": null,
+        "row_created_timestamp": "2026-10-07 01:57:30",
+        "name_plural": "stage1 units",
+        "plural_forms": null,
+        "active": 1
+      },
+      "last_price": 0,
+      "avg_price": 1.25,
+      "oldest_price": 0,
+      "current_price": 0,
+      "last_shopping_location_id": null,
+      "default_shopping_location_id": null,
+      "next_due_date": "2027-01-01",
+      "location": {
+        "id": 3,
+        "name": "Stage 1 synthetic shelf",
+        "description": null,
+        "row_created_timestamp": "2026-10-07 01:57:30",
+        "is_freezer": 0,
+        "active": 1
+      },
+      "average_shelf_life_days": 86,
+      "spoil_rate_percent": 0,
+      "is_aggregated_amount": 0,
+      "has_childs": false,
+      "default_consume_location": null,
+      "qu_conversion_factor_purchase_to_stock": 1,
+      "qu_conversion_factor_price_to_stock": 1
+    }
+  },
+  {
+    "label": "barcode-not-found",
+    "at_utc": "2026-10-07T01:57:58.746367+00:00",
+    "role": "parent",
+    "method": "GET",
+    "path": "/stock/products/by-barcode/STILLROOM-UNKNOWN",
+    "request_json": null,
+    "request_text": null,
+    "status": 400,
+    "content_type": "application/json",
+    "response": {
+      "error_message": "No product with barcode STILLROOM-UNKNOWN found"
+    }
+  },
+  {
+    "label": "barcode-associations",
+    "at_utc": "2026-10-07T01:57:58.767448+00:00",
+    "role": "parent",
+    "method": "GET",
+    "path": "/objects/product_barcodes",
+    "request_json": null,
+    "request_text": null,
+    "status": 200,
+    "content_type": "application/json",
+    "response": [
+      {
+        "id": 1,
+        "product_id": 1,
+        "barcode": "STILLROOM-STAGE1-001",
+        "qu_id": 4,
+        "amount": 1,
+        "shopping_location_id": null,
+        "last_price": null,
+        "row_created_timestamp": "2026-10-07 01:57:30",
+        "note": null
+      }
+    ]
+  },
+  {
+    "label": "barcode-purchase",
+    "at_utc": "2026-10-07T01:57:58.823953+00:00",
+    "role": "parent",
+    "method": "POST",
+    "path": "/stock/products/by-barcode/STILLROOM-STAGE1-001/add",
+    "request_json": {
+      "amount": 1,
+      "best_before_date": "2027-01-01",
+      "transaction_type": "purchase"
+    },
+    "request_text": null,
+    "status": 200,
+    "content_type": "application/json",
+    "response": [
+      {
+        "id": 4,
+        "product_id": 1,
+        "amount": 1,
+        "best_before_date": "2027-01-01",
+        "purchased_date": "2026-10-07",
+        "used_date": null,
+        "spoiled": 0,
+        "stock_id": "6ac5a72680b2c",
+        "transaction_type": "purchase",
+        "price": null,
+        "undone": 0,
+        "undone_timestamp": null,
+        "opened_date": null,
+        "location_id": 3,
+        "recipe_id": null,
+        "correlation_id": null,
+        "transaction_id": "6ac5a726c1535",
+        "stock_row_id": null,
+        "shopping_location_id": null,
+        "user_id": 2,
+        "row_created_timestamp": "2026-10-07 01:57:58",
+        "note": null
+      }
+    ]
+  },
+  {
+    "label": "barcode-consume",
+    "at_utc": "2026-10-07T01:57:58.870084+00:00",
+    "role": "parent",
+    "method": "POST",
+    "path": "/stock/products/by-barcode/STILLROOM-STAGE1-001/consume",
+    "request_json": {
+      "amount": 1,
+      "transaction_type": "consume"
+    },
+    "request_text": null,
+    "status": 200,
+    "content_type": "application/json",
+    "response": [
+      {
+        "id": 5,
+        "product_id": 1,
+        "amount": -1,
+        "best_before_date": "2027-01-01",
+        "purchased_date": "2026-10-07",
+        "used_date": "2026-10-07",
+        "spoiled": 0,
+        "stock_id": "6ac5a72680b2c",
+        "transaction_type": "consume",
+        "price": null,
+        "undone": 0,
+        "undone_timestamp": null,
+        "opened_date": null,
+        "location_id": 3,
+        "recipe_id": null,
+        "correlation_id": null,
+        "transaction_id": "6ac5a726cf193",
+        "stock_row_id": null,
+        "shopping_location_id": null,
+        "user_id": 2,
+        "row_created_timestamp": "2026-10-07 01:57:58",
+        "note": null
+      }
+    ]
+  },
+  {
+    "label": "barcode-external-lookup",
+    "at_utc": "2026-10-07T01:57:59.554654+00:00",
+    "role": "parent",
+    "method": "GET",
+    "path": "/stock/barcodes/external-lookup/STILLROOM-UNKNOWN",
+    "request_json": null,
+    "request_text": null,
+    "status": 200,
+    "content_type": "application/json",
+    "response": null
+  },
+  {
+    "label": "seed-existing-chores",
+    "at_utc": "2026-10-07T01:57:59.580829+00:00",
+    "role": "parent",
+    "method": "GET",
+    "path": "/objects/chores",
+    "request_json": null,
+    "request_text": null,
+    "status": 200,
+    "content_type": "application/json",
+    "response": []
+  },
+  {
+    "label": "seed-chores",
+    "at_utc": "2026-10-07T01:57:59.608625+00:00",
+    "role": "parent",
+    "method": "POST",
+    "path": "/objects/chores",
+    "request_json": {
+      "name": "Stage 1 manually",
+      "period_type": "manually",
+      "period_config": "",
+      "period_days": 1,
+      "period_interval": 2,
+      "start_date": "2026-10-01 09:00:00",
+      "track_date_only": 0,
+      "rollover": 0,
+      "assignment_type": "no-assignment",
+      "active": 1
+    },
+    "request_text": null,
+    "status": 200,
+    "content_type": "application/json",
+    "response": {
+      "created_object_id": "1"
+    }
+  },
+  {
+    "label": "chore-manually-before",
+    "at_utc": "2026-10-07T01:57:59.627052+00:00",
+    "role": "parent",
+    "method": "GET",
+    "path": "/chores/1",
+    "request_json": null,
+    "request_text": null,
+    "status": 200,
+    "content_type": "application/json",
+    "response": {
+      "chore": {
+        "id": 1,
+        "name": "Stage 1 manually",
+        "description": null,
+        "period_type": "manually",
+        "period_days": 1,
+        "row_created_timestamp": "2026-10-07 01:57:59",
+        "period_config": null,
+        "track_date_only": 0,
+        "rollover": 0,
+        "assignment_type": "no-assignment",
+        "assignment_config": null,
+        "next_execution_assigned_to_user_id": null,
+        "consume_product_on_execution": 0,
+        "product_id": null,
+        "product_amount": null,
+        "period_interval": 2,
+        "active": 1,
+        "start_date": "2026-10-01 09:00:00",
+        "rescheduled_date": null,
+        "rescheduled_next_execution_assigned_to_user_id": null
+      },
+      "last_tracked": null,
+      "tracked_count": 0,
+      "last_done_by": null,
+      "next_estimated_execution_time": null,
+      "next_execution_assigned_user": null,
+      "average_execution_frequency_hours": null
+    }
+  },
+  {
+    "label": "chore-manually-execute",
+    "at_utc": "2026-10-07T01:57:59.659952+00:00",
+    "role": "child",
+    "method": "POST",
+    "path": "/chores/1/execute",
+    "request_json": {
+      "tracked_time": "2026-10-06 10:30:00"
+    },
+    "request_text": null,
+    "status": 200,
+    "content_type": "application/json",
+    "response": {
+      "id": 1,
+      "chore_id": 1,
+      "tracked_time": "2026-10-06 10:30:00",
+      "done_by_user_id": 3,
+      "row_created_timestamp": "2026-10-07 01:57:59",
+      "undone": 0,
+      "undone_timestamp": null,
+      "skipped": 0,
+      "scheduled_execution_time": null
+    }
+  },
+  {
+    "label": "chore-manually-after",
+    "at_utc": "2026-10-07T01:57:59.678617+00:00",
+    "role": "parent",
+    "method": "GET",
+    "path": "/chores/1",
+    "request_json": null,
+    "request_text": null,
+    "status": 200,
+    "content_type": "application/json",
+    "response": {
+      "chore": {
+        "id": 1,
+        "name": "Stage 1 manually",
+        "description": null,
+        "period_type": "manually",
+        "period_days": 1,
+        "row_created_timestamp": "2026-10-07 01:57:59",
+        "period_config": null,
+        "track_date_only": 0,
+        "rollover": 0,
+        "assignment_type": "no-assignment",
+        "assignment_config": null,
+        "next_execution_assigned_to_user_id": null,
+        "consume_product_on_execution": 0,
+        "product_id": null,
+        "product_amount": null,
+        "period_interval": 2,
+        "active": 1,
+        "start_date": "2026-10-01 09:00:00",
+        "rescheduled_date": null,
+        "rescheduled_next_execution_assigned_to_user_id": null
+      },
+      "last_tracked": "2026-10-06 10:30:00",
+      "tracked_count": 1,
+      "last_done_by": {
+        "id": 3,
+        "username": "stillroom_stage1_child",
+        "first_name": "Stage1",
+        "last_name": "child",
+        "row_created_timestamp": "2026-10-07 01:55:03",
+        "display_name": "Stage1 child",
+        "picture_file_name": null
+      },
+      "next_estimated_execution_time": null,
+      "next_execution_assigned_user": null,
+      "average_execution_frequency_hours": null
+    }
+  },
+  {
+    "label": "seed-existing-chores",
+    "at_utc": "2026-10-07T01:57:59.699181+00:00",
+    "role": "parent",
+    "method": "GET",
+    "path": "/objects/chores",
+    "request_json": null,
+    "request_text": null,
+    "status": 200,
+    "content_type": "application/json",
+    "response": [
+      {
+        "id": 1,
+        "name": "Stage 1 manually",
+        "description": null,
+        "period_type": "manually",
+        "period_days": 1,
+        "row_created_timestamp": "2026-10-07 01:57:59",
+        "period_config": null,
+        "track_date_only": 0,
+        "rollover": 0,
+        "assignment_type": "no-assignment",
+        "assignment_config": null,
+        "next_execution_assigned_to_user_id": null,
+        "consume_product_on_execution": 0,
+        "product_id": null,
+        "product_amount": null,
+        "period_interval": 2,
+        "active": 1,
+        "start_date": "2026-10-01 09:00:00",
+        "rescheduled_date": null,
+        "rescheduled_next_execution_assigned_to_user_id": null
+      }
+    ]
+  },
+  {
+    "label": "seed-chores",
+    "at_utc": "2026-10-07T01:57:59.727015+00:00",
+    "role": "parent",
+    "method": "POST",
+    "path": "/objects/chores",
+    "request_json": {
+      "name": "Stage 1 hourly",
+      "period_type": "hourly",
+      "period_config": "",
+      "period_days": 1,
+      "period_interval": 2,
+      "start_date": "2026-10-01 09:00:00",
+      "track_date_only": 0,
+      "rollover": 0,
+      "assignment_type": "no-assignment",
+      "active": 1
+    },
+    "request_text": null,
+    "status": 200,
+    "content_type": "application/json",
+    "response": {
+      "created_object_id": "2"
+    }
+  },
+  {
+    "label": "chore-hourly-before",
+    "at_utc": "2026-10-07T01:57:59.745702+00:00",
+    "role": "parent",
+    "method": "GET",
+    "path": "/chores/2",
+    "request_json": null,
+    "request_text": null,
+    "status": 200,
+    "content_type": "application/json",
+    "response": {
+      "chore": {
+        "id": 2,
+        "name": "Stage 1 hourly",
+        "description": null,
+        "period_type": "hourly",
+        "period_days": 1,
+        "row_created_timestamp": "2026-10-07 01:57:59",
+        "period_config": null,
+        "track_date_only": 0,
+        "rollover": 0,
+        "assignment_type": "no-assignment",
+        "assignment_config": null,
+        "next_execution_assigned_to_user_id": null,
+        "consume_product_on_execution": 0,
+        "product_id": null,
+        "product_amount": null,
+        "period_interval": 2,
+        "active": 1,
+        "start_date": "2026-10-01 09:00:00",
+        "rescheduled_date": null,
+        "rescheduled_next_execution_assigned_to_user_id": null
+      },
+      "last_tracked": null,
+      "tracked_count": 0,
+      "last_done_by": null,
+      "next_estimated_execution_time": "2026-10-01 09:00:00",
+      "next_execution_assigned_user": null,
+      "average_execution_frequency_hours": null
+    }
+  },
+  {
+    "label": "chore-hourly-execute",
+    "at_utc": "2026-10-07T01:57:59.772896+00:00",
+    "role": "child",
+    "method": "POST",
+    "path": "/chores/2/execute",
+    "request_json": {
+      "tracked_time": "2026-10-06 10:30:00"
+    },
+    "request_text": null,
+    "status": 200,
+    "content_type": "application/json",
+    "response": {
+      "id": 2,
+      "chore_id": 2,
+      "tracked_time": "2026-10-06 10:30:00",
+      "done_by_user_id": 3,
+      "row_created_timestamp": "2026-10-07 01:57:59",
+      "undone": 0,
+      "undone_timestamp": null,
+      "skipped": 0,
+      "scheduled_execution_time": "2026-10-01 09:00:00"
+    }
+  },
+  {
+    "label": "chore-hourly-after",
+    "at_utc": "2026-10-07T01:57:59.791363+00:00",
+    "role": "parent",
+    "method": "GET",
+    "path": "/chores/2",
+    "request_json": null,
+    "request_text": null,
+    "status": 200,
+    "content_type": "application/json",
+    "response": {
+      "chore": {
+        "id": 2,
+        "name": "Stage 1 hourly",
+        "description": null,
+        "period_type": "hourly",
+        "period_days": 1,
+        "row_created_timestamp": "2026-10-07 01:57:59",
+        "period_config": null,
+        "track_date_only": 0,
+        "rollover": 0,
+        "assignment_type": "no-assignment",
+        "assignment_config": null,
+        "next_execution_assigned_to_user_id": null,
+        "consume_product_on_execution": 0,
+        "product_id": null,
+        "product_amount": null,
+        "period_interval": 2,
+        "active": 1,
+        "start_date": "2026-10-01 09:00:00",
+        "rescheduled_date": null,
+        "rescheduled_next_execution_assigned_to_user_id": null
+      },
+      "last_tracked": "2026-10-06 10:30:00",
+      "tracked_count": 1,
+      "last_done_by": {
+        "id": 3,
+        "username": "stillroom_stage1_child",
+        "first_name": "Stage1",
+        "last_name": "child",
+        "row_created_timestamp": "2026-10-07 01:55:03",
+        "display_name": "Stage1 child",
+        "picture_file_name": null
+      },
+      "next_estimated_execution_time": "2026-10-06 12:30:00",
+      "next_execution_assigned_user": null,
+      "average_execution_frequency_hours": null
+    }
+  },
+  {
+    "label": "seed-existing-chores",
+    "at_utc": "2026-10-07T01:57:59.812351+00:00",
+    "role": "parent",
+    "method": "GET",
+    "path": "/objects/chores",
+    "request_json": null,
+    "request_text": null,
+    "status": 200,
+    "content_type": "application/json",
+    "response": [
+      {
+        "id": 1,
+        "name": "Stage 1 manually",
+        "description": null,
+        "period_type": "manually",
+        "period_days": 1,
+        "row_created_timestamp": "2026-10-07 01:57:59",
+        "period_config": null,
+        "track_date_only": 0,
+        "rollover": 0,
+        "assignment_type": "no-assignment",
+        "assignment_config": null,
+        "next_execution_assigned_to_user_id": null,
+        "consume_product_on_execution": 0,
+        "product_id": null,
+        "product_amount": null,
+        "period_interval": 2,
+        "active": 1,
+        "start_date": "2026-10-01 09:00:00",
+        "rescheduled_date": null,
+        "rescheduled_next_execution_assigned_to_user_id": null
+      },
+      {
+        "id": 2,
+        "name": "Stage 1 hourly",
+        "description": null,
+        "period_type": "hourly",
+        "period_days": 1,
+        "row_created_timestamp": "2026-10-07 01:57:59",
+        "period_config": null,
+        "track_date_only": 0,
+        "rollover": 0,
+        "assignment_type": "no-assignment",
+        "assignment_config": null,
+        "next_execution_assigned_to_user_id": null,
+        "consume_product_on_execution": 0,
+        "product_id": null,
+        "product_amount": null,
+        "period_interval": 2,
+        "active": 1,
+        "start_date": "2026-10-01 09:00:00",
+        "rescheduled_date": null,
+        "rescheduled_next_execution_assigned_to_user_id": null
+      }
+    ]
+  },
+  {
+    "label": "seed-chores",
+    "at_utc": "2026-10-07T01:57:59.841172+00:00",
+    "role": "parent",
+    "method": "POST",
+    "path": "/objects/chores",
+    "request_json": {
+      "name": "Stage 1 daily",
+      "period_type": "daily",
+      "period_config": "",
+      "period_days": 1,
+      "period_interval": 2,
+      "start_date": "2026-10-01 09:00:00",
+      "track_date_only": 0,
+      "rollover": 0,
+      "assignment_type": "no-assignment",
+      "active": 1
+    },
+    "request_text": null,
+    "status": 200,
+    "content_type": "application/json",
+    "response": {
+      "created_object_id": "3"
+    }
+  },
+  {
+    "label": "chore-daily-before",
+    "at_utc": "2026-10-07T01:57:59.860077+00:00",
+    "role": "parent",
+    "method": "GET",
+    "path": "/chores/3",
+    "request_json": null,
+    "request_text": null,
+    "status": 200,
+    "content_type": "application/json",
+    "response": {
+      "chore": {
+        "id": 3,
+        "name": "Stage 1 daily",
+        "description": null,
+        "period_type": "daily",
+        "period_days": 1,
+        "row_created_timestamp": "2026-10-07 01:57:59",
+        "period_config": null,
+        "track_date_only": 0,
+        "rollover": 0,
+        "assignment_type": "no-assignment",
+        "assignment_config": null,
+        "next_execution_assigned_to_user_id": null,
+        "consume_product_on_execution": 0,
+        "product_id": null,
+        "product_amount": null,
+        "period_interval": 2,
+        "active": 1,
+        "start_date": "2026-10-01 09:00:00",
+        "rescheduled_date": null,
+        "rescheduled_next_execution_assigned_to_user_id": null
+      },
+      "last_tracked": null,
+      "tracked_count": 0,
+      "last_done_by": null,
+      "next_estimated_execution_time": "2026-10-01 09:00:00",
+      "next_execution_assigned_user": null,
+      "average_execution_frequency_hours": null
+    }
+  },
+  {
+    "label": "chore-daily-execute",
+    "at_utc": "2026-10-07T01:57:59.888170+00:00",
+    "role": "child",
+    "method": "POST",
+    "path": "/chores/3/execute",
+    "request_json": {
+      "tracked_time": "2026-10-06 10:30:00"
+    },
+    "request_text": null,
+    "status": 200,
+    "content_type": "application/json",
+    "response": {
+      "id": 3,
+      "chore_id": 3,
+      "tracked_time": "2026-10-06 10:30:00",
+      "done_by_user_id": 3,
+      "row_created_timestamp": "2026-10-07 01:57:59",
+      "undone": 0,
+      "undone_timestamp": null,
+      "skipped": 0,
+      "scheduled_execution_time": "2026-10-01 09:00:00"
+    }
+  },
+  {
+    "label": "chore-daily-after",
+    "at_utc": "2026-10-07T01:57:59.906723+00:00",
+    "role": "parent",
+    "method": "GET",
+    "path": "/chores/3",
+    "request_json": null,
+    "request_text": null,
+    "status": 200,
+    "content_type": "application/json",
+    "response": {
+      "chore": {
+        "id": 3,
+        "name": "Stage 1 daily",
+        "description": null,
+        "period_type": "daily",
+        "period_days": 1,
+        "row_created_timestamp": "2026-10-07 01:57:59",
+        "period_config": null,
+        "track_date_only": 0,
+        "rollover": 0,
+        "assignment_type": "no-assignment",
+        "assignment_config": null,
+        "next_execution_assigned_to_user_id": null,
+        "consume_product_on_execution": 0,
+        "product_id": null,
+        "product_amount": null,
+        "period_interval": 2,
+        "active": 1,
+        "start_date": "2026-10-01 09:00:00",
+        "rescheduled_date": null,
+        "rescheduled_next_execution_assigned_to_user_id": null
+      },
+      "last_tracked": "2026-10-06 10:30:00",
+      "tracked_count": 1,
+      "last_done_by": {
+        "id": 3,
+        "username": "stillroom_stage1_child",
+        "first_name": "Stage1",
+        "last_name": "child",
+        "row_created_timestamp": "2026-10-07 01:55:03",
+        "display_name": "Stage1 child",
+        "picture_file_name": null
+      },
+      "next_estimated_execution_time": "2026-10-08 09:00:00",
+      "next_execution_assigned_user": null,
+      "average_execution_frequency_hours": null
+    }
+  },
+  {
+    "label": "seed-existing-chores",
+    "at_utc": "2026-10-07T01:57:59.926931+00:00",
+    "role": "parent",
+    "method": "GET",
+    "path": "/objects/chores",
+    "request_json": null,
+    "request_text": null,
+    "status": 200,
+    "content_type": "application/json",
+    "response": [
+      {
+        "id": 1,
+        "name": "Stage 1 manually",
+        "description": null,
+        "period_type": "manually",
+        "period_days": 1,
+        "row_created_timestamp": "2026-10-07 01:57:59",
+        "period_config": null,
+        "track_date_only": 0,
+        "rollover": 0,
+        "assignment_type": "no-assignment",
+        "assignment_config": null,
+        "next_execution_assigned_to_user_id": null,
+        "consume_product_on_execution": 0,
+        "product_id": null,
+        "product_amount": null,
+        "period_interval": 2,
+        "active": 1,
+        "start_date": "2026-10-01 09:00:00",
+        "rescheduled_date": null,
+        "rescheduled_next_execution_assigned_to_user_id": null
+      },
+      {
+        "id": 2,
+        "name": "Stage 1 hourly",
+        "description": null,
+        "period_type": "hourly",
+        "period_days": 1,
+        "row_created_timestamp": "2026-10-07 01:57:59",
+        "period_config": null,
+        "track_date_only": 0,
+        "rollover": 0,
+        "assignment_type": "no-assignment",
+        "assignment_config": null,
+        "next_execution_assigned_to_user_id": null,
+        "consume_product_on_execution": 0,
+        "product_id": null,
+        "product_amount": null,
+        "period_interval": 2,
+        "active": 1,
+        "start_date": "2026-10-01 09:00:00",
+        "rescheduled_date": null,
+        "rescheduled_next_execution_assigned_to_user_id": null
+      },
+      {
+        "id": 3,
+        "name": "Stage 1 daily",
+        "description": null,
+        "period_type": "daily",
+        "period_days": 1,
+        "row_created_timestamp": "2026-10-07 01:57:59",
+        "period_config": null,
+        "track_date_only": 0,
+        "rollover": 0,
+        "assignment_type": "no-assignment",
+        "assignment_config": null,
+        "next_execution_assigned_to_user_id": null,
+        "consume_product_on_execution": 0,
+        "product_id": null,
+        "product_amount": null,
+        "period_interval": 2,
+        "active": 1,
+        "start_date": "2026-10-01 09:00:00",
+        "rescheduled_date": null,
+        "rescheduled_next_execution_assigned_to_user_id": null
+      }
+    ]
+  },
+  {
+    "label": "seed-chores",
+    "at_utc": "2026-10-07T01:57:59.955415+00:00",
+    "role": "parent",
+    "method": "POST",
+    "path": "/objects/chores",
+    "request_json": {
+      "name": "Stage 1 weekly",
+      "period_type": "weekly",
+      "period_config": "monday,wednesday",
+      "period_days": 1,
+      "period_interval": 2,
+      "start_date": "2026-10-01 09:00:00",
+      "track_date_only": 0,
+      "rollover": 0,
+      "assignment_type": "no-assignment",
+      "active": 1
+    },
+    "request_text": null,
+    "status": 200,
+    "content_type": "application/json",
+    "response": {
+      "created_object_id": "4"
+    }
+  },
+  {
+    "label": "chore-weekly-before",
+    "at_utc": "2026-10-07T01:57:59.973762+00:00",
+    "role": "parent",
+    "method": "GET",
+    "path": "/chores/4",
+    "request_json": null,
+    "request_text": null,
+    "status": 200,
+    "content_type": "application/json",
+    "response": {
+      "chore": {
+        "id": 4,
+        "name": "Stage 1 weekly",
+        "description": null,
+        "period_type": "weekly",
+        "period_days": 1,
+        "row_created_timestamp": "2026-10-07 01:57:59",
+        "period_config": "monday,wednesday",
+        "track_date_only": 0,
+        "rollover": 0,
+        "assignment_type": "no-assignment",
+        "assignment_config": null,
+        "next_execution_assigned_to_user_id": null,
+        "consume_product_on_execution": 0,
+        "product_id": null,
+        "product_amount": null,
+        "period_interval": 2,
+        "active": 1,
+        "start_date": "2026-10-01 09:00:00",
+        "rescheduled_date": null,
+        "rescheduled_next_execution_assigned_to_user_id": null
+      },
+      "last_tracked": null,
+      "tracked_count": 0,
+      "last_done_by": null,
+      "next_estimated_execution_time": "2026-10-01 09:00:00",
+      "next_execution_assigned_user": null,
+      "average_execution_frequency_hours": null
+    }
+  },
+  {
+    "label": "chore-weekly-execute",
+    "at_utc": "2026-10-07T01:58:00.001780+00:00",
+    "role": "child",
+    "method": "POST",
+    "path": "/chores/4/execute",
+    "request_json": {
+      "tracked_time": "2026-10-06 10:30:00"
+    },
+    "request_text": null,
+    "status": 200,
+    "content_type": "application/json",
+    "response": {
+      "id": 4,
+      "chore_id": 4,
+      "tracked_time": "2026-10-06 10:30:00",
+      "done_by_user_id": 3,
+      "row_created_timestamp": "2026-10-07 01:57:59",
+      "undone": 0,
+      "undone_timestamp": null,
+      "skipped": 0,
+      "scheduled_execution_time": "2026-10-01 09:00:00"
+    }
+  },
+  {
+    "label": "chore-weekly-after",
+    "at_utc": "2026-10-07T01:58:00.028354+00:00",
+    "role": "parent",
+    "method": "GET",
+    "path": "/chores/4",
+    "request_json": null,
+    "request_text": null,
+    "status": 200,
+    "content_type": "application/json",
+    "response": {
+      "chore": {
+        "id": 4,
+        "name": "Stage 1 weekly",
+        "description": null,
+        "period_type": "weekly",
+        "period_days": 1,
+        "row_created_timestamp": "2026-10-07 01:57:59",
+        "period_config": "monday,wednesday",
+        "track_date_only": 0,
+        "rollover": 0,
+        "assignment_type": "no-assignment",
+        "assignment_config": null,
+        "next_execution_assigned_to_user_id": null,
+        "consume_product_on_execution": 0,
+        "product_id": null,
+        "product_amount": null,
+        "period_interval": 2,
+        "active": 1,
+        "start_date": "2026-10-01 09:00:00",
+        "rescheduled_date": null,
+        "rescheduled_next_execution_assigned_to_user_id": null
+      },
+      "last_tracked": "2026-10-06 10:30:00",
+      "tracked_count": 1,
+      "last_done_by": {
+        "id": 3,
+        "username": "stillroom_stage1_child",
+        "first_name": "Stage1",
+        "last_name": "child",
+        "row_created_timestamp": "2026-10-07 01:55:03",
+        "display_name": "Stage1 child",
+        "picture_file_name": null
+      },
+      "next_estimated_execution_time": "2026-10-14 10:30:00",
+      "next_execution_assigned_user": null,
+      "average_execution_frequency_hours": null
+    }
+  },
+  {
+    "label": "seed-existing-chores",
+    "at_utc": "2026-10-07T01:58:00.050243+00:00",
+    "role": "parent",
+    "method": "GET",
+    "path": "/objects/chores",
+    "request_json": null,
+    "request_text": null,
+    "status": 200,
+    "content_type": "application/json",
+    "response": [
+      {
+        "id": 1,
+        "name": "Stage 1 manually",
+        "description": null,
+        "period_type": "manually",
+        "period_days": 1,
+        "row_created_timestamp": "2026-10-07 01:57:59",
+        "period_config": null,
+        "track_date_only": 0,
+        "rollover": 0,
+        "assignment_type": "no-assignment",
+        "assignment_config": null,
+        "next_execution_assigned_to_user_id": null,
+        "consume_product_on_execution": 0,
+        "product_id": null,
+        "product_amount": null,
+        "period_interval": 2,
+        "active": 1,
+        "start_date": "2026-10-01 09:00:00",
+        "rescheduled_date": null,
+        "rescheduled_next_execution_assigned_to_user_id": null
+      },
+      {
+        "id": 2,
+        "name": "Stage 1 hourly",
+        "description": null,
+        "period_type": "hourly",
+        "period_days": 1,
+        "row_created_timestamp": "2026-10-07 01:57:59",
+        "period_config": null,
+        "track_date_only": 0,
+        "rollover": 0,
+        "assignment_type": "no-assignment",
+        "assignment_config": null,
+        "next_execution_assigned_to_user_id": null,
+        "consume_product_on_execution": 0,
+        "product_id": null,
+        "product_amount": null,
+        "period_interval": 2,
+        "active": 1,
+        "start_date": "2026-10-01 09:00:00",
+        "rescheduled_date": null,
+        "rescheduled_next_execution_assigned_to_user_id": null
+      },
+      {
+        "id": 3,
+        "name": "Stage 1 daily",
+        "description": null,
+        "period_type": "daily",
+        "period_days": 1,
+        "row_created_timestamp": "2026-10-07 01:57:59",
+        "period_config": null,
+        "track_date_only": 0,
+        "rollover": 0,
+        "assignment_type": "no-assignment",
+        "assignment_config": null,
+        "next_execution_assigned_to_user_id": null,
+        "consume_product_on_execution": 0,
+        "product_id": null,
+        "product_amount": null,
+        "period_interval": 2,
+        "active": 1,
+        "start_date": "2026-10-01 09:00:00",
+        "rescheduled_date": null,
+        "rescheduled_next_execution_assigned_to_user_id": null
+      },
+      {
+        "id": 4,
+        "name": "Stage 1 weekly",
+        "description": null,
+        "period_type": "weekly",
+        "period_days": 1,
+        "row_created_timestamp": "2026-10-07 01:57:59",
+        "period_config": "monday,wednesday",
+        "track_date_only": 0,
+        "rollover": 0,
+        "assignment_type": "no-assignment",
+        "assignment_config": null,
+        "next_execution_assigned_to_user_id": null,
+        "consume_product_on_execution": 0,
+        "product_id": null,
+        "product_amount": null,
+        "period_interval": 2,
+        "active": 1,
+        "start_date": "2026-10-01 09:00:00",
+        "rescheduled_date": null,
+        "rescheduled_next_execution_assigned_to_user_id": null
+      }
+    ]
+  },
+  {
+    "label": "seed-chores",
+    "at_utc": "2026-10-07T01:58:00.079014+00:00",
+    "role": "parent",
+    "method": "POST",
+    "path": "/objects/chores",
+    "request_json": {
+      "name": "Stage 1 monthly",
+      "period_type": "monthly",
+      "period_config": "",
+      "period_days": 15,
+      "period_interval": 2,
+      "start_date": "2026-10-01 09:00:00",
+      "track_date_only": 0,
+      "rollover": 0,
+      "assignment_type": "no-assignment",
+      "active": 1
+    },
+    "request_text": null,
+    "status": 200,
+    "content_type": "application/json",
+    "response": {
+      "created_object_id": "5"
+    }
+  },
+  {
+    "label": "chore-monthly-before",
+    "at_utc": "2026-10-07T01:58:00.098216+00:00",
+    "role": "parent",
+    "method": "GET",
+    "path": "/chores/5",
+    "request_json": null,
+    "request_text": null,
+    "status": 200,
+    "content_type": "application/json",
+    "response": {
+      "chore": {
+        "id": 5,
+        "name": "Stage 1 monthly",
+        "description": null,
+        "period_type": "monthly",
+        "period_days": 15,
+        "row_created_timestamp": "2026-10-07 01:58:00",
+        "period_config": null,
+        "track_date_only": 0,
+        "rollover": 0,
+        "assignment_type": "no-assignment",
+        "assignment_config": null,
+        "next_execution_assigned_to_user_id": null,
+        "consume_product_on_execution": 0,
+        "product_id": null,
+        "product_amount": null,
+        "period_interval": 2,
+        "active": 1,
+        "start_date": "2026-10-01 09:00:00",
+        "rescheduled_date": null,
+        "rescheduled_next_execution_assigned_to_user_id": null
+      },
+      "last_tracked": null,
+      "tracked_count": 0,
+      "last_done_by": null,
+      "next_estimated_execution_time": "2026-10-01 09:00:00",
+      "next_execution_assigned_user": null,
+      "average_execution_frequency_hours": null
+    }
+  },
+  {
+    "label": "chore-monthly-execute",
+    "at_utc": "2026-10-07T01:58:00.130916+00:00",
+    "role": "child",
+    "method": "POST",
+    "path": "/chores/5/execute",
+    "request_json": {
+      "tracked_time": "2026-10-06 10:30:00"
+    },
+    "request_text": null,
+    "status": 200,
+    "content_type": "application/json",
+    "response": {
+      "id": 5,
+      "chore_id": 5,
+      "tracked_time": "2026-10-06 10:30:00",
+      "done_by_user_id": 3,
+      "row_created_timestamp": "2026-10-07 01:58:00",
+      "undone": 0,
+      "undone_timestamp": null,
+      "skipped": 0,
+      "scheduled_execution_time": "2026-10-01 09:00:00"
+    }
+  },
+  {
+    "label": "chore-monthly-after",
+    "at_utc": "2026-10-07T01:58:00.150389+00:00",
+    "role": "parent",
+    "method": "GET",
+    "path": "/chores/5",
+    "request_json": null,
+    "request_text": null,
+    "status": 200,
+    "content_type": "application/json",
+    "response": {
+      "chore": {
+        "id": 5,
+        "name": "Stage 1 monthly",
+        "description": null,
+        "period_type": "monthly",
+        "period_days": 15,
+        "row_created_timestamp": "2026-10-07 01:58:00",
+        "period_config": null,
+        "track_date_only": 0,
+        "rollover": 0,
+        "assignment_type": "no-assignment",
+        "assignment_config": null,
+        "next_execution_assigned_to_user_id": null,
+        "consume_product_on_execution": 0,
+        "product_id": null,
+        "product_amount": null,
+        "period_interval": 2,
+        "active": 1,
+        "start_date": "2026-10-01 09:00:00",
+        "rescheduled_date": null,
+        "rescheduled_next_execution_assigned_to_user_id": null
+      },
+      "last_tracked": "2026-10-06 10:30:00",
+      "tracked_count": 1,
+      "last_done_by": {
+        "id": 3,
+        "username": "stillroom_stage1_child",
+        "first_name": "Stage1",
+        "last_name": "child",
+        "row_created_timestamp": "2026-10-07 01:55:03",
+        "display_name": "Stage1 child",
+        "picture_file_name": null
+      },
+      "next_estimated_execution_time": "2026-12-15 00:00:00",
+      "next_execution_assigned_user": null,
+      "average_execution_frequency_hours": null
+    }
+  },
+  {
+    "label": "seed-existing-chores",
+    "at_utc": "2026-10-07T01:58:00.171387+00:00",
+    "role": "parent",
+    "method": "GET",
+    "path": "/objects/chores",
+    "request_json": null,
+    "request_text": null,
+    "status": 200,
+    "content_type": "application/json",
+    "response": [
+      {
+        "id": 1,
+        "name": "Stage 1 manually",
+        "description": null,
+        "period_type": "manually",
+        "period_days": 1,
+        "row_created_timestamp": "2026-10-07 01:57:59",
+        "period_config": null,
+        "track_date_only": 0,
+        "rollover": 0,
+        "assignment_type": "no-assignment",
+        "assignment_config": null,
+        "next_execution_assigned_to_user_id": null,
+        "consume_product_on_execution": 0,
+        "product_id": null,
+        "product_amount": null,
+        "period_interval": 2,
+        "active": 1,
+        "start_date": "2026-10-01 09:00:00",
+        "rescheduled_date": null,
+        "rescheduled_next_execution_assigned_to_user_id": null
+      },
+      {
+        "id": 2,
+        "name": "Stage 1 hourly",
+        "description": null,
+        "period_type": "hourly",
+        "period_days": 1,
+        "row_created_timestamp": "2026-10-07 01:57:59",
+        "period_config": null,
+        "track_date_only": 0,
+        "rollover": 0,
+        "assignment_type": "no-assignment",
+        "assignment_config": null,
+        "next_execution_assigned_to_user_id": null,
+        "consume_product_on_execution": 0,
+        "product_id": null,
+        "product_amount": null,
+        "period_interval": 2,
+        "active": 1,
+        "start_date": "2026-10-01 09:00:00",
+        "rescheduled_date": null,
+        "rescheduled_next_execution_assigned_to_user_id": null
+      },
+      {
+        "id": 3,
+        "name": "Stage 1 daily",
+        "description": null,
+        "period_type": "daily",
+        "period_days": 1,
+        "row_created_timestamp": "2026-10-07 01:57:59",
+        "period_config": null,
+        "track_date_only": 0,
+        "rollover": 0,
+        "assignment_type": "no-assignment",
+        "assignment_config": null,
+        "next_execution_assigned_to_user_id": null,
+        "consume_product_on_execution": 0,
+        "product_id": null,
+        "product_amount": null,
+        "period_interval": 2,
+        "active": 1,
+        "start_date": "2026-10-01 09:00:00",
+        "rescheduled_date": null,
+        "rescheduled_next_execution_assigned_to_user_id": null
+      },
+      {
+        "id": 4,
+        "name": "Stage 1 weekly",
+        "description": null,
+        "period_type": "weekly",
+        "period_days": 1,
+        "row_created_timestamp": "2026-10-07 01:57:59",
+        "period_config": "monday,wednesday",
+        "track_date_only": 0,
+        "rollover": 0,
+        "assignment_type": "no-assignment",
+        "assignment_config": null,
+        "next_execution_assigned_to_user_id": null,
+        "consume_product_on_execution": 0,
+        "product_id": null,
+        "product_amount": null,
+        "period_interval": 2,
+        "active": 1,
+        "start_date": "2026-10-01 09:00:00",
+        "rescheduled_date": null,
+        "rescheduled_next_execution_assigned_to_user_id": null
+      },
+      {
+        "id": 5,
+        "name": "Stage 1 monthly",
+        "description": null,
+        "period_type": "monthly",
+        "period_days": 15,
+        "row_created_timestamp": "2026-10-07 01:58:00",
+        "period_config": null,
+        "track_date_only": 0,
+        "rollover": 0,
+        "assignment_type": "no-assignment",
+        "assignment_config": null,
+        "next_execution_assigned_to_user_id": null,
+        "consume_product_on_execution": 0,
+        "product_id": null,
+        "product_amount": null,
+        "period_interval": 2,
+        "active": 1,
+        "start_date": "2026-10-01 09:00:00",
+        "rescheduled_date": null,
+        "rescheduled_next_execution_assigned_to_user_id": null
+      }
+    ]
+  },
+  {
+    "label": "seed-chores",
+    "at_utc": "2026-10-07T01:58:00.200452+00:00",
+    "role": "parent",
+    "method": "POST",
+    "path": "/objects/chores",
+    "request_json": {
+      "name": "Stage 1 yearly",
+      "period_type": "yearly",
+      "period_config": "",
+      "period_days": 1,
+      "period_interval": 2,
+      "start_date": "2026-10-01 09:00:00",
+      "track_date_only": 0,
+      "rollover": 0,
+      "assignment_type": "no-assignment",
+      "active": 1
+    },
+    "request_text": null,
+    "status": 200,
+    "content_type": "application/json",
+    "response": {
+      "created_object_id": "6"
+    }
+  },
+  {
+    "label": "chore-yearly-before",
+    "at_utc": "2026-10-07T01:58:00.219614+00:00",
+    "role": "parent",
+    "method": "GET",
+    "path": "/chores/6",
+    "request_json": null,
+    "request_text": null,
+    "status": 200,
+    "content_type": "application/json",
+    "response": {
+      "chore": {
+        "id": 6,
+        "name": "Stage 1 yearly",
+        "description": null,
+        "period_type": "yearly",
+        "period_days": 1,
+        "row_created_timestamp": "2026-10-07 01:58:00",
+        "period_config": null,
+        "track_date_only": 0,
+        "rollover": 0,
+        "assignment_type": "no-assignment",
+        "assignment_config": null,
+        "next_execution_assigned_to_user_id": null,
+        "consume_product_on_execution": 0,
+        "product_id": null,
+        "product_amount": null,
+        "period_interval": 2,
+        "active": 1,
+        "start_date": "2026-10-01 09:00:00",
+        "rescheduled_date": null,
+        "rescheduled_next_execution_assigned_to_user_id": null
+      },
+      "last_tracked": null,
+      "tracked_count": 0,
+      "last_done_by": null,
+      "next_estimated_execution_time": "2026-10-01 09:00:00",
+      "next_execution_assigned_user": null,
+      "average_execution_frequency_hours": null
+    }
+  },
+  {
+    "label": "chore-yearly-execute",
+    "at_utc": "2026-10-07T01:58:00.248053+00:00",
+    "role": "child",
+    "method": "POST",
+    "path": "/chores/6/execute",
+    "request_json": {
+      "tracked_time": "2026-10-06 10:30:00"
+    },
+    "request_text": null,
+    "status": 200,
+    "content_type": "application/json",
+    "response": {
+      "id": 6,
+      "chore_id": 6,
+      "tracked_time": "2026-10-06 10:30:00",
+      "done_by_user_id": 3,
+      "row_created_timestamp": "2026-10-07 01:58:00",
+      "undone": 0,
+      "undone_timestamp": null,
+      "skipped": 0,
+      "scheduled_execution_time": "2026-10-01 09:00:00"
+    }
+  },
+  {
+    "label": "chore-yearly-after",
+    "at_utc": "2026-10-07T01:58:00.267512+00:00",
+    "role": "parent",
+    "method": "GET",
+    "path": "/chores/6",
+    "request_json": null,
+    "request_text": null,
+    "status": 200,
+    "content_type": "application/json",
+    "response": {
+      "chore": {
+        "id": 6,
+        "name": "Stage 1 yearly",
+        "description": null,
+        "period_type": "yearly",
+        "period_days": 1,
+        "row_created_timestamp": "2026-10-07 01:58:00",
+        "period_config": null,
+        "track_date_only": 0,
+        "rollover": 0,
+        "assignment_type": "no-assignment",
+        "assignment_config": null,
+        "next_execution_assigned_to_user_id": null,
+        "consume_product_on_execution": 0,
+        "product_id": null,
+        "product_amount": null,
+        "period_interval": 2,
+        "active": 1,
+        "start_date": "2026-10-01 09:00:00",
+        "rescheduled_date": null,
+        "rescheduled_next_execution_assigned_to_user_id": null
+      },
+      "last_tracked": "2026-10-06 10:30:00",
+      "tracked_count": 1,
+      "last_done_by": {
+        "id": 3,
+        "username": "stillroom_stage1_child",
+        "first_name": "Stage1",
+        "last_name": "child",
+        "row_created_timestamp": "2026-10-07 01:55:03",
+        "display_name": "Stage1 child",
+        "picture_file_name": null
+      },
+      "next_estimated_execution_time": "2028-10-01 10:30:00",
+      "next_execution_assigned_user": null,
+      "average_execution_frequency_hours": null
+    }
+  },
+  {
+    "label": "seed-existing-chores",
+    "at_utc": "2026-10-07T01:58:00.288623+00:00",
+    "role": "parent",
+    "method": "GET",
+    "path": "/objects/chores",
+    "request_json": null,
+    "request_text": null,
+    "status": 200,
+    "content_type": "application/json",
+    "response": [
+      {
+        "id": 1,
+        "name": "Stage 1 manually",
+        "description": null,
+        "period_type": "manually",
+        "period_days": 1,
+        "row_created_timestamp": "2026-10-07 01:57:59",
+        "period_config": null,
+        "track_date_only": 0,
+        "rollover": 0,
+        "assignment_type": "no-assignment",
+        "assignment_config": null,
+        "next_execution_assigned_to_user_id": null,
+        "consume_product_on_execution": 0,
+        "product_id": null,
+        "product_amount": null,
+        "period_interval": 2,
+        "active": 1,
+        "start_date": "2026-10-01 09:00:00",
+        "rescheduled_date": null,
+        "rescheduled_next_execution_assigned_to_user_id": null
+      },
+      {
+        "id": 2,
+        "name": "Stage 1 hourly",
+        "description": null,
+        "period_type": "hourly",
+        "period_days": 1,
+        "row_created_timestamp": "2026-10-07 01:57:59",
+        "period_config": null,
+        "track_date_only": 0,
+        "rollover": 0,
+        "assignment_type": "no-assignment",
+        "assignment_config": null,
+        "next_execution_assigned_to_user_id": null,
+        "consume_product_on_execution": 0,
+        "product_id": null,
+        "product_amount": null,
+        "period_interval": 2,
+        "active": 1,
+        "start_date": "2026-10-01 09:00:00",
+        "rescheduled_date": null,
+        "rescheduled_next_execution_assigned_to_user_id": null
+      },
+      {
+        "id": 3,
+        "name": "Stage 1 daily",
+        "description": null,
+        "period_type": "daily",
+        "period_days": 1,
+        "row_created_timestamp": "2026-10-07 01:57:59",
+        "period_config": null,
+        "track_date_only": 0,
+        "rollover": 0,
+        "assignment_type": "no-assignment",
+        "assignment_config": null,
+        "next_execution_assigned_to_user_id": null,
+        "consume_product_on_execution": 0,
+        "product_id": null,
+        "product_amount": null,
+        "period_interval": 2,
+        "active": 1,
+        "start_date": "2026-10-01 09:00:00",
+        "rescheduled_date": null,
+        "rescheduled_next_execution_assigned_to_user_id": null
+      },
+      {
+        "id": 4,
+        "name": "Stage 1 weekly",
+        "description": null,
+        "period_type": "weekly",
+        "period_days": 1,
+        "row_created_timestamp": "2026-10-07 01:57:59",
+        "period_config": "monday,wednesday",
+        "track_date_only": 0,
+        "rollover": 0,
+        "assignment_type": "no-assignment",
+        "assignment_config": null,
+        "next_execution_assigned_to_user_id": null,
+        "consume_product_on_execution": 0,
+        "product_id": null,
+        "product_amount": null,
+        "period_interval": 2,
+        "active": 1,
+        "start_date": "2026-10-01 09:00:00",
+        "rescheduled_date": null,
+        "rescheduled_next_execution_assigned_to_user_id": null
+      },
+      {
+        "id": 5,
+        "name": "Stage 1 monthly",
+        "description": null,
+        "period_type": "monthly",
+        "period_days": 15,
+        "row_created_timestamp": "2026-10-07 01:58:00",
+        "period_config": null,
+        "track_date_only": 0,
+        "rollover": 0,
+        "assignment_type": "no-assignment",
+        "assignment_config": null,
+        "next_execution_assigned_to_user_id": null,
+        "consume_product_on_execution": 0,
+        "product_id": null,
+        "product_amount": null,
+        "period_interval": 2,
+        "active": 1,
+        "start_date": "2026-10-01 09:00:00",
+        "rescheduled_date": null,
+        "rescheduled_next_execution_assigned_to_user_id": null
+      },
+      {
+        "id": 6,
+        "name": "Stage 1 yearly",
+        "description": null,
+        "period_type": "yearly",
+        "period_days": 1,
+        "row_created_timestamp": "2026-10-07 01:58:00",
+        "period_config": null,
+        "track_date_only": 0,
+        "rollover": 0,
+        "assignment_type": "no-assignment",
+        "assignment_config": null,
+        "next_execution_assigned_to_user_id": null,
+        "consume_product_on_execution": 0,
+        "product_id": null,
+        "product_amount": null,
+        "period_interval": 2,
+        "active": 1,
+        "start_date": "2026-10-01 09:00:00",
+        "rescheduled_date": null,
+        "rescheduled_next_execution_assigned_to_user_id": null
+      }
+    ]
+  },
+  {
+    "label": "seed-chores",
+    "at_utc": "2026-10-07T01:58:00.317338+00:00",
+    "role": "parent",
+    "method": "POST",
+    "path": "/objects/chores",
+    "request_json": {
+      "name": "Stage 1 adaptive",
+      "period_type": "adaptive",
+      "period_config": "",
+      "period_days": 1,
+      "period_interval": 2,
+      "start_date": "2026-10-01 09:00:00",
+      "track_date_only": 0,
+      "rollover": 0,
+      "assignment_type": "no-assignment",
+      "active": 1
+    },
+    "request_text": null,
+    "status": 200,
+    "content_type": "application/json",
+    "response": {
+      "created_object_id": "7"
+    }
+  },
+  {
+    "label": "chore-adaptive-before",
+    "at_utc": "2026-10-07T01:58:00.335999+00:00",
+    "role": "parent",
+    "method": "GET",
+    "path": "/chores/7",
+    "request_json": null,
+    "request_text": null,
+    "status": 200,
+    "content_type": "application/json",
+    "response": {
+      "chore": {
+        "id": 7,
+        "name": "Stage 1 adaptive",
+        "description": null,
+        "period_type": "adaptive",
+        "period_days": 1,
+        "row_created_timestamp": "2026-10-07 01:58:00",
+        "period_config": null,
+        "track_date_only": 0,
+        "rollover": 0,
+        "assignment_type": "no-assignment",
+        "assignment_config": null,
+        "next_execution_assigned_to_user_id": null,
+        "consume_product_on_execution": 0,
+        "product_id": null,
+        "product_amount": null,
+        "period_interval": 2,
+        "active": 1,
+        "start_date": "2026-10-01 09:00:00",
+        "rescheduled_date": null,
+        "rescheduled_next_execution_assigned_to_user_id": null
+      },
+      "last_tracked": null,
+      "tracked_count": 0,
+      "last_done_by": null,
+      "next_estimated_execution_time": "2026-10-01 09:00:00",
+      "next_execution_assigned_user": null,
+      "average_execution_frequency_hours": null
+    }
+  },
+  {
+    "label": "chore-adaptive-execute",
+    "at_utc": "2026-10-07T01:58:00.364411+00:00",
+    "role": "child",
+    "method": "POST",
+    "path": "/chores/7/execute",
+    "request_json": {
+      "tracked_time": "2026-10-06 10:30:00"
+    },
+    "request_text": null,
+    "status": 200,
+    "content_type": "application/json",
+    "response": {
+      "id": 7,
+      "chore_id": 7,
+      "tracked_time": "2026-10-06 10:30:00",
+      "done_by_user_id": 3,
+      "row_created_timestamp": "2026-10-07 01:58:00",
+      "undone": 0,
+      "undone_timestamp": null,
+      "skipped": 0,
+      "scheduled_execution_time": "2026-10-01 09:00:00"
+    }
+  },
+  {
+    "label": "chore-adaptive-after",
+    "at_utc": "2026-10-07T01:58:00.383716+00:00",
+    "role": "parent",
+    "method": "GET",
+    "path": "/chores/7",
+    "request_json": null,
+    "request_text": null,
+    "status": 200,
+    "content_type": "application/json",
+    "response": {
+      "chore": {
+        "id": 7,
+        "name": "Stage 1 adaptive",
+        "description": null,
+        "period_type": "adaptive",
+        "period_days": 1,
+        "row_created_timestamp": "2026-10-07 01:58:00",
+        "period_config": null,
+        "track_date_only": 0,
+        "rollover": 0,
+        "assignment_type": "no-assignment",
+        "assignment_config": null,
+        "next_execution_assigned_to_user_id": null,
+        "consume_product_on_execution": 0,
+        "product_id": null,
+        "product_amount": null,
+        "period_interval": 2,
+        "active": 1,
+        "start_date": "2026-10-01 09:00:00",
+        "rescheduled_date": null,
+        "rescheduled_next_execution_assigned_to_user_id": null
+      },
+      "last_tracked": "2026-10-06 10:30:00",
+      "tracked_count": 1,
+      "last_done_by": {
+        "id": 3,
+        "username": "stillroom_stage1_child",
+        "first_name": "Stage1",
+        "last_name": "child",
+        "row_created_timestamp": "2026-10-07 01:55:03",
+        "display_name": "Stage1 child",
+        "picture_file_name": null
+      },
+      "next_estimated_execution_time": "2026-10-06 10:30:00",
+      "next_execution_assigned_user": null,
+      "average_execution_frequency_hours": null
+    }
+  },
+  {
+    "label": "child-done-by-parent",
+    "at_utc": "2026-10-07T01:58:00.413220+00:00",
+    "role": "child",
+    "method": "POST",
+    "path": "/chores/3/execute",
+    "request_json": {
+      "tracked_time": "2026-10-06 12:00:00",
+      "done_by": 2
+    },
+    "request_text": null,
+    "status": 200,
+    "content_type": "application/json",
+    "response": {
+      "id": 8,
+      "chore_id": 3,
+      "tracked_time": "2026-10-06 12:00:00",
+      "done_by_user_id": 2,
+      "row_created_timestamp": "2026-10-07 01:58:00",
+      "undone": 0,
+      "undone_timestamp": null,
+      "skipped": 0,
+      "scheduled_execution_time": "2026-10-08 09:00:00"
+    }
+  },
+  {
+    "label": "child-done-by-invalid",
+    "at_utc": "2026-10-07T01:58:00.433780+00:00",
+    "role": "child",
+    "method": "POST",
+    "path": "/chores/3/execute",
+    "request_json": {
+      "tracked_time": "2026-10-06 13:00:00",
+      "done_by": 999999
+    },
+    "request_text": null,
+    "status": 400,
+    "content_type": "application/json",
+    "response": {
+      "error_message": "User does not exist"
+    }
+  },
+  {
+    "label": "child-chore-undo",
+    "at_utc": "2026-10-07T01:58:00.458076+00:00",
+    "role": "child",
+    "method": "POST",
+    "path": "/chores/executions/8/undo",
+    "request_json": null,
+    "request_text": null,
+    "status": 204,
+    "content_type": "application/json",
+    "response": ""
+  },
+  {
+    "label": "chore-date-only-set",
+    "at_utc": "2026-10-07T01:58:00.486026+00:00",
+    "role": "parent",
+    "method": "PUT",
+    "path": "/objects/chores/3",
+    "request_json": {
+      "track_date_only": 1
+    },
+    "request_text": null,
+    "status": 204,
+    "content_type": "application/json",
+    "response": ""
+  },
+  {
+    "label": "child-date-only-execute",
+    "at_utc": "2026-10-07T01:58:00.514713+00:00",
+    "role": "child",
+    "method": "POST",
+    "path": "/chores/3/execute",
+    "request_json": {
+      "tracked_time": "2026-10-06 15:45:00"
+    },
+    "request_text": null,
+    "status": 200,
+    "content_type": "application/json",
+    "response": {
+      "id": 9,
+      "chore_id": 3,
+      "tracked_time": "2026-10-06 00:00:00",
+      "done_by_user_id": 3,
+      "row_created_timestamp": "2026-10-07 01:58:00",
+      "undone": 0,
+      "undone_timestamp": null,
+      "skipped": 0,
+      "scheduled_execution_time": "2026-10-08 23:59:59"
+    }
+  },
+  {
+    "label": "child-scheduled-skip",
+    "at_utc": "2026-10-07T01:58:00.543126+00:00",
+    "role": "child",
+    "method": "POST",
+    "path": "/chores/3/execute",
+    "request_json": {
+      "tracked_time": "2026-10-06 16:00:00",
+      "skipped": true
+    },
+    "request_text": null,
+    "status": 200,
+    "content_type": "application/json",
+    "response": {
+      "id": 10,
+      "chore_id": 3,
+      "tracked_time": "2026-10-06 00:00:00",
+      "done_by_user_id": 3,
+      "row_created_timestamp": "2026-10-07 01:58:00",
+      "undone": 0,
+      "undone_timestamp": null,
+      "skipped": 1,
+      "scheduled_execution_time": "2026-10-08 23:59:59"
+    }
+  },
+  {
+    "label": "child-manual-skip",
+    "at_utc": "2026-10-07T01:58:00.562885+00:00",
+    "role": "child",
+    "method": "POST",
+    "path": "/chores/1/execute",
+    "request_json": {
+      "tracked_time": "2026-10-06 16:00:00",
+      "skipped": true
+    },
+    "request_text": null,
+    "status": 400,
+    "content_type": "application/json",
+    "response": {
+      "error_message": "Chores without a schedule can't be skipped"
+    }
+  },
+  {
+    "label": "chores-list",
+    "at_utc": "2026-10-07T01:58:00.583114+00:00",
+    "role": "child",
+    "method": "GET",
+    "path": "/chores",
+    "request_json": null,
+    "request_text": null,
+    "status": 200,
+    "content_type": "application/json",
+    "response": [
+      {
+        "id": 1,
+        "chore_id": 1,
+        "chore_name": "Stage 1 manually",
+        "last_tracked_time": "2026-10-06 10:30:00",
+        "next_estimated_execution_time": null,
+        "track_date_only": 0,
+        "next_execution_assigned_to_user_id": null,
+        "is_rescheduled": 0,
+        "is_reassigned": 0,
+        "next_execution_assigned_user": null
+      },
+      {
+        "id": 2,
+        "chore_id": 2,
+        "chore_name": "Stage 1 hourly",
+        "last_tracked_time": "2026-10-06 10:30:00",
+        "next_estimated_execution_time": "2026-10-06 12:30:00",
+        "track_date_only": 0,
+        "next_execution_assigned_to_user_id": null,
+        "is_rescheduled": 0,
+        "is_reassigned": 0,
+        "next_execution_assigned_user": null
+      },
+      {
+        "id": 3,
+        "chore_id": 3,
+        "chore_name": "Stage 1 daily",
+        "last_tracked_time": "2026-10-06 10:30:00",
+        "next_estimated_execution_time": "2026-10-08 23:59:59",
+        "track_date_only": 1,
+        "next_execution_assigned_to_user_id": null,
+        "is_rescheduled": 0,
+        "is_reassigned": 0,
+        "next_execution_assigned_user": null
+      },
+      {
+        "id": 4,
+        "chore_id": 4,
+        "chore_name": "Stage 1 weekly",
+        "last_tracked_time": "2026-10-06 10:30:00",
+        "next_estimated_execution_time": "2026-10-14 10:30:00",
+        "track_date_only": 0,
+        "next_execution_assigned_to_user_id": null,
+        "is_rescheduled": 0,
+        "is_reassigned": 0,
+        "next_execution_assigned_user": null
+      },
+      {
+        "id": 5,
+        "chore_id": 5,
+        "chore_name": "Stage 1 monthly",
+        "last_tracked_time": "2026-10-06 10:30:00",
+        "next_estimated_execution_time": "2026-12-15 00:00:00",
+        "track_date_only": 0,
+        "next_execution_assigned_to_user_id": null,
+        "is_rescheduled": 0,
+        "is_reassigned": 0,
+        "next_execution_assigned_user": null
+      },
+      {
+        "id": 6,
+        "chore_id": 6,
+        "chore_name": "Stage 1 yearly",
+        "last_tracked_time": "2026-10-06 10:30:00",
+        "next_estimated_execution_time": "2028-10-01 10:30:00",
+        "track_date_only": 0,
+        "next_execution_assigned_to_user_id": null,
+        "is_rescheduled": 0,
+        "is_reassigned": 0,
+        "next_execution_assigned_user": null
+      },
+      {
+        "id": 7,
+        "chore_id": 7,
+        "chore_name": "Stage 1 adaptive",
+        "last_tracked_time": "2026-10-06 10:30:00",
+        "next_estimated_execution_time": "2026-10-06 10:30:00",
+        "track_date_only": 0,
+        "next_execution_assigned_to_user_id": null,
+        "is_rescheduled": 0,
+        "is_reassigned": 0,
+        "next_execution_assigned_user": null
+      }
+    ]
+  },
+  {
+    "label": "child-stock",
+    "at_utc": "2026-10-07T01:58:00.604123+00:00",
+    "role": "child",
+    "method": "GET",
+    "path": "/stock",
+    "request_json": null,
+    "request_text": null,
+    "status": 200,
+    "content_type": "application/json",
+    "response": [
+      {
+        "amount": 5,
+        "amount_aggregated": 5,
+        "value": 0,
+        "best_before_date": "2027-01-01",
+        "amount_opened": 0,
+        "amount_opened_aggregated": 0,
+        "is_aggregated_amount": 0,
+        "due_type": 1,
+        "product_id": 1,
+        "product": {
+          "id": 1,
+          "name": "Stage 1 synthetic product",
+          "description": null,
+          "product_group_id": null,
+          "active": 1,
+          "location_id": 3,
+          "shopping_location_id": null,
+          "qu_id_purchase": 4,
+          "qu_id_stock": 4,
+          "min_stock_amount": 0,
+          "default_best_before_days": 0,
+          "default_best_before_days_after_open": 0,
+          "default_best_before_days_after_freezing": 0,
+          "default_best_before_days_after_thawing": 0,
+          "picture_file_name": null,
+          "enable_tare_weight_handling": 0,
+          "tare_weight": 0,
+          "not_check_stock_fulfillment_for_recipes": 0,
+          "parent_product_id": null,
+          "calories": null,
+          "cumulate_min_stock_amount_of_sub_products": 0,
+          "due_type": 1,
+          "quick_consume_amount": 1,
+          "hide_on_stock_overview": 0,
+          "default_stock_label_type": 0,
+          "should_not_be_frozen": 0,
+          "treat_opened_as_out_of_stock": 1,
+          "no_own_stock": 0,
+          "default_consume_location_id": null,
+          "move_on_open": 0,
+          "row_created_timestamp": "2026-10-07 01:57:30",
+          "qu_id_consume": 4,
+          "auto_reprint_stock_label": 0,
+          "quick_open_amount": 1,
+          "qu_id_price": 4,
+          "disable_open": 0,
+          "default_purchase_price_type": 1
+        }
+      }
+    ]
+  },
+  {
+    "label": "child-stock-detail",
+    "at_utc": "2026-10-07T01:58:00.630413+00:00",
+    "role": "child",
+    "method": "GET",
+    "path": "/stock/products/1",
+    "request_json": null,
+    "request_text": null,
+    "status": 200,
+    "content_type": "application/json",
+    "response": {
+      "product": {
+        "id": 1,
+        "name": "Stage 1 synthetic product",
+        "description": null,
+        "product_group_id": null,
+        "active": 1,
+        "location_id": 3,
+        "shopping_location_id": null,
+        "qu_id_purchase": 4,
+        "qu_id_stock": 4,
+        "min_stock_amount": 0,
+        "default_best_before_days": 0,
+        "default_best_before_days_after_open": 0,
+        "default_best_before_days_after_freezing": 0,
+        "default_best_before_days_after_thawing": 0,
+        "picture_file_name": null,
+        "enable_tare_weight_handling": 0,
+        "tare_weight": 0,
+        "not_check_stock_fulfillment_for_recipes": 0,
+        "parent_product_id": null,
+        "calories": null,
+        "cumulate_min_stock_amount_of_sub_products": 0,
+        "due_type": 1,
+        "quick_consume_amount": 1,
+        "hide_on_stock_overview": 0,
+        "default_stock_label_type": 0,
+        "should_not_be_frozen": 0,
+        "treat_opened_as_out_of_stock": 1,
+        "no_own_stock": 0,
+        "default_consume_location_id": null,
+        "move_on_open": 0,
+        "row_created_timestamp": "2026-10-07 01:57:30",
+        "qu_id_consume": 4,
+        "auto_reprint_stock_label": 0,
+        "quick_open_amount": 1,
+        "qu_id_price": 4,
+        "disable_open": 0,
+        "default_purchase_price_type": 1
+      },
+      "product_barcodes": [
+        {
+          "id": 1,
+          "product_id": 1,
+          "barcode": "STILLROOM-STAGE1-001",
+          "qu_id": 4,
+          "amount": 1,
+          "shopping_location_id": null,
+          "last_price": null,
+          "row_created_timestamp": "2026-10-07 01:57:30",
+          "note": null
+        }
+      ],
+      "last_purchased": "2026-10-07",
+      "last_used": "2026-10-07",
+      "stock_amount": 5,
+      "stock_value": 0,
+      "stock_amount_opened": 0,
+      "stock_amount_aggregated": 5,
+      "stock_amount_opened_aggregated": 0,
+      "quantity_unit_stock": {
+        "id": 4,
+        "name": "stage1 unit",
+        "description": null,
+        "row_created_timestamp": "2026-10-07 01:57:30",
+        "name_plural": "stage1 units",
+        "plural_forms": null,
+        "active": 1
+      },
+      "default_quantity_unit_purchase": {
+        "id": 4,
+        "name": "stage1 unit",
+        "description": null,
+        "row_created_timestamp": "2026-10-07 01:57:30",
+        "name_plural": "stage1 units",
+        "plural_forms": null,
+        "active": 1
+      },
+      "default_quantity_unit_consume": {
+        "id": 4,
+        "name": "stage1 unit",
+        "description": null,
+        "row_created_timestamp": "2026-10-07 01:57:30",
+        "name_plural": "stage1 units",
+        "plural_forms": null,
+        "active": 1
+      },
+      "quantity_unit_price": {
+        "id": 4,
+        "name": "stage1 unit",
+        "description": null,
+        "row_created_timestamp": "2026-10-07 01:57:30",
+        "name_plural": "stage1 units",
+        "plural_forms": null,
+        "active": 1
+      },
+      "last_price": 0,
+      "avg_price": 1.25,
+      "oldest_price": 0,
+      "current_price": 0,
+      "last_shopping_location_id": null,
+      "default_shopping_location_id": null,
+      "next_due_date": "2027-01-01",
+      "location": {
+        "id": 3,
+        "name": "Stage 1 synthetic shelf",
+        "description": null,
+        "row_created_timestamp": "2026-10-07 01:57:30",
+        "is_freezer": 0,
+        "active": 1
+      },
+      "average_shelf_life_days": 86,
+      "spoil_rate_percent": 0,
+      "is_aggregated_amount": 0,
+      "has_childs": false,
+      "default_consume_location": null,
+      "qu_conversion_factor_purchase_to_stock": 1,
+      "qu_conversion_factor_price_to_stock": 1
+    }
+  },
+  {
+    "label": "child-shopping",
+    "at_utc": "2026-10-07T01:58:00.651791+00:00",
+    "role": "child",
+    "method": "GET",
+    "path": "/objects/shopping_list",
+    "request_json": null,
+    "request_text": null,
+    "status": 200,
+    "content_type": "application/json",
+    "response": [
+      {
+        "id": 1,
+        "product_id": 1,
+        "note": "Synthetic linked row",
+        "amount": 2.5,
+        "row_created_timestamp": "2026-10-07 01:57:58",
+        "shopping_list_id": 1,
+        "done": 0,
+        "qu_id": 4
+      },
+      {
+        "id": 2,
+        "product_id": null,
+        "note": "Synthetic note-only row",
+        "amount": 1,
+        "row_created_timestamp": "2026-10-07 01:57:58",
+        "shopping_list_id": 1,
+        "done": 1,
+        "qu_id": 4
+      }
+    ]
+  },
+  {
+    "label": "child-recipes",
+    "at_utc": "2026-10-07T01:58:00.722958+00:00",
+    "role": "child",
+    "method": "GET",
+    "path": "/recipes/fulfillment",
+    "request_json": null,
+    "request_text": null,
+    "status": 200,
+    "content_type": "application/json",
+    "response": [
+      {
+        "id": 1,
+        "recipe_id": -8,
+        "need_fulfilled": 1,
+        "need_fulfilled_with_shopping_list": 1,
+        "missing_products_count": 0,
+        "costs": 0,
+        "costs_per_serving": 0,
+        "calories": 0,
+        "due_score": 0,
+        "product_names_comma_separated": null,
+        "prices_incomplete": 1
+      },
+      {
+        "id": 1,
+        "recipe_id": -7,
+        "need_fulfilled": 1,
+        "need_fulfilled_with_shopping_list": 1,
+        "missing_products_count": 0,
+        "costs": 0,
+        "costs_per_serving": 0,
+        "calories": 0,
+        "due_score": 0,
+        "product_names_comma_separated": null,
+        "prices_incomplete": 1
+      },
+      {
+        "id": 1,
+        "recipe_id": -6,
+        "need_fulfilled": 1,
+        "need_fulfilled_with_shopping_list": 1,
+        "missing_products_count": 0,
+        "costs": 0,
+        "costs_per_serving": 0,
+        "calories": 0,
+        "due_score": 0,
+        "product_names_comma_separated": null,
+        "prices_incomplete": 1
+      },
+      {
+        "id": 1,
+        "recipe_id": 1,
+        "need_fulfilled": 1,
+        "need_fulfilled_with_shopping_list": 1,
+        "missing_products_count": 0,
+        "costs": 0,
+        "costs_per_serving": 0,
+        "calories": 0,
+        "due_score": 0,
+        "product_names_comma_separated": null,
+        "prices_incomplete": 1
+      }
+    ]
+  },
+  {
+    "label": "child-recipe-detail",
+    "at_utc": "2026-10-07T01:58:00.793648+00:00",
+    "role": "child",
+    "method": "GET",
+    "path": "/recipes/1/fulfillment",
+    "request_json": null,
+    "request_text": null,
+    "status": 200,
+    "content_type": "application/json",
+    "response": {
+      "id": 1,
+      "recipe_id": 1,
+      "need_fulfilled": 1,
+      "need_fulfilled_with_shopping_list": 1,
+      "missing_products_count": 0,
+      "costs": 0,
+      "costs_per_serving": 0,
+      "calories": 0,
+      "due_score": 0,
+      "product_names_comma_separated": null,
+      "prices_incomplete": 1
+    }
+  },
+  {
+    "label": "child-master-data",
+    "at_utc": "2026-10-07T01:58:00.816622+00:00",
+    "role": "child",
+    "method": "GET",
+    "path": "/objects/products",
+    "request_json": null,
+    "request_text": null,
+    "status": 200,
+    "content_type": "application/json",
+    "response": [
+      {
+        "id": 1,
+        "name": "Stage 1 synthetic product",
+        "description": null,
+        "product_group_id": null,
+        "active": 1,
+        "location_id": 3,
+        "shopping_location_id": null,
+        "qu_id_purchase": 4,
+        "qu_id_stock": 4,
+        "min_stock_amount": 0,
+        "default_best_before_days": 0,
+        "default_best_before_days_after_open": 0,
+        "default_best_before_days_after_freezing": 0,
+        "default_best_before_days_after_thawing": 0,
+        "picture_file_name": null,
+        "enable_tare_weight_handling": 0,
+        "tare_weight": 0,
+        "not_check_stock_fulfillment_for_recipes": 0,
+        "parent_product_id": null,
+        "calories": null,
+        "cumulate_min_stock_amount_of_sub_products": 0,
+        "due_type": 1,
+        "quick_consume_amount": 1,
+        "hide_on_stock_overview": 0,
+        "default_stock_label_type": 0,
+        "should_not_be_frozen": 0,
+        "treat_opened_as_out_of_stock": 1,
+        "no_own_stock": 0,
+        "default_consume_location_id": null,
+        "move_on_open": 0,
+        "row_created_timestamp": "2026-10-07 01:57:30",
+        "qu_id_consume": 4,
+        "auto_reprint_stock_label": 0,
+        "quick_open_amount": 1,
+        "qu_id_price": 4,
+        "disable_open": 0,
+        "default_purchase_price_type": 1,
+        "userfields": {
+          "stage1_note": "Synthetic field value"
+        }
+      }
+    ]
+  },
+  {
+    "label": "child-master-data-single",
+    "at_utc": "2026-10-07T01:58:00.838364+00:00",
+    "role": "child",
+    "method": "GET",
+    "path": "/objects/products/1",
+    "request_json": null,
+    "request_text": null,
+    "status": 200,
+    "content_type": "application/json",
+    "response": {
+      "id": 1,
+      "name": "Stage 1 synthetic product",
+      "description": null,
+      "product_group_id": null,
+      "active": 1,
+      "location_id": 3,
+      "shopping_location_id": null,
+      "qu_id_purchase": 4,
+      "qu_id_stock": 4,
+      "min_stock_amount": 0,
+      "default_best_before_days": 0,
+      "default_best_before_days_after_open": 0,
+      "default_best_before_days_after_freezing": 0,
+      "default_best_before_days_after_thawing": 0,
+      "picture_file_name": null,
+      "enable_tare_weight_handling": 0,
+      "tare_weight": 0,
+      "not_check_stock_fulfillment_for_recipes": 0,
+      "parent_product_id": null,
+      "calories": null,
+      "cumulate_min_stock_amount_of_sub_products": 0,
+      "due_type": 1,
+      "quick_consume_amount": 1,
+      "hide_on_stock_overview": 0,
+      "default_stock_label_type": 0,
+      "should_not_be_frozen": 0,
+      "treat_opened_as_out_of_stock": 1,
+      "no_own_stock": 0,
+      "default_consume_location_id": null,
+      "move_on_open": 0,
+      "row_created_timestamp": "2026-10-07 01:57:30",
+      "qu_id_consume": 4,
+      "auto_reprint_stock_label": 0,
+      "quick_open_amount": 1,
+      "qu_id_price": 4,
+      "disable_open": 0,
+      "default_purchase_price_type": 1,
+      "userfields": {
+        "stage1_note": "Synthetic field value"
+      }
+    }
+  },
+  {
+    "label": "child-userfields",
+    "at_utc": "2026-10-07T01:58:00.857588+00:00",
+    "role": "child",
+    "method": "GET",
+    "path": "/userfields/products/1",
+    "request_json": null,
+    "request_text": null,
+    "status": 200,
+    "content_type": "application/json",
+    "response": {
+      "stage1_note": "Synthetic field value"
+    }
+  },
+  {
+    "label": "child-users",
+    "at_utc": "2026-10-07T01:58:00.876027+00:00",
+    "role": "child",
+    "method": "GET",
+    "path": "/users",
+    "request_json": null,
+    "request_text": null,
+    "status": 403,
+    "content_type": "application/json",
+    "response": {
+      "error_message": "Permission missing: USERS_READ"
+    }
+  },
+  {
+    "label": "child-grants-admin-only",
+    "at_utc": "2026-10-07T01:58:00.895351+00:00",
+    "role": "child",
+    "method": "GET",
+    "path": "/users/3/permissions",
+    "request_json": null,
+    "request_text": null,
+    "status": 403,
+    "content_type": "application/json",
+    "response": {
+      "error_message": "Permission missing: ADMIN"
+    }
+  },
+  {
+    "label": "child-stock-purchase",
+    "at_utc": "2026-10-07T01:58:00.914964+00:00",
+    "role": "child",
+    "method": "POST",
+    "path": "/stock/products/1/add",
+    "request_json": {
+      "amount": 1,
+      "transaction_type": "purchase"
+    },
+    "request_text": null,
+    "status": 403,
+    "content_type": "application/json",
+    "response": {
+      "error_message": "Permission missing: STOCK_PURCHASE"
+    }
+  },
+  {
+    "label": "child-stock-consume",
+    "at_utc": "2026-10-07T01:58:00.933890+00:00",
+    "role": "child",
+    "method": "POST",
+    "path": "/stock/products/1/consume",
+    "request_json": {
+      "amount": 1,
+      "transaction_type": "consume"
+    },
+    "request_text": null,
+    "status": 403,
+    "content_type": "application/json",
+    "response": {
+      "error_message": "Permission missing: STOCK_CONSUME"
+    }
+  },
+  {
+    "label": "child-shopping-write",
+    "at_utc": "2026-10-07T01:58:00.952261+00:00",
+    "role": "child",
+    "method": "POST",
+    "path": "/stock/shoppinglist/add-product",
+    "request_json": {
+      "product_id": 1
+    },
+    "request_text": null,
+    "status": 403,
+    "content_type": "application/json",
+    "response": {
+      "error_message": "Permission missing: SHOPPINGLIST_ITEMS_ADD"
+    }
+  },
+  {
+    "label": "child-recipe-consume",
+    "at_utc": "2026-10-07T01:58:00.970495+00:00",
+    "role": "child",
+    "method": "POST",
+    "path": "/recipes/1/consume",
+    "request_json": {
+      "servings": 1
+    },
+    "request_text": null,
+    "status": 403,
+    "content_type": "application/json",
+    "response": {
+      "error_message": "Permission missing: STOCK_CONSUME"
+    }
+  },
+  {
+    "label": "child-master-data-write",
+    "at_utc": "2026-10-07T01:58:00.988557+00:00",
+    "role": "child",
+    "method": "POST",
+    "path": "/objects/products",
+    "request_json": {
+      "name": "Child forbidden product",
+      "location_id": 3,
+      "qu_id_purchase": 4,
+      "qu_id_stock": 4
+    },
+    "request_text": null,
+    "status": 403,
+    "content_type": "application/json",
+    "response": {
+      "error_message": "Permission missing: MASTER_DATA_EDIT"
+    }
+  },
+  {
+    "label": "child-recipe-write",
+    "at_utc": "2026-10-07T01:58:01.018602+00:00",
+    "role": "child",
+    "method": "POST",
+    "path": "/objects/recipes",
+    "request_json": {
+      "name": "Child forbidden recipe"
+    },
+    "request_text": null,
+    "status": 403,
+    "content_type": "application/json",
+    "response": {
+      "error_message": "Permission missing: RECIPES"
+    }
+  },
+  {
+    "label": "child-mealplan-write",
+    "at_utc": "2026-10-07T01:58:01.037131+00:00",
+    "role": "child",
+    "method": "POST",
+    "path": "/objects/meal_plan",
+    "request_json": {
+      "day": "2026-10-07",
+      "type": "note",
+      "note": "Denied"
+    },
+    "request_text": null,
+    "status": 403,
+    "content_type": "application/json",
+    "response": {
+      "error_message": "Permission missing: RECIPES_MEALPLAN"
+    }
+  },
+  {
+    "label": "child-equipment-write",
+    "at_utc": "2026-10-07T01:58:01.056267+00:00",
+    "role": "child",
+    "method": "POST",
+    "path": "/objects/equipment",
+    "request_json": {
+      "name": "Denied"
+    },
+    "request_text": null,
+    "status": 403,
+    "content_type": "application/json",
+    "response": {
+      "error_message": "Permission missing: EQUIPMENT"
+    }
+  },
+  {
+    "label": "child-chore-master-write",
+    "at_utc": "2026-10-07T01:58:01.074991+00:00",
+    "role": "child",
+    "method": "POST",
+    "path": "/objects/chores",
+    "request_json": {
+      "name": "Denied"
+    },
+    "request_text": null,
+    "status": 403,
+    "content_type": "application/json",
+    "response": {
+      "error_message": "Permission missing: MASTER_DATA_EDIT"
+    }
+  },
+  {
+    "label": "child-task-complete",
+    "at_utc": "2026-10-07T01:58:01.094492+00:00",
+    "role": "child",
+    "method": "POST",
+    "path": "/tasks/1/complete",
+    "request_json": {},
+    "request_text": null,
+    "status": 403,
+    "content_type": "application/json",
+    "response": {
+      "error_message": "Permission missing: TASKS_MARK_COMPLETED"
+    }
+  },
+  {
+    "label": "child-battery-charge",
+    "at_utc": "2026-10-07T01:58:01.114309+00:00",
+    "role": "child",
+    "method": "POST",
+    "path": "/batteries/1/charge",
+    "request_json": {},
+    "request_text": null,
+    "status": 403,
+    "content_type": "application/json",
+    "response": {
+      "error_message": "Permission missing: BATTERIES_TRACK_CHARGE_CYCLE"
+    }
+  },
+  {
+    "label": "child-stock-booking-undo",
+    "at_utc": "2026-10-07T01:58:01.133317+00:00",
+    "role": "child",
+    "method": "POST",
+    "path": "/stock/bookings/1/undo",
+    "request_json": {},
+    "request_text": null,
+    "status": 403,
+    "content_type": "application/json",
+    "response": {
+      "error_message": "Permission missing: STOCK_EDIT"
+    }
+  },
+  {
+    "label": "child-stock-transaction-undo",
+    "at_utc": "2026-10-07T01:58:01.152382+00:00",
+    "role": "child",
+    "method": "POST",
+    "path": "/stock/transactions/6ac5a7268c32b/undo",
+    "request_json": {},
+    "request_text": null,
+    "status": 403,
+    "content_type": "application/json",
+    "response": {
+      "error_message": "Permission missing: STOCK_EDIT"
+    }
+  },
+  {
+    "label": "child-userfield-write",
+    "at_utc": "2026-10-07T01:58:01.170834+00:00",
+    "role": "child",
+    "method": "PUT",
+    "path": "/userfields/products/1",
+    "request_json": {
+      "stage1_note": "Denied"
+    },
+    "request_text": null,
+    "status": 403,
+    "content_type": "application/json",
+    "response": {
+      "error_message": "Permission missing: MASTER_DATA_EDIT"
+    }
+  },
+  {
+    "label": "child-object-list-products",
+    "at_utc": "2026-10-07T01:58:01.196195+00:00",
+    "role": "child",
+    "method": "GET",
+    "path": "/objects/products",
+    "request_json": null,
+    "request_text": null,
+    "status": 200,
+    "content_type": "application/json",
+    "response": [
+      {
+        "id": 1,
+        "name": "Stage 1 synthetic product",
+        "description": null,
+        "product_group_id": null,
+        "active": 1,
+        "location_id": 3,
+        "shopping_location_id": null,
+        "qu_id_purchase": 4,
+        "qu_id_stock": 4,
+        "min_stock_amount": 0,
+        "default_best_before_days": 0,
+        "default_best_before_days_after_open": 0,
+        "default_best_before_days_after_freezing": 0,
+        "default_best_before_days_after_thawing": 0,
+        "picture_file_name": null,
+        "enable_tare_weight_handling": 0,
+        "tare_weight": 0,
+        "not_check_stock_fulfillment_for_recipes": 0,
+        "parent_product_id": null,
+        "calories": null,
+        "cumulate_min_stock_amount_of_sub_products": 0,
+        "due_type": 1,
+        "quick_consume_amount": 1,
+        "hide_on_stock_overview": 0,
+        "default_stock_label_type": 0,
+        "should_not_be_frozen": 0,
+        "treat_opened_as_out_of_stock": 1,
+        "no_own_stock": 0,
+        "default_consume_location_id": null,
+        "move_on_open": 0,
+        "row_created_timestamp": "2026-10-07 01:57:30",
+        "qu_id_consume": 4,
+        "auto_reprint_stock_label": 0,
+        "quick_open_amount": 1,
+        "qu_id_price": 4,
+        "disable_open": 0,
+        "default_purchase_price_type": 1,
+        "userfields": {
+          "stage1_note": "Synthetic field value"
+        }
+      }
+    ]
+  },
+  {
+    "label": "child-object-list-chores",
+    "at_utc": "2026-10-07T01:58:01.218385+00:00",
+    "role": "child",
+    "method": "GET",
+    "path": "/objects/chores",
+    "request_json": null,
+    "request_text": null,
+    "status": 200,
+    "content_type": "application/json",
+    "response": [
+      {
+        "id": 1,
+        "name": "Stage 1 manually",
+        "description": null,
+        "period_type": "manually",
+        "period_days": 1,
+        "row_created_timestamp": "2026-10-07 01:57:59",
+        "period_config": null,
+        "track_date_only": 0,
+        "rollover": 0,
+        "assignment_type": "no-assignment",
+        "assignment_config": null,
+        "next_execution_assigned_to_user_id": null,
+        "consume_product_on_execution": 0,
+        "product_id": null,
+        "product_amount": null,
+        "period_interval": 2,
+        "active": 1,
+        "start_date": "2026-10-01 09:00:00",
+        "rescheduled_date": null,
+        "rescheduled_next_execution_assigned_to_user_id": null
+      },
+      {
+        "id": 2,
+        "name": "Stage 1 hourly",
+        "description": null,
+        "period_type": "hourly",
+        "period_days": 1,
+        "row_created_timestamp": "2026-10-07 01:57:59",
+        "period_config": null,
+        "track_date_only": 0,
+        "rollover": 0,
+        "assignment_type": "no-assignment",
+        "assignment_config": null,
+        "next_execution_assigned_to_user_id": null,
+        "consume_product_on_execution": 0,
+        "product_id": null,
+        "product_amount": null,
+        "period_interval": 2,
+        "active": 1,
+        "start_date": "2026-10-01 09:00:00",
+        "rescheduled_date": null,
+        "rescheduled_next_execution_assigned_to_user_id": null
+      },
+      {
+        "id": 3,
+        "name": "Stage 1 daily",
+        "description": null,
+        "period_type": "daily",
+        "period_days": 1,
+        "row_created_timestamp": "2026-10-07 01:57:59",
+        "period_config": null,
+        "track_date_only": 1,
+        "rollover": 0,
+        "assignment_type": "no-assignment",
+        "assignment_config": null,
+        "next_execution_assigned_to_user_id": null,
+        "consume_product_on_execution": 0,
+        "product_id": null,
+        "product_amount": null,
+        "period_interval": 2,
+        "active": 1,
+        "start_date": "2026-10-01 09:00:00",
+        "rescheduled_date": null,
+        "rescheduled_next_execution_assigned_to_user_id": null
+      },
+      {
+        "id": 4,
+        "name": "Stage 1 weekly",
+        "description": null,
+        "period_type": "weekly",
+        "period_days": 1,
+        "row_created_timestamp": "2026-10-07 01:57:59",
+        "period_config": "monday,wednesday",
+        "track_date_only": 0,
+        "rollover": 0,
+        "assignment_type": "no-assignment",
+        "assignment_config": null,
+        "next_execution_assigned_to_user_id": null,
+        "consume_product_on_execution": 0,
+        "product_id": null,
+        "product_amount": null,
+        "period_interval": 2,
+        "active": 1,
+        "start_date": "2026-10-01 09:00:00",
+        "rescheduled_date": null,
+        "rescheduled_next_execution_assigned_to_user_id": null
+      },
+      {
+        "id": 5,
+        "name": "Stage 1 monthly",
+        "description": null,
+        "period_type": "monthly",
+        "period_days": 15,
+        "row_created_timestamp": "2026-10-07 01:58:00",
+        "period_config": null,
+        "track_date_only": 0,
+        "rollover": 0,
+        "assignment_type": "no-assignment",
+        "assignment_config": null,
+        "next_execution_assigned_to_user_id": null,
+        "consume_product_on_execution": 0,
+        "product_id": null,
+        "product_amount": null,
+        "period_interval": 2,
+        "active": 1,
+        "start_date": "2026-10-01 09:00:00",
+        "rescheduled_date": null,
+        "rescheduled_next_execution_assigned_to_user_id": null
+      },
+      {
+        "id": 6,
+        "name": "Stage 1 yearly",
+        "description": null,
+        "period_type": "yearly",
+        "period_days": 1,
+        "row_created_timestamp": "2026-10-07 01:58:00",
+        "period_config": null,
+        "track_date_only": 0,
+        "rollover": 0,
+        "assignment_type": "no-assignment",
+        "assignment_config": null,
+        "next_execution_assigned_to_user_id": null,
+        "consume_product_on_execution": 0,
+        "product_id": null,
+        "product_amount": null,
+        "period_interval": 2,
+        "active": 1,
+        "start_date": "2026-10-01 09:00:00",
+        "rescheduled_date": null,
+        "rescheduled_next_execution_assigned_to_user_id": null
+      },
+      {
+        "id": 7,
+        "name": "Stage 1 adaptive",
+        "description": null,
+        "period_type": "adaptive",
+        "period_days": 1,
+        "row_created_timestamp": "2026-10-07 01:58:00",
+        "period_config": null,
+        "track_date_only": 0,
+        "rollover": 0,
+        "assignment_type": "no-assignment",
+        "assignment_config": null,
+        "next_execution_assigned_to_user_id": null,
+        "consume_product_on_execution": 0,
+        "product_id": null,
+        "product_amount": null,
+        "period_interval": 2,
+        "active": 1,
+        "start_date": "2026-10-01 09:00:00",
+        "rescheduled_date": null,
+        "rescheduled_next_execution_assigned_to_user_id": null
+      }
+    ]
+  },
+  {
+    "label": "child-object-list-product_barcodes",
+    "at_utc": "2026-10-07T01:58:01.240134+00:00",
+    "role": "child",
+    "method": "GET",
+    "path": "/objects/product_barcodes",
+    "request_json": null,
+    "request_text": null,
+    "status": 200,
+    "content_type": "application/json",
+    "response": [
+      {
+        "id": 1,
+        "product_id": 1,
+        "barcode": "STILLROOM-STAGE1-001",
+        "qu_id": 4,
+        "amount": 1,
+        "shopping_location_id": null,
+        "last_price": null,
+        "row_created_timestamp": "2026-10-07 01:57:30",
+        "note": null
+      }
+    ]
+  },
+  {
+    "label": "child-object-list-batteries",
+    "at_utc": "2026-10-07T01:58:01.262508+00:00",
+    "role": "child",
+    "method": "GET",
+    "path": "/objects/batteries",
+    "request_json": null,
+    "request_text": null,
+    "status": 200,
+    "content_type": "application/json",
+    "response": [
+      {
+        "id": 1,
+        "name": "Stage 1 synthetic battery",
+        "description": null,
+        "used_in": null,
+        "charge_interval_days": 30,
+        "row_created_timestamp": "2026-10-07 01:57:30",
+        "active": 1
+      }
+    ]
+  },
+  {
+    "label": "child-object-list-locations",
+    "at_utc": "2026-10-07T01:58:01.284102+00:00",
+    "role": "child",
+    "method": "GET",
+    "path": "/objects/locations",
+    "request_json": null,
+    "request_text": null,
+    "status": 200,
+    "content_type": "application/json",
+    "response": [
+      {
+        "id": 2,
+        "name": "Fridge",
+        "description": null,
+        "row_created_timestamp": "2026-10-07 01:53:59",
+        "is_freezer": 0,
+        "active": 1
+      },
+      {
+        "id": 3,
+        "name": "Stage 1 synthetic shelf",
+        "description": null,
+        "row_created_timestamp": "2026-10-07 01:57:30",
+        "is_freezer": 0,
+        "active": 1
+      }
+    ]
+  },
+  {
+    "label": "child-object-list-quantity_units",
+    "at_utc": "2026-10-07T01:58:01.305979+00:00",
+    "role": "child",
+    "method": "GET",
+    "path": "/objects/quantity_units",
+    "request_json": null,
+    "request_text": null,
+    "status": 200,
+    "content_type": "application/json",
+    "response": [
+      {
+        "id": 2,
+        "name": "Piece",
+        "description": null,
+        "row_created_timestamp": "2026-10-07 01:53:59",
+        "name_plural": "Pieces",
+        "plural_forms": null,
+        "active": 1
+      },
+      {
+        "id": 3,
+        "name": "Pack",
+        "description": null,
+        "row_created_timestamp": "2026-10-07 01:53:59",
+        "name_plural": "Packs",
+        "plural_forms": null,
+        "active": 1
+      },
+      {
+        "id": 4,
+        "name": "stage1 unit",
+        "description": null,
+        "row_created_timestamp": "2026-10-07 01:57:30",
+        "name_plural": "stage1 units",
+        "plural_forms": null,
+        "active": 1
+      }
+    ]
+  },
+  {
+    "label": "child-object-list-quantity_unit_conversions",
+    "at_utc": "2026-10-07T01:58:01.328322+00:00",
+    "role": "child",
+    "method": "GET",
+    "path": "/objects/quantity_unit_conversions",
+    "request_json": null,
+    "request_text": null,
+    "status": 200,
+    "content_type": "application/json",
+    "response": []
+  },
+  {
+    "label": "child-object-list-shopping_list",
+    "at_utc": "2026-10-07T01:58:01.350529+00:00",
+    "role": "child",
+    "method": "GET",
+    "path": "/objects/shopping_list",
+    "request_json": null,
+    "request_text": null,
+    "status": 200,
+    "content_type": "application/json",
+    "response": [
+      {
+        "id": 1,
+        "product_id": 1,
+        "note": "Synthetic linked row",
+        "amount": 2.5,
+        "row_created_timestamp": "2026-10-07 01:57:58",
+        "shopping_list_id": 1,
+        "done": 0,
+        "qu_id": 4
+      },
+      {
+        "id": 2,
+        "product_id": null,
+        "note": "Synthetic note-only row",
+        "amount": 1,
+        "row_created_timestamp": "2026-10-07 01:57:58",
+        "shopping_list_id": 1,
+        "done": 1,
+        "qu_id": 4
+      }
+    ]
+  },
+  {
+    "label": "child-object-list-shopping_lists",
+    "at_utc": "2026-10-07T01:58:01.372098+00:00",
+    "role": "child",
+    "method": "GET",
+    "path": "/objects/shopping_lists",
+    "request_json": null,
+    "request_text": null,
+    "status": 200,
+    "content_type": "application/json",
+    "response": [
+      {
+        "id": 1,
+        "name": "Shopping list",
+        "description": null,
+        "row_created_timestamp": "2026-10-07 01:53:59"
+      }
+    ]
+  },
+  {
+    "label": "child-object-list-shopping_locations",
+    "at_utc": "2026-10-07T01:58:01.393577+00:00",
+    "role": "child",
+    "method": "GET",
+    "path": "/objects/shopping_locations",
+    "request_json": null,
+    "request_text": null,
+    "status": 200,
+    "content_type": "application/json",
+    "response": []
+  },
+  {
+    "label": "child-object-list-recipes",
+    "at_utc": "2026-10-07T01:58:01.415636+00:00",
+    "role": "child",
+    "method": "GET",
+    "path": "/objects/recipes",
+    "request_json": null,
+    "request_text": null,
+    "status": 200,
+    "content_type": "application/json",
+    "response": [
+      {
+        "id": -8,
+        "name": "2026-10-07#1",
+        "description": null,
+        "row_created_timestamp": "2026-10-07 01:57:30",
+        "picture_file_name": null,
+        "base_servings": 1,
+        "desired_servings": 1,
+        "not_check_shoppinglist": 0,
+        "type": "mealplan-shadow",
+        "product_id": null
+      },
+      {
+        "id": -7,
+        "name": "2026-40",
+        "description": null,
+        "row_created_timestamp": "2026-10-07 01:57:30",
+        "picture_file_name": null,
+        "base_servings": 1,
+        "desired_servings": 1,
+        "not_check_shoppinglist": 0,
+        "type": "mealplan-week",
+        "product_id": null
+      },
+      {
+        "id": -6,
+        "name": "2026-10-07",
+        "description": null,
+        "row_created_timestamp": "2026-10-07 01:57:30",
+        "picture_file_name": null,
+        "base_servings": 1,
+        "desired_servings": 1,
+        "not_check_shoppinglist": 0,
+        "type": "mealplan-day",
+        "product_id": null
+      },
+      {
+        "id": 1,
+        "name": "Stage 1 synthetic recipe",
+        "description": null,
+        "row_created_timestamp": "2026-10-07 01:57:30",
+        "picture_file_name": null,
+        "base_servings": 1,
+        "desired_servings": 1,
+        "not_check_shoppinglist": 0,
+        "type": "normal",
+        "product_id": null
+      }
+    ]
+  },
+  {
+    "label": "child-object-list-recipes_pos",
+    "at_utc": "2026-10-07T01:58:01.437722+00:00",
+    "role": "child",
+    "method": "GET",
+    "path": "/objects/recipes_pos",
+    "request_json": null,
+    "request_text": null,
+    "status": 200,
+    "content_type": "application/json",
+    "response": []
+  },
+  {
+    "label": "child-object-list-recipes_nestings",
+    "at_utc": "2026-10-07T01:58:01.459399+00:00",
+    "role": "child",
+    "method": "GET",
+    "path": "/objects/recipes_nestings",
+    "request_json": null,
+    "request_text": null,
+    "status": 200,
+    "content_type": "application/json",
+    "response": [
+      {
+        "id": 1,
+        "recipe_id": 0,
+        "includes_recipe_id": 1,
+        "row_created_timestamp": "2026-10-07 01:57:30",
+        "servings": 1
+      },
+      {
+        "id": 2,
+        "recipe_id": -1,
+        "includes_recipe_id": 1,
+        "row_created_timestamp": "2026-10-07 01:57:30",
+        "servings": 1
+      },
+      {
+        "id": 4,
+        "recipe_id": -3,
+        "includes_recipe_id": 1,
+        "row_created_timestamp": "2026-10-07 01:57:30",
+        "servings": 1
+      },
+      {
+        "id": 5,
+        "recipe_id": -4,
+        "includes_recipe_id": 1,
+        "row_created_timestamp": "2026-10-07 01:57:30",
+        "servings": 1
+      },
+      {
+        "id": 7,
+        "recipe_id": -6,
+        "includes_recipe_id": 1,
+        "row_created_timestamp": "2026-10-07 01:57:30",
+        "servings": 1
+      },
+      {
+        "id": 8,
+        "recipe_id": -7,
+        "includes_recipe_id": 1,
+        "row_created_timestamp": "2026-10-07 01:57:30",
+        "servings": 1
+      },
+      {
+        "id": 9,
+        "recipe_id": -8,
+        "includes_recipe_id": 1,
+        "row_created_timestamp": "2026-10-07 01:57:30",
+        "servings": 1
+      }
+    ]
+  },
+  {
+    "label": "child-object-list-tasks",
+    "at_utc": "2026-10-07T01:58:01.481444+00:00",
+    "role": "child",
+    "method": "GET",
+    "path": "/objects/tasks",
+    "request_json": null,
+    "request_text": null,
+    "status": 200,
+    "content_type": "application/json",
+    "response": [
+      {
+        "id": 1,
+        "name": "Stage 1 synthetic task",
+        "description": null,
+        "due_date": null,
+        "done": 0,
+        "done_timestamp": null,
+        "category_id": null,
+        "assigned_to_user_id": null,
+        "row_created_timestamp": "2026-10-07 01:57:30"
+      }
+    ]
+  },
+  {
+    "label": "child-object-list-task_categories",
+    "at_utc": "2026-10-07T01:58:01.502946+00:00",
+    "role": "child",
+    "method": "GET",
+    "path": "/objects/task_categories",
+    "request_json": null,
+    "request_text": null,
+    "status": 200,
+    "content_type": "application/json",
+    "response": []
+  },
+  {
+    "label": "child-object-list-product_groups",
+    "at_utc": "2026-10-07T01:58:01.524380+00:00",
+    "role": "child",
+    "method": "GET",
+    "path": "/objects/product_groups",
+    "request_json": null,
+    "request_text": null,
+    "status": 200,
+    "content_type": "application/json",
+    "response": []
+  },
+  {
+    "label": "child-object-list-equipment",
+    "at_utc": "2026-10-07T01:58:01.546271+00:00",
+    "role": "child",
+    "method": "GET",
+    "path": "/objects/equipment",
+    "request_json": null,
+    "request_text": null,
+    "status": 200,
+    "content_type": "application/json",
+    "response": [
+      {
+        "id": 1,
+        "name": "Stage 1 synthetic equipment",
+        "description": null,
+        "instruction_manual_file_name": null,
+        "row_created_timestamp": "2026-10-07 01:57:30"
+      }
+    ]
+  },
+  {
+    "label": "child-object-list-api_keys",
+    "at_utc": "2026-10-07T01:58:01.566434+00:00",
+    "role": "child",
+    "method": "GET",
+    "path": "/objects/api_keys",
+    "request_json": null,
+    "request_text": null,
+    "status": 400,
+    "content_type": "application/json",
+    "response": {
+      "error_message": "Entity does not exist or is not exposed"
+    }
+  },
+  {
+    "label": "child-object-list-userfields",
+    "at_utc": "2026-10-07T01:58:01.588196+00:00",
+    "role": "child",
+    "method": "GET",
+    "path": "/objects/userfields",
+    "request_json": null,
+    "request_text": null,
+    "status": 200,
+    "content_type": "application/json",
+    "response": [
+      {
+        "id": 1,
+        "entity": "products",
+        "name": "stage1_note",
+        "caption": "Stage 1 note",
+        "type": "text",
+        "show_as_column_in_tables": 0,
+        "row_created_timestamp": "2026-10-07 01:57:58",
+        "config": null,
+        "sort_number": null,
+        "input_required": 0,
+        "default_value": null
+      }
+    ]
+  },
+  {
+    "label": "child-object-list-userentities",
+    "at_utc": "2026-10-07T01:58:01.609988+00:00",
+    "role": "child",
+    "method": "GET",
+    "path": "/objects/userentities",
+    "request_json": null,
+    "request_text": null,
+    "status": 200,
+    "content_type": "application/json",
+    "response": [
+      {
+        "id": 1,
+        "name": "stage1_boxes",
+        "caption": "Stage 1 box",
+        "description": null,
+        "show_in_sidebar_menu": 1,
+        "icon_css_class": null,
+        "row_created_timestamp": "2026-10-07 01:57:58"
+      }
+    ]
+  },
+  {
+    "label": "child-object-list-userobjects",
+    "at_utc": "2026-10-07T01:58:01.631655+00:00",
+    "role": "child",
+    "method": "GET",
+    "path": "/objects/userobjects",
+    "request_json": null,
+    "request_text": null,
+    "status": 200,
+    "content_type": "application/json",
+    "response": [
+      {
+        "id": 1,
+        "userentity_id": 1,
+        "row_created_timestamp": "2026-10-07 01:57:58"
+      }
+    ]
+  },
+  {
+    "label": "child-object-list-meal_plan",
+    "at_utc": "2026-10-07T01:58:01.653556+00:00",
+    "role": "child",
+    "method": "GET",
+    "path": "/objects/meal_plan",
+    "request_json": null,
+    "request_text": null,
+    "status": 200,
+    "content_type": "application/json",
+    "response": [
+      {
+        "id": 1,
+        "day": "2026-10-07",
+        "type": "recipe",
+        "recipe_id": 1,
+        "recipe_servings": 1,
+        "note": null,
+        "product_id": null,
+        "product_amount": 0,
+        "product_qu_id": null,
+        "row_created_timestamp": "2026-10-07 01:57:30",
+        "done": 0,
+        "section_id": 1
+      }
+    ]
+  },
+  {
+    "label": "child-object-list-stock_log",
+    "at_utc": "2026-10-07T01:58:01.674916+00:00",
+    "role": "child",
+    "method": "GET",
+    "path": "/objects/stock_log",
+    "request_json": null,
+    "request_text": null,
+    "status": 200,
+    "content_type": "application/json",
+    "response": [
+      {
+        "id": 1,
+        "product_id": 1,
+        "amount": 5,
+        "best_before_date": "2027-01-01",
+        "purchased_date": "2026-10-07",
+        "used_date": null,
+        "spoiled": 0,
+        "stock_id": "6ac5a7265b320",
+        "transaction_type": "purchase",
+        "price": 1.25,
+        "undone": 1,
+        "undone_timestamp": "2026-10-07 01:57:58",
+        "opened_date": null,
+        "location_id": 3,
+        "recipe_id": null,
+        "correlation_id": null,
+        "transaction_id": "6ac5a7265b31d",
+        "stock_row_id": null,
+        "shopping_location_id": null,
+        "user_id": 2,
+        "row_created_timestamp": "2026-10-07 01:57:58",
+        "note": null
+      },
+      {
+        "id": 2,
+        "product_id": 1,
+        "amount": 5,
+        "best_before_date": "2027-01-01",
+        "purchased_date": "2026-10-07",
+        "used_date": null,
+        "spoiled": 0,
+        "stock_id": "6ac5a72680b2c",
+        "transaction_type": "purchase",
+        "price": null,
+        "undone": 0,
+        "undone_timestamp": null,
+        "opened_date": null,
+        "location_id": 3,
+        "recipe_id": null,
+        "correlation_id": null,
+        "transaction_id": "6ac5a72680b28",
+        "stock_row_id": null,
+        "shopping_location_id": null,
+        "user_id": 2,
+        "row_created_timestamp": "2026-10-07 01:57:58",
+        "note": null
+      },
+      {
+        "id": 3,
+        "product_id": 1,
+        "amount": -2,
+        "best_before_date": "2027-01-01",
+        "purchased_date": "2026-10-07",
+        "used_date": "2026-10-07",
+        "spoiled": 0,
+        "stock_id": "6ac5a72680b2c",
+        "transaction_type": "consume",
+        "price": null,
+        "undone": 1,
+        "undone_timestamp": "2026-10-07 01:57:58",
+        "opened_date": null,
+        "location_id": 3,
+        "recipe_id": null,
+        "correlation_id": null,
+        "transaction_id": "6ac5a7268c32b",
+        "stock_row_id": null,
+        "shopping_location_id": null,
+        "user_id": 2,
+        "row_created_timestamp": "2026-10-07 01:57:58",
+        "note": null
+      },
+      {
+        "id": 4,
+        "product_id": 1,
+        "amount": 1,
+        "best_before_date": "2027-01-01",
+        "purchased_date": "2026-10-07",
+        "used_date": null,
+        "spoiled": 0,
+        "stock_id": "6ac5a72680b2c",
+        "transaction_type": "purchase",
+        "price": null,
+        "undone": 0,
+        "undone_timestamp": null,
+        "opened_date": null,
+        "location_id": 3,
+        "recipe_id": null,
+        "correlation_id": null,
+        "transaction_id": "6ac5a726c1535",
+        "stock_row_id": null,
+        "shopping_location_id": null,
+        "user_id": 2,
+        "row_created_timestamp": "2026-10-07 01:57:58",
+        "note": null
+      },
+      {
+        "id": 5,
+        "product_id": 1,
+        "amount": -1,
+        "best_before_date": "2027-01-01",
+        "purchased_date": "2026-10-07",
+        "used_date": "2026-10-07",
+        "spoiled": 0,
+        "stock_id": "6ac5a72680b2c",
+        "transaction_type": "consume",
+        "price": null,
+        "undone": 0,
+        "undone_timestamp": null,
+        "opened_date": null,
+        "location_id": 3,
+        "recipe_id": null,
+        "correlation_id": null,
+        "transaction_id": "6ac5a726cf193",
+        "stock_row_id": null,
+        "shopping_location_id": null,
+        "user_id": 2,
+        "row_created_timestamp": "2026-10-07 01:57:58",
+        "note": null
+      }
+    ]
+  },
+  {
+    "label": "child-object-list-stock",
+    "at_utc": "2026-10-07T01:58:01.697454+00:00",
+    "role": "child",
+    "method": "GET",
+    "path": "/objects/stock",
+    "request_json": null,
+    "request_text": null,
+    "status": 200,
+    "content_type": "application/json",
+    "response": [
+      {
+        "id": 4,
+        "product_id": 1,
+        "amount": 5,
+        "best_before_date": "2027-01-01",
+        "purchased_date": "2026-10-07",
+        "stock_id": "6ac5a72680b2c",
+        "price": null,
+        "open": 0,
+        "opened_date": null,
+        "row_created_timestamp": "2026-10-07 01:57:58",
+        "location_id": 3,
+        "shopping_location_id": null,
+        "note": null
+      }
+    ]
+  },
+  {
+    "label": "child-object-list-stock_current_locations",
+    "at_utc": "2026-10-07T01:58:01.719040+00:00",
+    "role": "child",
+    "method": "GET",
+    "path": "/objects/stock_current_locations",
+    "request_json": null,
+    "request_text": null,
+    "status": 200,
+    "content_type": "application/json",
+    "response": [
+      {
+        "id": 1,
+        "product_id": 1,
+        "amount": 5,
+        "location_id": 3,
+        "location_name": "Stage 1 synthetic shelf",
+        "location_is_freezer": 0
+      }
+    ]
+  },
+  {
+    "label": "child-object-list-chores_log",
+    "at_utc": "2026-10-07T01:58:01.740697+00:00",
+    "role": "child",
+    "method": "GET",
+    "path": "/objects/chores_log",
+    "request_json": null,
+    "request_text": null,
+    "status": 200,
+    "content_type": "application/json",
+    "response": [
+      {
+        "id": 1,
+        "chore_id": 1,
+        "tracked_time": "2026-10-06 10:30:00",
+        "done_by_user_id": 3,
+        "row_created_timestamp": "2026-10-07 01:57:59",
+        "undone": 0,
+        "undone_timestamp": null,
+        "skipped": 0,
+        "scheduled_execution_time": null
+      },
+      {
+        "id": 2,
+        "chore_id": 2,
+        "tracked_time": "2026-10-06 10:30:00",
+        "done_by_user_id": 3,
+        "row_created_timestamp": "2026-10-07 01:57:59",
+        "undone": 0,
+        "undone_timestamp": null,
+        "skipped": 0,
+        "scheduled_execution_time": "2026-10-01 09:00:00"
+      },
+      {
+        "id": 3,
+        "chore_id": 3,
+        "tracked_time": "2026-10-06 10:30:00",
+        "done_by_user_id": 3,
+        "row_created_timestamp": "2026-10-07 01:57:59",
+        "undone": 0,
+        "undone_timestamp": null,
+        "skipped": 0,
+        "scheduled_execution_time": "2026-10-01 09:00:00"
+      },
+      {
+        "id": 4,
+        "chore_id": 4,
+        "tracked_time": "2026-10-06 10:30:00",
+        "done_by_user_id": 3,
+        "row_created_timestamp": "2026-10-07 01:57:59",
+        "undone": 0,
+        "undone_timestamp": null,
+        "skipped": 0,
+        "scheduled_execution_time": "2026-10-01 09:00:00"
+      },
+      {
+        "id": 5,
+        "chore_id": 5,
+        "tracked_time": "2026-10-06 10:30:00",
+        "done_by_user_id": 3,
+        "row_created_timestamp": "2026-10-07 01:58:00",
+        "undone": 0,
+        "undone_timestamp": null,
+        "skipped": 0,
+        "scheduled_execution_time": "2026-10-01 09:00:00"
+      },
+      {
+        "id": 6,
+        "chore_id": 6,
+        "tracked_time": "2026-10-06 10:30:00",
+        "done_by_user_id": 3,
+        "row_created_timestamp": "2026-10-07 01:58:00",
+        "undone": 0,
+        "undone_timestamp": null,
+        "skipped": 0,
+        "scheduled_execution_time": "2026-10-01 09:00:00"
+      },
+      {
+        "id": 7,
+        "chore_id": 7,
+        "tracked_time": "2026-10-06 10:30:00",
+        "done_by_user_id": 3,
+        "row_created_timestamp": "2026-10-07 01:58:00",
+        "undone": 0,
+        "undone_timestamp": null,
+        "skipped": 0,
+        "scheduled_execution_time": "2026-10-01 09:00:00"
+      },
+      {
+        "id": 8,
+        "chore_id": 3,
+        "tracked_time": "2026-10-06 12:00:00",
+        "done_by_user_id": 2,
+        "row_created_timestamp": "2026-10-07 01:58:00",
+        "undone": 1,
+        "undone_timestamp": "2026-10-07 01:58:00",
+        "skipped": 0,
+        "scheduled_execution_time": "2026-10-08 09:00:00"
+      },
+      {
+        "id": 9,
+        "chore_id": 3,
+        "tracked_time": "2026-10-06 00:00:00",
+        "done_by_user_id": 3,
+        "row_created_timestamp": "2026-10-07 01:58:00",
+        "undone": 0,
+        "undone_timestamp": null,
+        "skipped": 0,
+        "scheduled_execution_time": "2026-10-08 23:59:59"
+      },
+      {
+        "id": 10,
+        "chore_id": 3,
+        "tracked_time": "2026-10-06 00:00:00",
+        "done_by_user_id": 3,
+        "row_created_timestamp": "2026-10-07 01:58:00",
+        "undone": 0,
+        "undone_timestamp": null,
+        "skipped": 1,
+        "scheduled_execution_time": "2026-10-08 23:59:59"
+      }
+    ]
+  },
+  {
+    "label": "child-object-list-meal_plan_sections",
+    "at_utc": "2026-10-07T01:58:01.762994+00:00",
+    "role": "child",
+    "method": "GET",
+    "path": "/objects/meal_plan_sections",
+    "request_json": null,
+    "request_text": null,
+    "status": 200,
+    "content_type": "application/json",
+    "response": [
+      {
+        "id": -1,
+        "name": null,
+        "sort_number": -1,
+        "row_created_timestamp": "2026-10-07 01:54:00",
+        "time_info": null
+      },
+      {
+        "id": 1,
+        "name": "Stage 1 synthetic section",
+        "sort_number": null,
+        "row_created_timestamp": "2026-10-07 01:57:30",
+        "time_info": null
+      }
+    ]
+  },
+  {
+    "label": "child-object-list-products_last_purchased",
+    "at_utc": "2026-10-07T01:58:01.788377+00:00",
+    "role": "child",
+    "method": "GET",
+    "path": "/objects/products_last_purchased",
+    "request_json": null,
+    "request_text": null,
+    "status": 200,
+    "content_type": "application/json",
+    "response": [
+      {
+        "id": 1,
+        "product_id": 1,
+        "amount": 1,
+        "best_before_date": "2027-01-01",
+        "purchased_date": "2026-10-07",
+        "location_id": 3,
+        "shopping_location_id": null,
+        "price": 0
+      }
+    ]
+  },
+  {
+    "label": "child-object-list-products_average_price",
+    "at_utc": "2026-10-07T01:58:01.811095+00:00",
+    "role": "child",
+    "method": "GET",
+    "path": "/objects/products_average_price",
+    "request_json": null,
+    "request_text": null,
+    "status": 200,
+    "content_type": "application/json",
+    "response": []
+  },
+  {
+    "label": "child-object-list-quantity_unit_conversions_resolved",
+    "at_utc": "2026-10-07T01:58:01.840748+00:00",
+    "role": "child",
+    "method": "GET",
+    "path": "/objects/quantity_unit_conversions_resolved",
+    "request_json": null,
+    "request_text": null,
+    "status": 200,
+    "content_type": "application/json",
+    "response": [
+      {
+        "id": -1,
+        "product_id": 1,
+        "from_qu_id": 4,
+        "from_qu_name": "stage1 unit",
+        "from_qu_name_plural": "stage1 units",
+        "to_qu_id": 4,
+        "to_qu_name": "stage1 unit",
+        "to_qu_name_plural": "stage1 units",
+        "factor": 1,
+        "path": "/4/4/"
+      }
+    ]
+  },
+  {
+    "label": "child-object-list-recipes_pos_resolved",
+    "at_utc": "2026-10-07T01:58:01.884915+00:00",
+    "role": "child",
+    "method": "GET",
+    "path": "/objects/recipes_pos_resolved",
+    "request_json": null,
+    "request_text": null,
+    "status": 200,
+    "content_type": "application/json",
+    "response": []
+  },
+  {
+    "label": "child-object-list-battery_charge_cycles",
+    "at_utc": "2026-10-07T01:58:01.906249+00:00",
+    "role": "child",
+    "method": "GET",
+    "path": "/objects/battery_charge_cycles",
+    "request_json": null,
+    "request_text": null,
+    "status": 200,
+    "content_type": "application/json",
+    "response": []
+  },
+  {
+    "label": "child-object-list-product_barcodes_view",
+    "at_utc": "2026-10-07T01:58:01.928279+00:00",
+    "role": "child",
+    "method": "GET",
+    "path": "/objects/product_barcodes_view",
+    "request_json": null,
+    "request_text": null,
+    "status": 200,
+    "content_type": "application/json",
+    "response": [
+      {
+        "id": 1,
+        "product_id": 1,
+        "barcode": "STILLROOM-STAGE1-001",
+        "qu_id": 4,
+        "amount": 1,
+        "shopping_location_id": null,
+        "last_price": null,
+        "note": null
+      },
+      {
+        "id": 1,
+        "product_id": 1,
+        "barcode": "grcy:p:1",
+        "qu_id": 4,
+        "amount": null,
+        "shopping_location_id": null,
+        "last_price": null,
+        "note": null
+      }
+    ]
+  },
+  {
+    "label": "child-object-list-permission_hierarchy",
+    "at_utc": "2026-10-07T01:58:01.950329+00:00",
+    "role": "child",
+    "method": "GET",
+    "path": "/objects/permission_hierarchy",
+    "request_json": null,
+    "request_text": null,
+    "status": 200,
+    "content_type": "application/json",
+    "response": [
+      {
+        "id": 1,
+        "name": "ADMIN",
+        "parent": null
+      },
+      {
+        "id": 2,
+        "name": "USERS",
+        "parent": 1
+      },
+      {
+        "id": 3,
+        "name": "USERS_CREATE",
+        "parent": 2
+      },
+      {
+        "id": 4,
+        "name": "USERS_EDIT",
+        "parent": 3
+      },
+      {
+        "id": 5,
+        "name": "USERS_READ",
+        "parent": 4
+      },
+      {
+        "id": 6,
+        "name": "USERS_EDIT_SELF",
+        "parent": 1
+      },
+      {
+        "id": 7,
+        "name": "STOCK",
+        "parent": 1
+      },
+      {
+        "id": 8,
+        "name": "SHOPPINGLIST",
+        "parent": 1
+      },
+      {
+        "id": 9,
+        "name": "RECIPES",
+        "parent": 1
+      },
+      {
+        "id": 10,
+        "name": "CHORES",
+        "parent": 1
+      },
+      {
+        "id": 11,
+        "name": "BATTERIES",
+        "parent": 1
+      },
+      {
+        "id": 12,
+        "name": "TASKS",
+        "parent": 1
+      },
+      {
+        "id": 13,
+        "name": "EQUIPMENT",
+        "parent": 1
+      },
+      {
+        "id": 14,
+        "name": "CALENDAR",
+        "parent": 1
+      },
+      {
+        "id": 15,
+        "name": "STOCK_PURCHASE",
+        "parent": 7
+      },
+      {
+        "id": 16,
+        "name": "STOCK_CONSUME",
+        "parent": 7
+      },
+      {
+        "id": 17,
+        "name": "STOCK_INVENTORY",
+        "parent": 7
+      },
+      {
+        "id": 18,
+        "name": "STOCK_TRANSFER",
+        "parent": 7
+      },
+      {
+        "id": 19,
+        "name": "STOCK_OPEN",
+        "parent": 7
+      },
+      {
+        "id": 20,
+        "name": "STOCK_EDIT",
+        "parent": 7
+      },
+      {
+        "id": 21,
+        "name": "SHOPPINGLIST_ITEMS_ADD",
+        "parent": 8
+      },
+      {
+        "id": 22,
+        "name": "SHOPPINGLIST_ITEMS_DELETE",
+        "parent": 8
+      },
+      {
+        "id": 23,
+        "name": "RECIPES_MEALPLAN",
+        "parent": 9
+      },
+      {
+        "id": 24,
+        "name": "CHORE_TRACK_EXECUTION",
+        "parent": 10
+      },
+      {
+        "id": 25,
+        "name": "CHORE_UNDO_EXECUTION",
+        "parent": 10
+      },
+      {
+        "id": 26,
+        "name": "BATTERIES_TRACK_CHARGE_CYCLE",
+        "parent": 11
+      },
+      {
+        "id": 27,
+        "name": "BATTERIES_UNDO_CHARGE_CYCLE",
+        "parent": 11
+      },
+      {
+        "id": 28,
+        "name": "TASKS_UNDO_EXECUTION",
+        "parent": 12
+      },
+      {
+        "id": 29,
+        "name": "TASKS_MARK_COMPLETED",
+        "parent": 12
+      },
+      {
+        "id": 30,
+        "name": "MASTER_DATA_EDIT",
+        "parent": 1
+      }
+    ]
+  },
+  {
+    "label": "child-object-list-uihelper_shopping_list",
+    "at_utc": "2026-10-07T01:58:01.973081+00:00",
+    "role": "child",
+    "method": "GET",
+    "path": "/objects/uihelper_shopping_list",
+    "request_json": null,
+    "request_text": null,
+    "status": 200,
+    "content_type": "application/json",
+    "response": [
+      {
+        "id": 1,
+        "product_id": 1,
+        "note": "Synthetic linked row",
+        "amount": 2.5,
+        "row_created_timestamp": "2026-10-07 01:57:58",
+        "shopping_list_id": 1,
+        "done": 0,
+        "qu_id": 4,
+        "product_name": "Stage 1 synthetic product",
+        "last_price_unit": 0,
+        "last_price_total": 0,
+        "price": 0,
+        "default_shopping_location_name": null,
+        "qu_name": "stage1 unit",
+        "qu_name_plural": "stage1 units",
+        "product_group_id": null,
+        "product_group_name": null,
+        "product_barcodes": "STILLROOM-STAGE1-001"
+      },
+      {
+        "id": 2,
+        "product_id": null,
+        "note": "Synthetic note-only row",
+        "amount": 1,
+        "row_created_timestamp": "2026-10-07 01:57:58",
+        "shopping_list_id": 1,
+        "done": 1,
+        "qu_id": 4,
+        "product_name": null,
+        "last_price_unit": null,
+        "last_price_total": null,
+        "price": null,
+        "default_shopping_location_name": null,
+        "qu_name": "stage1 unit",
+        "qu_name_plural": "stage1 units",
+        "product_group_id": null,
+        "product_group_name": null,
+        "product_barcodes": null
+      }
+    ]
+  },
+  {
+    "label": "child-object-list-sessions",
+    "at_utc": "2026-10-07T01:58:01.992955+00:00",
+    "role": "child",
+    "method": "GET",
+    "path": "/objects/sessions",
+    "request_json": null,
+    "request_text": null,
+    "status": 400,
+    "content_type": "application/json",
+    "response": {
+      "error_message": "Entity does not exist or is not exposed"
+    }
+  },
+  {
+    "label": "child-batteries",
+    "at_utc": "2026-10-07T01:58:02.022814+00:00",
+    "role": "child",
+    "method": "GET",
+    "path": "/batteries",
+    "request_json": null,
+    "request_text": null,
+    "status": 200,
+    "content_type": "application/json",
+    "response": [
+      {
+        "id": 1,
+        "battery_id": 1,
+        "last_tracked_time": null,
+        "next_estimated_charge_time": null,
+        "battery": {
+          "id": 1,
+          "name": "Stage 1 synthetic battery",
+          "description": null,
+          "used_in": null,
+          "charge_interval_days": 30,
+          "row_created_timestamp": "2026-10-07 01:57:30",
+          "active": 1
+        }
+      }
+    ]
+  },
+  {
+    "label": "child-tasks",
+    "at_utc": "2026-10-07T01:58:02.042334+00:00",
+    "role": "child",
+    "method": "GET",
+    "path": "/tasks",
+    "request_json": null,
+    "request_text": null,
+    "status": 200,
+    "content_type": "application/json",
+    "response": [
+      {
+        "id": 1,
+        "name": "Stage 1 synthetic task",
+        "description": null,
+        "due_date": null,
+        "done": 0,
+        "done_timestamp": null,
+        "category_id": null,
+        "assigned_to_user_id": null,
+        "row_created_timestamp": "2026-10-07 01:57:30",
+        "assigned_to_user": null,
+        "category": null
+      }
+    ]
+  },
+  {
+    "label": "child-barcode-found",
+    "at_utc": "2026-10-07T01:58:02.069127+00:00",
+    "role": "child",
+    "method": "GET",
+    "path": "/stock/products/by-barcode/STILLROOM-STAGE1-001",
+    "request_json": null,
+    "request_text": null,
+    "status": 200,
+    "content_type": "application/json",
+    "response": {
+      "product": {
+        "id": 1,
+        "name": "Stage 1 synthetic product",
+        "description": null,
+        "product_group_id": null,
+        "active": 1,
+        "location_id": 3,
+        "shopping_location_id": null,
+        "qu_id_purchase": 4,
+        "qu_id_stock": 4,
+        "min_stock_amount": 0,
+        "default_best_before_days": 0,
+        "default_best_before_days_after_open": 0,
+        "default_best_before_days_after_freezing": 0,
+        "default_best_before_days_after_thawing": 0,
+        "picture_file_name": null,
+        "enable_tare_weight_handling": 0,
+        "tare_weight": 0,
+        "not_check_stock_fulfillment_for_recipes": 0,
+        "parent_product_id": null,
+        "calories": null,
+        "cumulate_min_stock_amount_of_sub_products": 0,
+        "due_type": 1,
+        "quick_consume_amount": 1,
+        "hide_on_stock_overview": 0,
+        "default_stock_label_type": 0,
+        "should_not_be_frozen": 0,
+        "treat_opened_as_out_of_stock": 1,
+        "no_own_stock": 0,
+        "default_consume_location_id": null,
+        "move_on_open": 0,
+        "row_created_timestamp": "2026-10-07 01:57:30",
+        "qu_id_consume": 4,
+        "auto_reprint_stock_label": 0,
+        "quick_open_amount": 1,
+        "qu_id_price": 4,
+        "disable_open": 0,
+        "default_purchase_price_type": 1
+      },
+      "product_barcodes": [
+        {
+          "id": 1,
+          "product_id": 1,
+          "barcode": "STILLROOM-STAGE1-001",
+          "qu_id": 4,
+          "amount": 1,
+          "shopping_location_id": null,
+          "last_price": null,
+          "row_created_timestamp": "2026-10-07 01:57:30",
+          "note": null
+        }
+      ],
+      "last_purchased": "2026-10-07",
+      "last_used": "2026-10-07",
+      "stock_amount": 5,
+      "stock_value": 0,
+      "stock_amount_opened": 0,
+      "stock_amount_aggregated": 5,
+      "stock_amount_opened_aggregated": 0,
+      "quantity_unit_stock": {
+        "id": 4,
+        "name": "stage1 unit",
+        "description": null,
+        "row_created_timestamp": "2026-10-07 01:57:30",
+        "name_plural": "stage1 units",
+        "plural_forms": null,
+        "active": 1
+      },
+      "default_quantity_unit_purchase": {
+        "id": 4,
+        "name": "stage1 unit",
+        "description": null,
+        "row_created_timestamp": "2026-10-07 01:57:30",
+        "name_plural": "stage1 units",
+        "plural_forms": null,
+        "active": 1
+      },
+      "default_quantity_unit_consume": {
+        "id": 4,
+        "name": "stage1 unit",
+        "description": null,
+        "row_created_timestamp": "2026-10-07 01:57:30",
+        "name_plural": "stage1 units",
+        "plural_forms": null,
+        "active": 1
+      },
+      "quantity_unit_price": {
+        "id": 4,
+        "name": "stage1 unit",
+        "description": null,
+        "row_created_timestamp": "2026-10-07 01:57:30",
+        "name_plural": "stage1 units",
+        "plural_forms": null,
+        "active": 1
+      },
+      "last_price": 0,
+      "avg_price": 1.25,
+      "oldest_price": 0,
+      "current_price": 0,
+      "last_shopping_location_id": null,
+      "default_shopping_location_id": null,
+      "next_due_date": "2027-01-01",
+      "location": {
+        "id": 3,
+        "name": "Stage 1 synthetic shelf",
+        "description": null,
+        "row_created_timestamp": "2026-10-07 01:57:30",
+        "is_freezer": 0,
+        "active": 1
+      },
+      "average_shelf_life_days": 86,
+      "spoil_rate_percent": 0,
+      "is_aggregated_amount": 0,
+      "has_childs": false,
+      "default_consume_location": null,
+      "qu_conversion_factor_purchase_to_stock": 1,
+      "qu_conversion_factor_price_to_stock": 1
+    }
+  },
+  {
+    "label": "child-external-barcode",
+    "at_utc": "2026-10-07T01:58:02.088382+00:00",
+    "role": "child",
+    "method": "GET",
+    "path": "/stock/barcodes/external-lookup/STILLROOM-UNKNOWN",
+    "request_json": null,
+    "request_text": null,
+    "status": 403,
+    "content_type": "application/json",
+    "response": {
+      "error_message": "Permission missing: MASTER_DATA_EDIT"
+    }
+  },
+  {
+    "label": "parent-file-upload",
+    "at_utc": "2026-10-07T01:58:02.116645+00:00",
+    "role": "parent",
+    "method": "PUT",
+    "path": "/files/userfiles/c3RhZ2UxLWZpeHR1cmUudHh0",
+    "request_json": null,
+    "request_text": "Stillroom Stage 1 synthetic file\n",
+    "status": 204,
+    "content_type": "application/json",
+    "response": ""
+  },
+  {
+    "label": "child-file-read",
+    "at_utc": "2026-10-07T01:58:02.152845+00:00",
+    "role": "child",
+    "method": "GET",
+    "path": "/files/userfiles/c3RhZ2UxLWZpeHR1cmUudHh0",
+    "request_json": null,
+    "request_text": null,
+    "status": 200,
+    "content_type": "text/plain;charset=UTF-8",
+    "response": "Stillroom Stage 1 synthetic file\n"
+  },
+  {
+    "label": "child-file-upload",
+    "at_utc": "2026-10-07T01:58:02.172356+00:00",
+    "role": "child",
+    "method": "PUT",
+    "path": "/files/userfiles/c3RhZ2UxLWZpeHR1cmUudHh0",
+    "request_json": null,
+    "request_text": "Synthetic child overwrite\n",
+    "status": 400,
+    "content_type": "application/json",
+    "response": {
+      "error_message": "Error while creating file stage1-fixture.txt"
+    }
+  },
+  {
+    "label": "child-file-delete",
+    "at_utc": "2026-10-07T01:58:02.192573+00:00",
+    "role": "child",
+    "method": "DELETE",
+    "path": "/files/userfiles/c3RhZ2UxLWZpeHR1cmUudHh0",
+    "request_json": null,
+    "request_text": null,
+    "status": 204,
+    "content_type": "application/json",
+    "response": ""
+  },
+  {
+    "label": "child-web-stockoverview",
+    "at_utc": "2026-10-07T01:58:59.797404+00:00",
+    "role": "child-web-session",
+    "method": "GET",
+    "path": "/stockoverview",
+    "status": 200,
+    "response_excerpt": "Stage1 page"
+  },
+  {
+    "label": "child-web-shoppinglist",
+    "at_utc": "2026-10-07T01:58:59.851751+00:00",
+    "role": "child-web-session",
+    "method": "GET",
+    "path": "/shoppinglist",
+    "status": 200,
+    "response_excerpt": "Stage1 page"
+  },
+  {
+    "label": "child-web-recipes",
+    "at_utc": "2026-10-07T01:58:59.980537+00:00",
+    "role": "child-web-session",
+    "method": "GET",
+    "path": "/recipes",
+    "status": 200,
+    "response_excerpt": "Stage1 page"
+  },
+  {
+    "label": "child-web-mealplan",
+    "at_utc": "2026-10-07T01:59:00.067120+00:00",
+    "role": "child-web-session",
+    "method": "GET",
+    "path": "/mealplan",
+    "status": 200,
+    "response_excerpt": "Stage1 page"
+  },
+  {
+    "label": "child-web-products",
+    "at_utc": "2026-10-07T01:59:00.102485+00:00",
+    "role": "child-web-session",
+    "method": "GET",
+    "path": "/products",
+    "status": 200,
+    "response_excerpt": "Stage1 page"
+  },
+  {
+    "label": "child-web-choresoverview",
+    "at_utc": "2026-10-07T01:59:00.138940+00:00",
+    "role": "child-web-session",
+    "method": "GET",
+    "path": "/choresoverview",
+    "status": 200,
+    "response_excerpt": "Stage1 page"
+  },
+  {
+    "label": "child-file-new-upload",
+    "at_utc": "2026-10-07T01:59:00.162584+00:00",
+    "role": "child",
+    "method": "PUT",
+    "path": "/files/userfiles/c3RhZ2UxLWNoaWxkLW5ldy50eHQ=",
+    "request_json": null,
+    "request_text": "Synthetic newly uploaded child file\n",
+    "status": 204,
+    "content_type": "application/json",
+    "response": ""
+  },
+  {
+    "label": "child-file-new-read",
+    "at_utc": "2026-10-07T01:59:00.186183+00:00",
+    "role": "child",
+    "method": "GET",
+    "path": "/files/userfiles/c3RhZ2UxLWNoaWxkLW5ldy50eHQ=",
+    "request_json": null,
+    "request_text": null,
+    "status": 200,
+    "content_type": "text/plain;charset=UTF-8",
+    "response": "Synthetic newly uploaded child file\n"
+  },
+  {
+    "label": "child-file-new-delete",
+    "at_utc": "2026-10-07T01:59:00.205930+00:00",
+    "role": "child",
+    "method": "DELETE",
+    "path": "/files/userfiles/c3RhZ2UxLWNoaWxkLW5ldy50eHQ=",
+    "request_json": null,
+    "request_text": null,
+    "status": 204,
+    "content_type": "application/json",
+    "response": ""
+  },
+  {
+    "label": "fraction-list-create",
+    "at_utc": "2026-10-07T01:59:00.239934+00:00",
+    "role": "parent",
+    "method": "POST",
+    "path": "/objects/shopping_lists",
+    "request_json": {
+      "name": "Stage 1 fractional test"
+    },
+    "request_text": null,
+    "status": 200,
+    "content_type": "application/json",
+    "response": {
+      "created_object_id": "2"
+    }
+  },
+  {
+    "label": "fraction-add",
+    "at_utc": "2026-10-07T01:59:00.266541+00:00",
+    "role": "parent",
+    "method": "POST",
+    "path": "/stock/shoppinglist/add-product",
+    "request_json": {
+      "list_id": "2",
+      "product_id": 1,
+      "product_amount": 2.5,
+      "qu_id": 4
+    },
+    "request_text": null,
+    "status": 204,
+    "content_type": "application/json",
+    "response": ""
+  },
+  {
+    "label": "fraction-add-read",
+    "at_utc": "2026-10-07T01:59:00.289560+00:00",
+    "role": "parent",
+    "method": "GET",
+    "path": "/objects/shopping_list?query[]=shopping_list_id=2",
+    "request_json": null,
+    "request_text": null,
+    "status": 200,
+    "content_type": "application/json",
+    "response": [
+      {
+        "id": 3,
+        "product_id": 1,
+        "note": null,
+        "amount": 2.5,
+        "row_created_timestamp": "2026-10-07 01:59:00",
+        "shopping_list_id": 2,
+        "done": 0,
+        "qu_id": 4
+      }
+    ]
+  },
+  {
+    "label": "fraction-generic-create",
+    "at_utc": "2026-10-07T01:59:00.319268+00:00",
+    "role": "parent",
+    "method": "POST",
+    "path": "/objects/shopping_list",
+    "request_json": {
+      "shopping_list_id": "2",
+      "product_id": null,
+      "note": "Fractional generic row",
+      "amount": 2.5,
+      "qu_id": 4
+    },
+    "request_text": null,
+    "status": 200,
+    "content_type": "application/json",
+    "response": {
+      "created_object_id": "4"
+    }
+  },
+  {
+    "label": "fraction-generic-read",
+    "at_utc": "2026-10-07T01:59:00.341623+00:00",
+    "role": "parent",
+    "method": "GET",
+    "path": "/objects/shopping_list/4",
+    "request_json": null,
+    "request_text": null,
+    "status": 200,
+    "content_type": "application/json",
+    "response": {
+      "id": 4,
+      "product_id": null,
+      "note": "Fractional generic row",
+      "amount": 2.5,
+      "row_created_timestamp": "2026-10-07 01:59:00",
+      "shopping_list_id": 2,
+      "done": 0,
+      "qu_id": 4,
+      "userfields": null
+    }
+  },
+  {
+    "label": "chore-adaptive-second",
+    "at_utc": "2026-10-07T01:59:00.369969+00:00",
+    "role": "child",
+    "method": "POST",
+    "path": "/chores/7/execute",
+    "request_json": {
+      "tracked_time": "2026-10-07 10:30:00"
+    },
+    "request_text": null,
+    "status": 200,
+    "content_type": "application/json",
+    "response": {
+      "id": 11,
+      "chore_id": 7,
+      "tracked_time": "2026-10-07 10:30:00",
+      "done_by_user_id": 3,
+      "row_created_timestamp": "2026-10-07 01:59:00",
+      "undone": 0,
+      "undone_timestamp": null,
+      "skipped": 0,
+      "scheduled_execution_time": "2026-10-06 10:30:00"
+    }
+  },
+  {
+    "label": "chore-adaptive-second-after",
+    "at_utc": "2026-10-07T01:59:00.390719+00:00",
+    "role": "parent",
+    "method": "GET",
+    "path": "/chores/7",
+    "request_json": null,
+    "request_text": null,
+    "status": 200,
+    "content_type": "application/json",
+    "response": {
+      "chore": {
+        "id": 7,
+        "name": "Stage 1 adaptive",
+        "description": null,
+        "period_type": "adaptive",
+        "period_days": 1,
+        "row_created_timestamp": "2026-10-07 01:58:00",
+        "period_config": null,
+        "track_date_only": 0,
+        "rollover": 0,
+        "assignment_type": "no-assignment",
+        "assignment_config": null,
+        "next_execution_assigned_to_user_id": null,
+        "consume_product_on_execution": 0,
+        "product_id": null,
+        "product_amount": null,
+        "period_interval": 2,
+        "active": 1,
+        "start_date": "2026-10-01 09:00:00",
+        "rescheduled_date": null,
+        "rescheduled_next_execution_assigned_to_user_id": null
+      },
+      "last_tracked": "2026-10-07 10:30:00",
+      "tracked_count": 2,
+      "last_done_by": {
+        "id": 3,
+        "username": "stillroom_stage1_child",
+        "first_name": "Stage1",
+        "last_name": "child",
+        "row_created_timestamp": "2026-10-07 01:55:03",
+        "display_name": "Stage1 child",
+        "picture_file_name": null
+      },
+      "next_estimated_execution_time": "2026-10-08 10:30:00",
+      "next_execution_assigned_user": null,
+      "average_execution_frequency_hours": 24
+    }
+  },
+  {
+    "label": "chore-rollover-create",
+    "at_utc": "2026-10-07T01:59:00.420812+00:00",
+    "role": "parent",
+    "method": "POST",
+    "path": "/objects/chores",
+    "request_json": {
+      "name": "Stage 1 daily rollover",
+      "period_type": "daily",
+      "period_interval": 2,
+      "period_days": 1,
+      "start_date": "2026-10-01 09:00:00",
+      "rollover": 1,
+      "track_date_only": 0,
+      "assignment_type": "no-assignment"
+    },
+    "request_text": null,
+    "status": 200,
+    "content_type": "application/json",
+    "response": {
+      "created_object_id": "8"
+    }
+  },
+  {
+    "label": "chore-rollover-before",
+    "at_utc": "2026-10-07T01:59:00.441306+00:00",
+    "role": "parent",
+    "method": "GET",
+    "path": "/chores/8",
+    "request_json": null,
+    "request_text": null,
+    "status": 200,
+    "content_type": "application/json",
+    "response": {
+      "chore": {
+        "id": 8,
+        "name": "Stage 1 daily rollover",
+        "description": null,
+        "period_type": "daily",
+        "period_days": 1,
+        "row_created_timestamp": "2026-10-07 01:59:00",
+        "period_config": null,
+        "track_date_only": 0,
+        "rollover": 1,
+        "assignment_type": "no-assignment",
+        "assignment_config": null,
+        "next_execution_assigned_to_user_id": null,
+        "consume_product_on_execution": 0,
+        "product_id": null,
+        "product_amount": null,
+        "period_interval": 2,
+        "active": 1,
+        "start_date": "2026-10-01 09:00:00",
+        "rescheduled_date": null,
+        "rescheduled_next_execution_assigned_to_user_id": null
+      },
+      "last_tracked": null,
+      "tracked_count": 0,
+      "last_done_by": null,
+      "next_estimated_execution_time": "2026-10-07 09:00:00",
+      "next_execution_assigned_user": null,
+      "average_execution_frequency_hours": null
+    }
+  },
+  {
+    "label": "chore-rollover-execute",
+    "at_utc": "2026-10-07T01:59:00.470349+00:00",
+    "role": "child",
+    "method": "POST",
+    "path": "/chores/8/execute",
+    "request_json": {
+      "tracked_time": "2026-10-06 10:30:00"
+    },
+    "request_text": null,
+    "status": 200,
+    "content_type": "application/json",
+    "response": {
+      "id": 12,
+      "chore_id": 8,
+      "tracked_time": "2026-10-06 10:30:00",
+      "done_by_user_id": 3,
+      "row_created_timestamp": "2026-10-07 01:59:00",
+      "undone": 0,
+      "undone_timestamp": null,
+      "skipped": 0,
+      "scheduled_execution_time": "2026-10-07 09:00:00"
+    }
+  },
+  {
+    "label": "chore-rollover-after",
+    "at_utc": "2026-10-07T01:59:00.490785+00:00",
+    "role": "parent",
+    "method": "GET",
+    "path": "/chores/8",
+    "request_json": null,
+    "request_text": null,
+    "status": 200,
+    "content_type": "application/json",
+    "response": {
+      "chore": {
+        "id": 8,
+        "name": "Stage 1 daily rollover",
+        "description": null,
+        "period_type": "daily",
+        "period_days": 1,
+        "row_created_timestamp": "2026-10-07 01:59:00",
+        "period_config": null,
+        "track_date_only": 0,
+        "rollover": 1,
+        "assignment_type": "no-assignment",
+        "assignment_config": null,
+        "next_execution_assigned_to_user_id": null,
+        "consume_product_on_execution": 0,
+        "product_id": null,
+        "product_amount": null,
+        "period_interval": 2,
+        "active": 1,
+        "start_date": "2026-10-01 09:00:00",
+        "rescheduled_date": null,
+        "rescheduled_next_execution_assigned_to_user_id": null
+      },
+      "last_tracked": "2026-10-06 10:30:00",
+      "tracked_count": 1,
+      "last_done_by": {
+        "id": 3,
+        "username": "stillroom_stage1_child",
+        "first_name": "Stage1",
+        "last_name": "child",
+        "row_created_timestamp": "2026-10-07 01:55:03",
+        "display_name": "Stage1 child",
+        "picture_file_name": null
+      },
+      "next_estimated_execution_time": "2026-10-08 09:00:00",
+      "next_execution_assigned_user": null,
+      "average_execution_frequency_hours": null
+    }
+  },
+  {
+    "label": "chore-reschedule-set",
+    "at_utc": "2026-10-07T01:59:00.518843+00:00",
+    "role": "parent",
+    "method": "PUT",
+    "path": "/objects/chores/8",
+    "request_json": {
+      "rescheduled_date": "2026-10-09 18:00:00"
+    },
+    "request_text": null,
+    "status": 204,
+    "content_type": "application/json",
+    "response": ""
+  },
+  {
+    "label": "chore-reschedule-read",
+    "at_utc": "2026-10-07T01:59:00.539498+00:00",
+    "role": "parent",
+    "method": "GET",
+    "path": "/chores/8",
+    "request_json": null,
+    "request_text": null,
+    "status": 200,
+    "content_type": "application/json",
+    "response": {
+      "chore": {
+        "id": 8,
+        "name": "Stage 1 daily rollover",
+        "description": null,
+        "period_type": "daily",
+        "period_days": 1,
+        "row_created_timestamp": "2026-10-07 01:59:00",
+        "period_config": null,
+        "track_date_only": 0,
+        "rollover": 1,
+        "assignment_type": "no-assignment",
+        "assignment_config": null,
+        "next_execution_assigned_to_user_id": null,
+        "consume_product_on_execution": 0,
+        "product_id": null,
+        "product_amount": null,
+        "period_interval": 2,
+        "active": 1,
+        "start_date": "2026-10-01 09:00:00",
+        "rescheduled_date": "2026-10-09 18:00:00",
+        "rescheduled_next_execution_assigned_to_user_id": null
+      },
+      "last_tracked": "2026-10-06 10:30:00",
+      "tracked_count": 1,
+      "last_done_by": {
+        "id": 3,
+        "username": "stillroom_stage1_child",
+        "first_name": "Stage1",
+        "last_name": "child",
+        "row_created_timestamp": "2026-10-07 01:55:03",
+        "display_name": "Stage1 child",
+        "picture_file_name": null
+      },
+      "next_estimated_execution_time": "2026-10-09 18:00:00",
+      "next_execution_assigned_user": null,
+      "average_execution_frequency_hours": null
+    }
+  },
+  {
+    "label": "chore-reschedule-execute",
+    "at_utc": "2026-10-07T01:59:00.573174+00:00",
+    "role": "child",
+    "method": "POST",
+    "path": "/chores/8/execute",
+    "request_json": {
+      "tracked_time": "2026-10-09 18:00:00"
+    },
+    "request_text": null,
+    "status": 200,
+    "content_type": "application/json",
+    "response": {
+      "id": 13,
+      "chore_id": 8,
+      "tracked_time": "2026-10-09 18:00:00",
+      "done_by_user_id": 3,
+      "row_created_timestamp": "2026-10-07 01:59:00",
+      "undone": 0,
+      "undone_timestamp": null,
+      "skipped": 0,
+      "scheduled_execution_time": "2026-10-09 18:00:00"
+    }
+  },
+  {
+    "label": "chore-reschedule-after",
+    "at_utc": "2026-10-07T01:59:00.594299+00:00",
+    "role": "parent",
+    "method": "GET",
+    "path": "/chores/8",
+    "request_json": null,
+    "request_text": null,
+    "status": 200,
+    "content_type": "application/json",
+    "response": {
+      "chore": {
+        "id": 8,
+        "name": "Stage 1 daily rollover",
+        "description": null,
+        "period_type": "daily",
+        "period_days": 1,
+        "row_created_timestamp": "2026-10-07 01:59:00",
+        "period_config": null,
+        "track_date_only": 0,
+        "rollover": 1,
+        "assignment_type": "no-assignment",
+        "assignment_config": null,
+        "next_execution_assigned_to_user_id": null,
+        "consume_product_on_execution": 0,
+        "product_id": null,
+        "product_amount": null,
+        "period_interval": 2,
+        "active": 1,
+        "start_date": "2026-10-01 09:00:00",
+        "rescheduled_date": null,
+        "rescheduled_next_execution_assigned_to_user_id": null
+      },
+      "last_tracked": "2026-10-09 18:00:00",
+      "tracked_count": 2,
+      "last_done_by": {
+        "id": 3,
+        "username": "stillroom_stage1_child",
+        "first_name": "Stage1",
+        "last_name": "child",
+        "row_created_timestamp": "2026-10-07 01:55:03",
+        "display_name": "Stage1 child",
+        "picture_file_name": null
+      },
+      "next_estimated_execution_time": "2026-10-11 09:00:00",
+      "next_execution_assigned_user": null,
+      "average_execution_frequency_hours": 79
+    }
+  },
+  {
+    "label": "chore-assignment-create",
+    "at_utc": "2026-10-07T01:59:00.623415+00:00",
+    "role": "parent",
+    "method": "POST",
+    "path": "/objects/chores",
+    "request_json": {
+      "name": "Stage 1 assigned child",
+      "period_type": "daily",
+      "period_interval": 1,
+      "period_days": 1,
+      "assignment_type": "random",
+      "assignment_config": "3"
+    },
+    "request_text": null,
+    "status": 200,
+    "content_type": "application/json",
+    "response": {
+      "created_object_id": "9"
+    }
+  },
+  {
+    "label": "chore-calculate-assignment",
+    "at_utc": "2026-10-07T01:59:00.648762+00:00",
+    "role": "parent",
+    "method": "POST",
+    "path": "/chores/executions/calculate-next-assignments",
+    "request_json": {
+      "chore_id": "9"
+    },
+    "request_text": null,
+    "status": 204,
+    "content_type": "application/json",
+    "response": ""
+  },
+  {
+    "label": "chore-assignment-before",
+    "at_utc": "2026-10-07T01:59:00.669494+00:00",
+    "role": "parent",
+    "method": "GET",
+    "path": "/chores/9",
+    "request_json": null,
+    "request_text": null,
+    "status": 200,
+    "content_type": "application/json",
+    "response": {
+      "chore": {
+        "id": 9,
+        "name": "Stage 1 assigned child",
+        "description": null,
+        "period_type": "daily",
+        "period_days": 1,
+        "row_created_timestamp": "2026-10-07 01:59:00",
+        "period_config": null,
+        "track_date_only": 0,
+        "rollover": 0,
+        "assignment_type": "random",
+        "assignment_config": "3",
+        "next_execution_assigned_to_user_id": 3,
+        "consume_product_on_execution": 0,
+        "product_id": null,
+        "product_amount": null,
+        "period_interval": 1,
+        "active": 1,
+        "start_date": "2026-10-07 01:59:00",
+        "rescheduled_date": null,
+        "rescheduled_next_execution_assigned_to_user_id": null
+      },
+      "last_tracked": null,
+      "tracked_count": 0,
+      "last_done_by": null,
+      "next_estimated_execution_time": "2026-10-07 01:59:00",
+      "next_execution_assigned_user": {
+        "id": 3,
+        "username": "stillroom_stage1_child",
+        "first_name": "Stage1",
+        "last_name": "child",
+        "row_created_timestamp": "2026-10-07 01:55:03",
+        "display_name": "Stage1 child",
+        "picture_file_name": null
+      },
+      "average_execution_frequency_hours": null
+    }
+  },
+  {
+    "label": "child-assigned-chore-done-by-parent",
+    "at_utc": "2026-10-07T01:59:00.699591+00:00",
+    "role": "child",
+    "method": "POST",
+    "path": "/chores/9/execute",
+    "request_json": {
+      "tracked_time": "2026-10-07 12:00:00",
+      "done_by": 2
+    },
+    "request_text": null,
+    "status": 200,
+    "content_type": "application/json",
+    "response": {
+      "id": 14,
+      "chore_id": 9,
+      "tracked_time": "2026-10-07 12:00:00",
+      "done_by_user_id": 2,
+      "row_created_timestamp": "2026-10-07 01:59:00",
+      "undone": 0,
+      "undone_timestamp": null,
+      "skipped": 0,
+      "scheduled_execution_time": "2026-10-07 01:59:00"
+    }
+  },
+  {
+    "label": "chore-assignment-after",
+    "at_utc": "2026-10-07T01:59:00.720087+00:00",
+    "role": "parent",
+    "method": "GET",
+    "path": "/chores/9",
+    "request_json": null,
+    "request_text": null,
+    "status": 200,
+    "content_type": "application/json",
+    "response": {
+      "chore": {
+        "id": 9,
+        "name": "Stage 1 assigned child",
+        "description": null,
+        "period_type": "daily",
+        "period_days": 1,
+        "row_created_timestamp": "2026-10-07 01:59:00",
+        "period_config": null,
+        "track_date_only": 0,
+        "rollover": 0,
+        "assignment_type": "random",
+        "assignment_config": "3",
+        "next_execution_assigned_to_user_id": 3,
+        "consume_product_on_execution": 0,
+        "product_id": null,
+        "product_amount": null,
+        "period_interval": 1,
+        "active": 1,
+        "start_date": "2026-10-07 01:59:00",
+        "rescheduled_date": null,
+        "rescheduled_next_execution_assigned_to_user_id": null
+      },
+      "last_tracked": "2026-10-07 12:00:00",
+      "tracked_count": 1,
+      "last_done_by": {
+        "id": 2,
+        "username": "stillroom_stage1_parent",
+        "first_name": "Stage1",
+        "last_name": "parent",
+        "row_created_timestamp": "2026-10-07 01:55:03",
+        "display_name": "Stage1 parent",
+        "picture_file_name": null
+      },
+      "next_estimated_execution_time": "2026-10-08 01:59:00",
+      "next_execution_assigned_user": {
+        "id": 3,
+        "username": "stillroom_stage1_child",
+        "first_name": "Stage1",
+        "last_name": "child",
+        "row_created_timestamp": "2026-10-07 01:55:03",
+        "display_name": "Stage1 child",
+        "picture_file_name": null
+      },
+      "average_execution_frequency_hours": null
+    }
+  },
+  {
+    "label": "track-only-grant",
+    "at_utc": "2026-10-07T01:59:52.090619+00:00",
+    "role": "parent",
+    "method": "PUT",
+    "path": "/users/3/permissions",
+    "request_json": {
+      "permissions": [
+        24
+      ]
+    },
+    "status": 204,
+    "content_type": "application/json",
+    "response": ""
+  },
+  {
+    "label": "track-only-explicit-grants",
+    "at_utc": "2026-10-07T01:59:52.111469+00:00",
+    "role": "parent",
+    "method": "GET",
+    "path": "/users/3/permissions",
+    "request_json": null,
+    "status": 200,
+    "content_type": "application/json",
+    "response": [
+      {
+        "id": 7,
+        "permission_id": 24,
+        "user_id": 3
+      }
+    ]
+  },
+  {
+    "label": "track-only-child-stock",
+    "at_utc": "2026-10-07T01:59:52.138277+00:00",
+    "role": "child",
+    "method": "GET",
+    "path": "/stock",
+    "request_json": null,
+    "status": 200,
+    "content_type": "application/json",
+    "response": [
+      {
+        "amount": 5,
+        "amount_aggregated": 5,
+        "value": 0,
+        "best_before_date": "2027-01-01",
+        "amount_opened": 0,
+        "amount_opened_aggregated": 0,
+        "is_aggregated_amount": 0,
+        "due_type": 1,
+        "product_id": 1,
+        "product": {
+          "id": 1,
+          "name": "Stage 1 synthetic product",
+          "description": null,
+          "product_group_id": null,
+          "active": 1,
+          "location_id": 3,
+          "shopping_location_id": null,
+          "qu_id_purchase": 4,
+          "qu_id_stock": 4,
+          "min_stock_amount": 0,
+          "default_best_before_days": 0,
+          "default_best_before_days_after_open": 0,
+          "default_best_before_days_after_freezing": 0,
+          "default_best_before_days_after_thawing": 0,
+          "picture_file_name": null,
+          "enable_tare_weight_handling": 0,
+          "tare_weight": 0,
+          "not_check_stock_fulfillment_for_recipes": 0,
+          "parent_product_id": null,
+          "calories": null,
+          "cumulate_min_stock_amount_of_sub_products": 0,
+          "due_type": 1,
+          "quick_consume_amount": 1,
+          "hide_on_stock_overview": 0,
+          "default_stock_label_type": 0,
+          "should_not_be_frozen": 0,
+          "treat_opened_as_out_of_stock": 1,
+          "no_own_stock": 0,
+          "default_consume_location_id": null,
+          "move_on_open": 0,
+          "row_created_timestamp": "2026-10-07 01:57:30",
+          "qu_id_consume": 4,
+          "auto_reprint_stock_label": 0,
+          "quick_open_amount": 1,
+          "qu_id_price": 4,
+          "disable_open": 0,
+          "default_purchase_price_type": 1
+        }
+      }
+    ]
+  },
+  {
+    "label": "track-only-child-undo",
+    "at_utc": "2026-10-07T01:59:52.158701+00:00",
+    "role": "child",
+    "method": "POST",
+    "path": "/chores/executions/2/undo",
+    "request_json": null,
+    "status": 400,
+    "content_type": "application/json",
+    "response": {
+      "error_message": "Permission missing: CHORE_UNDO_EXECUTION"
+    }
+  },
+  {
+    "label": "restore-child-grants",
+    "at_utc": "2026-10-07T01:59:52.187769+00:00",
+    "role": "parent",
+    "method": "PUT",
+    "path": "/users/3/permissions",
+    "request_json": {
+      "permissions": [
+        10,
+        24
+      ]
+    },
+    "status": 204,
+    "content_type": "application/json",
+    "response": ""
+  },
+  {
+    "label": "final-child-explicit-grants",
+    "at_utc": "2026-10-07T01:59:52.207576+00:00",
+    "role": "parent",
+    "method": "GET",
+    "path": "/users/3/permissions",
+    "request_json": null,
+    "status": 200,
+    "content_type": "application/json",
+    "response": [
+      {
+        "id": 8,
+        "permission_id": 10,
+        "user_id": 3
+      },
+      {
+        "id": 9,
+        "permission_id": 24,
+        "user_id": 3
+      }
+    ]
+  },
+  {
+    "label": "full-child-grants-undo-control",
+    "at_utc": "2026-10-07T01:59:52.233136+00:00",
+    "role": "child",
+    "method": "POST",
+    "path": "/chores/executions/2/undo",
+    "request_json": null,
+    "status": 204,
+    "content_type": "application/json",
+    "response": ""
+  },
+  {
+    "label": "barcode-destination-create",
+    "at_utc": "2026-10-07T01:59:52.263166+00:00",
+    "role": "parent",
+    "method": "POST",
+    "path": "/objects/locations",
+    "request_json": {
+      "name": "Stage 1 barcode destination"
+    },
+    "status": 200,
+    "content_type": "application/json",
+    "response": {
+      "created_object_id": "4"
+    }
+  },
+  {
+    "label": "barcode-transfer",
+    "at_utc": "2026-10-07T01:59:52.327531+00:00",
+    "role": "parent",
+    "method": "POST",
+    "path": "/stock/products/by-barcode/STILLROOM-STAGE1-001/transfer",
+    "request_json": {
+      "amount": 1,
+      "location_id_from": 3,
+      "location_id_to": "4"
+    },
+    "status": 200,
+    "content_type": "application/json",
+    "response": [
+      {
+        "id": 6,
+        "product_id": 1,
+        "amount": -1,
+        "best_before_date": "2027-01-01",
+        "purchased_date": "2026-10-07",
+        "used_date": null,
+        "spoiled": 0,
+        "stock_id": "6ac5a72680b2c",
+        "transaction_type": "transfer_from",
+        "price": null,
+        "undone": 0,
+        "undone_timestamp": null,
+        "opened_date": null,
+        "location_id": 3,
+        "recipe_id": null,
+        "correlation_id": "6ac5a79846f3f",
+        "transaction_id": "6ac5a79846ec2",
+        "stock_row_id": null,
+        "shopping_location_id": null,
+        "user_id": 2,
+        "row_created_timestamp": "2026-10-07 01:59:52",
+        "note": null
+      },
+      {
+        "id": 7,
+        "product_id": 1,
+        "amount": 1,
+        "best_before_date": "2027-01-01",
+        "purchased_date": "2026-10-07",
+        "used_date": null,
+        "spoiled": 0,
+        "stock_id": "6ac5a72680b2c",
+        "transaction_type": "transfer_to",
+        "price": null,
+        "undone": 0,
+        "undone_timestamp": null,
+        "opened_date": null,
+        "location_id": 4,
+        "recipe_id": null,
+        "correlation_id": "6ac5a79846f3f",
+        "transaction_id": "6ac5a79846ec2",
+        "stock_row_id": null,
+        "shopping_location_id": null,
+        "user_id": 2,
+        "row_created_timestamp": "2026-10-07 01:59:52",
+        "note": null
+      }
+    ]
+  },
+  {
+    "label": "child-barcode-transfer",
+    "at_utc": "2026-10-07T01:59:52.346954+00:00",
+    "role": "child",
+    "method": "POST",
+    "path": "/stock/products/by-barcode/STILLROOM-STAGE1-001/transfer",
+    "request_json": {
+      "amount": 1,
+      "location_id_from": 3,
+      "location_id_to": "4"
+    },
+    "status": 400,
+    "content_type": "application/json",
+    "response": {
+      "error_message": "Permission missing: STOCK_TRANSFER"
+    }
+  },
+  {
+    "label": "barcode-inventory",
+    "at_utc": "2026-10-07T01:59:52.403545+00:00",
+    "role": "parent",
+    "method": "POST",
+    "path": "/stock/products/by-barcode/STILLROOM-STAGE1-001/inventory",
+    "request_json": {
+      "new_amount": 6,
+      "best_before_date": "2027-01-01"
+    },
+    "status": 200,
+    "content_type": "application/json",
+    "response": [
+      {
+        "id": 8,
+        "product_id": 1,
+        "amount": 1,
+        "best_before_date": "2027-01-01",
+        "purchased_date": "2026-10-07",
+        "used_date": null,
+        "spoiled": 0,
+        "stock_id": "6ac5a7985cedf",
+        "transaction_type": "inventory-correction",
+        "price": 0,
+        "undone": 0,
+        "undone_timestamp": null,
+        "opened_date": null,
+        "location_id": 3,
+        "recipe_id": null,
+        "correlation_id": null,
+        "transaction_id": "6ac5a7985cedc",
+        "stock_row_id": null,
+        "shopping_location_id": null,
+        "user_id": 2,
+        "row_created_timestamp": "2026-10-07 01:59:52",
+        "note": null
+      }
+    ]
+  },
+  {
+    "label": "child-barcode-inventory",
+    "at_utc": "2026-10-07T01:59:52.423509+00:00",
+    "role": "child",
+    "method": "POST",
+    "path": "/stock/products/by-barcode/STILLROOM-STAGE1-001/inventory",
+    "request_json": {
+      "new_amount": 6,
+      "best_before_date": "2027-01-01"
+    },
+    "status": 400,
+    "content_type": "application/json",
+    "response": {
+      "error_message": "Permission missing: STOCK_INVENTORY"
+    }
+  },
+  {
+    "label": "barcode-open",
+    "at_utc": "2026-10-07T01:59:52.472210+00:00",
+    "role": "parent",
+    "method": "POST",
+    "path": "/stock/products/by-barcode/STILLROOM-STAGE1-001/open",
+    "request_json": {
+      "amount": 1
+    },
+    "status": 200,
+    "content_type": "application/json",
+    "response": [
+      {
+        "id": 9,
+        "product_id": 1,
+        "amount": 1,
+        "best_before_date": "2027-01-01",
+        "purchased_date": "2026-10-07",
+        "used_date": null,
+        "spoiled": 0,
+        "stock_id": "6ac5a72680b2c",
+        "transaction_type": "product-opened",
+        "price": null,
+        "undone": 0,
+        "undone_timestamp": null,
+        "opened_date": "2026-10-07",
+        "location_id": 4,
+        "recipe_id": null,
+        "correlation_id": null,
+        "transaction_id": "6ac5a7986dfdb",
+        "stock_row_id": null,
+        "shopping_location_id": null,
+        "user_id": 2,
+        "row_created_timestamp": "2026-10-07 01:59:52",
+        "note": null
+      }
+    ]
+  },
+  {
+    "label": "child-barcode-open",
+    "at_utc": "2026-10-07T01:59:52.492262+00:00",
+    "role": "child",
+    "method": "POST",
+    "path": "/stock/products/by-barcode/STILLROOM-STAGE1-001/open",
+    "request_json": {
+      "amount": 1
+    },
+    "status": 400,
+    "content_type": "application/json",
+    "response": {
+      "error_message": "Permission missing: STOCK_OPEN"
+    }
+  },
+  {
+    "label": "parent-key-create",
+    "at_utc": "2026-10-07T02:00:20.520958+00:00",
+    "role": "parent-web-session",
+    "method": "GET",
+    "path": "/manageapikeys/new?description=Stillroom%20Stage%201%20final%20parent",
+    "status": 302,
+    "location": "http://127.0.0.1:9283/manageapikeys?key=4",
+    "response": "",
+    "note": "Session cookies and API key material omitted."
+  },
+  {
+    "label": "parent-final-key-identity",
+    "at_utc": "2026-10-07T02:00:20.568139+00:00",
+    "role": "parent",
+    "method": "GET",
+    "path": "/user",
+    "status": 200,
+    "response": [
+      {
+        "id": 2,
+        "username": "stillroom_stage1_parent",
+        "first_name": "Stage1",
+        "last_name": "parent",
+        "row_created_timestamp": "2026-10-07 01:55:03",
+        "display_name": "Stage1 parent",
+        "picture_file_name": null
+      }
+    ]
+  },
+  {
+    "label": "child-key-create",
+    "at_utc": "2026-10-07T02:00:20.916051+00:00",
+    "role": "child-web-session",
+    "method": "GET",
+    "path": "/manageapikeys/new?description=Stillroom%20Stage%201%20final%20child",
+    "status": 302,
+    "location": "http://127.0.0.1:9283/manageapikeys?key=5",
+    "response": "",
+    "note": "Session cookies and API key material omitted."
+  },
+  {
+    "label": "child-final-key-identity",
+    "at_utc": "2026-10-07T02:00:20.961289+00:00",
+    "role": "child",
+    "method": "GET",
+    "path": "/user",
+    "status": 200,
+    "response": [
+      {
+        "id": 3,
+        "username": "stillroom_stage1_child",
+        "first_name": "Stage1",
+        "last_name": "child",
+        "row_created_timestamp": "2026-10-07 01:55:03",
+        "display_name": "Stage1 child",
+        "picture_file_name": null
+      }
+    ]
+  },
+  {
+    "label": "revoke-old-key-2",
+    "at_utc": "2026-10-07T02:00:20.984439+00:00",
+    "role": "parent",
+    "method": "DELETE",
+    "path": "/objects/api_keys/2",
+    "status": 204,
+    "response": ""
+  },
+  {
+    "label": "revoke-old-key-3",
+    "at_utc": "2026-10-07T02:00:21.007755+00:00",
+    "role": "parent",
+    "method": "DELETE",
+    "path": "/objects/api_keys/3",
+    "status": 204,
+    "response": ""
+  }
+]

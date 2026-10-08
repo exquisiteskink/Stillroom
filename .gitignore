@@ -1,0 +1,15 @@
+/.android-sdk/
+/.gradle/
+/.kotlin/
+**/build/
+/local.properties
+/.idea/
+*.iml
+.env
+.env.*
+*.jks
+*.keystore
+*.apk
+*.db
+*.db-shm
+*.db-wal

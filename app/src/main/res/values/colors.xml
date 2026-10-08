@@ -1,0 +1,8 @@
+<resources>
+    <color name="widget_surface">#FBF6EF</color>
+    <color name="widget_text">#30251E</color>
+    <color name="widget_accent">#8B4A32</color>
+    <color name="widget_on_accent">#FFFFFF</color>
+    <color name="ic_launcher_background">#8B4A32</color>
+    <color name="ic_launcher_foreground">#FBF6EF</color>
+</resources>

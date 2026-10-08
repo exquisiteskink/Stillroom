@@ -1,0 +1,16 @@
+{
+  "method": "GET",
+  "url": "http://127.0.0.1:9284/chore/new",
+  "role": "parent-web-session",
+  "status": 200,
+  "extracted_period_type_options": [
+    "hourly",
+    "daily",
+    "manually",
+    "monthly",
+    "weekly",
+    "yearly",
+    "adaptive"
+  ],
+  "note": "Only option values extracted from live HTML; session HTML not archived."
+}
