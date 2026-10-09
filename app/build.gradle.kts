@@ -48,8 +48,7 @@ android {
         }
     }
     buildTypes {
-        // Debug and release share CN=Stillroom. The Android debug key is not used when the
-        // official keystore is present, so adb install -r can replace a GitHub APK.
+        // When a local release keystore is configured, debug and release share it.
         if (stillroomSigning != null) {
             named("debug") { signingConfig = signingConfigs.getByName("stillroom") }
             named("release") { signingConfig = signingConfigs.getByName("stillroom") }

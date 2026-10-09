@@ -1,9 +1,5 @@
 # Decisions
 
-## Debug and release signing
-
-Debug and release APKs use the same official Stillroom key (`CN=Stillroom`, `/home/omarchy/Stillroom-release.jks`) when `~/.stillroom-release.env` is present. The Android debug key is not used for device installs on this machine. The keystore and passwords stay outside the repository.
-
 ## User-installed CA trust
 
 The 2026-10-09 request authorizes HTTPS to Grocy servers whose certificates chain to a CA the user installed in Android. The app's network security configuration trusts the system CA store and every user-installed CA, including release builds. That trust is not limited to one Grocy host. Certificate chain, validity, and hostname checks stay enabled. There is no trust-all manager, permissive hostname verifier, or ignore-TLS option. Cleartext remains available only through the existing explicit HTTP opt-in; a TLS failure is not retried as HTTP. Redirects stay disabled, so an API key is not forwarded to another origin. This change does not add a certificate importer, certificate pinning, client-certificate authentication, or a way to permanently accept one server certificate.

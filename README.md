@@ -108,7 +108,7 @@ There is no Play Store listing yet. Sideload the signed APK from GitHub.
 2. Open the APK on your phone (allow installs from your browser or Files if Android asks).
 3. Connect with a Grocy API key as described below.
 
-The APK is signed with Stillroom's first release certificate (`CN=Stillroom`). Debug and release builds use that same key, so `adb install -r` can replace a GitHub install. The keystore stays outside the repository (`~/.stillroom-release.env`).
+The APK is signed with Stillroom's first release certificate (`CN=Stillroom`). Later updates use the same certificate so they can replace this install. A debug build already on the phone will not upgrade in place.
 
 ### From source (Omarchy / Linux)
 
@@ -128,7 +128,7 @@ Debug APK: `app/build/outputs/apk/debug/app-debug.apk`
 adb install -r app/build/outputs/apk/debug/app-debug.apk
 ```
 
-`assembleDebug` and `assembleRelease` both sign with the official Stillroom key when `~/.stillroom-release.env` is present. Keep that file and the `.jks` out of the repository.
+`assembleRelease` produces an unsigned APK. Distribution builds are signed privately; keep signing keys out of the repository.
 
 Run JVM tests with `mise run unit-test`. Stage gates (`mise run stage:0` … `stage:11`) and disposable Grocy fixtures are documented in [STATUS](docs/STATUS.md).
 
