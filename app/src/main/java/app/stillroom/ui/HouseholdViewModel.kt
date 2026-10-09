@@ -11,13 +11,12 @@ import kotlinx.serialization.json.JsonObject
 
 data class HouseholdUiState(val snapshot: HouseholdSnapshot = HouseholdSnapshot(), val operations: List<PendingChange> = emptyList(), val history: List<JsonObject>? = null, val busy: Boolean = false, val error: String? = null)
 class HouseholdViewModel(private val accounts: AndroidAccountsRepository) : ViewModel() {
-    private val mutable = MutableStateFlow(HouseholdUiState())
-    val state = mutable.asStateFlow()
+    private val ui = AccountBoundState(HouseholdUiState())
+    val state = ui.flow
     private var work: Job? = null
     private var identity: Account? = null
-    private var generation = 0L
     init { viewModelScope.launch { accounts.state.collect { next ->
-        if (identity != next.active) { generation++; work?.cancel(); identity = next.active; mutable.value = HouseholdUiState(); if (next.active != null) refresh() }
+        if (identity != next.active) { work?.cancel(); identity = next.active; ui.reset(HouseholdUiState()); if (next.active != null) refresh() }
     } } }
     fun refresh() = execute { it.sync() }
     fun save(id: Long?, fields: JsonObject) = execute { it.save(id,fields); it.sync() }
@@ -26,24 +25,26 @@ class HouseholdViewModel(private val accounts: AndroidAccountsRepository) : View
     fun deleteTask(id: Long) = execute { it.deleteTask(id); it.sync() }
     fun completeChore(id: Long) = execute { it.completeChore(id); it.sync() }
     fun completeTask(id: Long) = execute { it.completeTask(id); it.sync() }
-    fun history(id: Long) = execute { mutable.value = state.value.copy(history = it.history(id)) }
-    fun closeHistory() { mutable.value = state.value.copy(history = null) }
-    private fun execute(action: suspend (ManageHousehold) -> Unit) {
+    fun history(id: Long) = execute { household -> val history = household.history(id); publish { it.copy(history = history) } }
+    fun closeHistory() { ui.update { it.copy(history = null) } }
+    private fun execute(action: suspend AccountBoundState<HouseholdUiState>.Publisher.(ManageHousehold) -> Unit) {
         if (state.value.busy || identity == null) return
-        val boundGeneration = generation
+        val bound = ui.publisher()
         work = viewModelScope.launch {
-            mutable.value = state.value.copy(busy = true,error = null)
+            bound.publish { it.copy(busy = true,error = null) }
             try { accounts.withHousehold { household ->
-                action(household)
-                mutable.value = state.value.copy(operations = household.operations())
-                mutable.value = state.value.copy(snapshot = household.snapshot())
+                bound.action(household)
+                val operations = household.operations()
+                bound.publish { it.copy(operations = operations) }
+                val snapshot = household.snapshot()
+                bound.publish { it.copy(snapshot = snapshot) }
             } }
             catch (error: CancellationException) { throw error }
             catch (error: Exception) {
                 val denied = error is GrocyFailure && error.status in setOf(401,403)
-                mutable.value = state.value.copy(snapshot = if (denied) HouseholdSnapshot() else state.value.snapshot,
-                    error = if (denied) "Household access denied." else error.message ?: "Could not synchronize household records.")
-            } finally { if (generation == boundGeneration) mutable.value = state.value.copy(busy = false) }
+                bound.publish { it.copy(snapshot = if (denied) HouseholdSnapshot() else it.snapshot,
+                    error = if (denied) "Household access denied." else error.message ?: "Could not synchronize household records.") }
+            } finally { bound.publish { it.copy(busy = false) } }
         }
     }
 }
