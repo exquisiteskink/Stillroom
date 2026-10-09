@@ -37,9 +37,13 @@ class UrlConnectionGrocyTransport : GrocyTransport {
             var opened: HttpURLConnection? = null
             try {
                 if (!continuation.isActive) return@submit
-                opened = URL(address.apiBase + path).openConnection() as HttpURLConnection
-                connection.set(opened)
-                if (!continuation.isActive) return@submit
+                // Publish to the AtomicReference in the same expression that assigns it.
+                // Previously `connection.set(opened)` was a separate statement, so a
+                // cancellation landing between the two left `connection.get()` null while a
+                // connection object already existed — invokeOnCancellation then had nothing to
+                // disconnect and the socket leaked until GC. `also` cannot be interleaved.
+                opened = (URL(address.apiBase + path).openConnection() as HttpURLConnection).also(connection::set)
+                if (!continuation.isActive) { opened?.disconnect(); return@submit }
                 opened.instanceFollowRedirects = false
                 opened.useCaches = false
                 opened.connectTimeout = 15_000
@@ -73,7 +77,9 @@ class UrlConnectionGrocyTransport : GrocyTransport {
                     else -> IllegalStateException("Cannot reach the server or read its response. Check the address and connection.")
                 }
                 if (continuation.isActive) continuation.resumeWithException(safe)
-            } finally { opened?.disconnect() }
+            // runCatching because task.cancel(true) interrupts this thread: disconnect() must
+            // still run to completion rather than have the cleanup itself throw and skip it.
+            } finally { runCatching { opened?.disconnect() } }
         }
         continuation.invokeOnCancellation { connection.get()?.disconnect(); task.cancel(true) }
     }
