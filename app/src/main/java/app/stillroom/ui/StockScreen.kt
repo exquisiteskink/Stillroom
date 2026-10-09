@@ -57,6 +57,11 @@ fun StockScreen(model: StockViewModel, grants: Set<String>?, barcodeOnly: Boolea
     val today = remember { LocalDate.now() }
     val locale = remember { Locale.getDefault() }
     val searching = barcodeOnly || query.isNotBlank()
+    // Settings → Stock → Shown details. Built once per state change, not per row.
+    val details = remember(state.detailSettings, state.resources["/objects/userfields"]) { state.stockDetails() }
+    val lookups = remember(stock, state.resources["/objects/locations"], state.resources["/objects/product_groups"], state.resources["/objects/product_barcodes"]) {
+        StockRowLookups(stock, state.rows("/objects/locations"), state.rows("/objects/product_groups"), state.rows("/objects/product_barcodes"))
+    }
     val products = catalog.filter { product ->
         val id = product.text("id")
         val row = stock.find { it.text("product_id") == id }
@@ -108,13 +113,13 @@ fun StockScreen(model: StockViewModel, grants: Set<String>?, barcodeOnly: Boolea
                 if (useSoonIds.isNotEmpty()) {
                     item { KitchenSectionTitle("Use soon", Modifier.padding(top = 8.dp)) }
                     items(byDue(useSoonIds), key = { "soon"+it.text("id") }) { product ->
-                        PantryProductRow(product, stock, state, location, today, locale) { model.select(product.text("id").toLong()) }
+                        PantryProductRow(product, details, lookups, state, location, today, locale) { model.select(product.text("id").toLong()) }
                     }
                 }
                 if (runningLowIds.isNotEmpty()) {
                     item { KitchenSectionTitle("Running low", Modifier.padding(top = 12.dp)) }
                     items(catalog.filter { it.text("id") in runningLowIds }, key = { "low"+it.text("id") }) { product ->
-                        PantryProductRow(product, stock, state, location, today, locale) { model.select(product.text("id").toLong()) }
+                        PantryProductRow(product, details, lookups, state, location, today, locale) { model.select(product.text("id").toLong()) }
                     }
                 }
                 item { KitchenSectionTitle("In the pantry", Modifier.padding(top = 12.dp)) }
@@ -135,7 +140,7 @@ fun StockScreen(model: StockViewModel, grants: Set<String>?, barcodeOnly: Boolea
             } else if (rest.isEmpty() && showAttention) {
                 item { Text("Everything else is already listed above.", color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(vertical = 12.dp)) }
             } else items(rest, key = { it.text("id") }) { product ->
-                PantryProductRow(product, stock, state, location, today, locale) { model.select(product.text("id").toLong()) }
+                PantryProductRow(product, details, lookups, state, location, today, locale) { model.select(product.text("id").toLong()) }
             }
         }
     }
@@ -144,26 +149,30 @@ fun StockScreen(model: StockViewModel, grants: Set<String>?, barcodeOnly: Boolea
 @Composable
 private fun PantryProductRow(
     product: JsonObject,
-    stock: List<JsonObject>,
+    details: StockDetails,
+    lookups: StockRowLookups,
     state: StockUiState,
     location: Long?,
     today: LocalDate,
     locale: Locale,
     onClick: () -> Unit,
 ) {
-    val row = stock.find { it.text("product_id") == product.text("id") }
+    val row = lookups.stockByProduct[product.text("id")]
     val amount = if (location == null) row?.decimal("amount") ?: BigDecimal.ZERO else state.rows("/stock/locations/$location/entries").filter { it.text("product_id") == product.text("id") }.fold(BigDecimal.ZERO) { total, entry -> total + entry.decimal("amount") }
-    val unit = state.rows("/objects/quantity_units").find { it.text("id") == product.text("qu_id_stock") }?.text("name").orEmpty()
-    val due = pantryDue(row?.text("best_before_date").orEmpty(), today, locale)
+    val unit = if (details.shows(StockBuiltIn.Unit)) state.rows("/objects/quantity_units").find { it.text("id") == product.text("qu_id_stock") }?.text("name").orEmpty() else ""
+    val due = if (details.shows(StockBuiltIn.DueDate)) pantryDue(row?.text("best_before_date").orEmpty(), today, locale) else null
+    val formatter = LocalQuantityFormatter.current
+    val extras = stockRowExtras(details, product, lookups, formatter, locale)
     KitchenStockRow(
         name = product.text("name"),
-        amount = "${quantity(amount)} $unit".trim(),
+        amount = ((if (details.shows(StockBuiltIn.Amount)) quantity(amount) else "") + " $unit").trim(),
         due = due?.text,
         tone = when (due?.urgency) {
             PantryDueUrgency.Overdue -> ColorTone.Overdue
             PantryDueUrgency.Soon -> ColorTone.Expiring
             else -> ColorTone.Neutral
         },
+        details = extras,
         onClick = onClick,
     )
 }

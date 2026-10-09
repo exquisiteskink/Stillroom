@@ -13,8 +13,20 @@ data class StockUiState(
     val resources: Map<String, JsonElement> = emptyMap(), val stale: Boolean = false, val stalePaths: Set<String> = emptySet(),
     val busy: Boolean = false, val denied: Boolean = false, val error: String? = null,
     val selected: Long? = null, val bookingOperation: String? = null, val operations: List<PendingChange> = emptyList(),
+    /** Settings → Stock → Shown details for this account; null means defaults (unchanged rows). */
+    val detailSettings: List<StockDetailSetting>? = null,
 )
-class StockViewModel(private val accounts: AndroidAccountsRepository) : ViewModel() {
+
+/** Product userfield definitions, or null when they could not be read (older server, no access, not loaded yet). */
+internal fun StockUiState.userfieldDefinitions(): List<UserfieldDefinition>? =
+    (resources["/objects/userfields"] as? JsonArray)?.let { array -> UserfieldDefinition.parse(array.mapNotNull { it as? JsonObject }) }
+
+internal fun StockUiState.stockDetails() = StockDetails(detailSettings, userfieldDefinitions())
+
+class StockViewModel(
+    private val accounts: AndroidAccountsRepository,
+    private val detailStore: StockDetailsStore = InMemoryStockDetailsStore(),
+) : ViewModel() {
     private val ui = AccountBoundState(StockUiState())
     val state = ui.flow
     private var work: Job? = null
@@ -24,7 +36,8 @@ class StockViewModel(private val accounts: AndroidAccountsRepository) : ViewMode
             accounts.state.collect { accountState ->
                 if (accountState.active != identity) {
                     identity = accountState.active; work?.cancel()
-                    ui.reset(StockUiState(denied = !StockAccess.canRead(accountState.active?.permissions)))
+                    ui.reset(StockUiState(denied = !StockAccess.canRead(accountState.active?.permissions),
+                        detailSettings = accountState.active?.let { detailStore.load(it.id.value) }))
                     if (!state.value.denied) refresh()
                 }
             }
@@ -36,6 +49,22 @@ class StockViewModel(private val accounts: AndroidAccountsRepository) : ViewMode
             state.value.selected?.let { listOf("/stock/products/$it", "/stock/products/$it/locations", "/stock/products/$it/entries", "/stock/products/$it/price-history") }.orEmpty()
         load(paths)
         load(locationPaths())
+        loadOptional(OPTIONAL_PATHS)
+    }
+
+    /** Shown details: changes apply to the active account only and are saved on this phone. */
+    fun setDetailVisible(key: String, visible: Boolean) = saveDetails { it.toggle(key, visible) }
+    fun moveDetail(key: String, up: Boolean) = saveDetails { it.move(key, up) }
+    fun resetDetails() {
+        val account = identity ?: return
+        detailStore.clear(account.id.value)
+        ui.update { it.copy(detailSettings = null) }
+    }
+    private fun saveDetails(change: (StockDetails) -> List<StockDetailSetting>) {
+        val account = identity ?: return
+        val next = change(state.value.stockDetails())
+        detailStore.save(account.id.value, next)
+        ui.update { it.copy(detailSettings = next) }
     }
     fun select(id: Long?) { if (state.value.busy) return; ui.update { it.copy(selected = id,bookingOperation=if(id!=it.selected) null else it.bookingOperation) }; refresh() }
     fun book(booking: StockBooking) = execute {
@@ -73,6 +102,17 @@ class StockViewModel(private val accounts: AndroidAccountsRepository) : ViewMode
             current.copy(resources = current.resources + reads.mapValues { it.value.value }, stale = stalePaths.isNotEmpty(), stalePaths = stalePaths, operations = operations)
         }
     }
+    /**
+     * Reads that only feed Shown details. Each is tried on its own and a failure (older Grocy,
+     * missing permission, offline with no cache) leaves the pantry working without it.
+     */
+    private suspend fun AccountBoundState<StockUiState>.Publisher.loadOptional(paths: List<String>) {
+        for (path in paths) {
+            try { load(listOf(path)) }
+            catch (error: CancellationException) { throw error }
+            catch (_: Exception) { }
+        }
+    }
     private fun execute(block: suspend AccountBoundState<StockUiState>.Publisher.() -> Unit) {
         if (state.value.busy || state.value.denied) return
         val bound = ui.publisher()
@@ -88,6 +128,9 @@ class StockViewModel(private val accounts: AndroidAccountsRepository) : ViewMode
         }
     }
 }
+
+/** Product userfield definitions and product group names for Shown details; both optional. */
+internal val OPTIONAL_PATHS = listOf("/objects/userfields", "/objects/product_groups")
 
 internal fun JsonObject.text(key: String): String = (get(key) as? JsonPrimitive)?.contentOrNull.orEmpty()
 internal fun JsonObject.decimal(key: String) = text(key).toBigDecimalOrNull() ?: java.math.BigDecimal.ZERO

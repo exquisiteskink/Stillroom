@@ -373,3 +373,12 @@ Actual validation:
 - After the fixes, `./gradlew :app:testDebugUnitTest :fractions:test` passed **93 app tests, 0 failures, 0 skipped**. The fraction module's tests were unchanged, so Gradle reused its previous result.
 - The same run used temporary keys on the already-running listeners. Stock and shopping passed on Grocy **4.7.1 and 4.6.0**, including offline replay, conflict preservation, one purchase journal, and lost-ack reconciliation. Child chore attribution on **4.7.1** recorded `log_done_by` 29 for child user 29 and next due `2026-10-09 09:00:00`. Scanner creation/stock/undo, recipe scale/consume/meals, and battery cycle/conversion/equipment also passed on 4.7.1. Reports: `app/build/reports/stage6/container.json`, `stage7/container.json`, and `stage8/local-parity.json` through `stage11/local-parity.json`.
 - The grant decision is covered by `AccountPolicyTest`. The repository activation path was not executed: Robolectric has no Android Keystore, and `adb` showed no device. Temporary keys and private credential files were removed. **No phone, emulator, camera, launcher, notification-delivery, or browser UI test ran.**
+
+### Settings → Stock → Shown details — 2026-10-08
+
+Pantry rows can show extra built-in attributes and the account's Grocy product userfields, chosen per account in Settings → Stock → Shown details. Defaults reproduce the previous row exactly. Display only; no userfield values are written. Details: `docs/STOCK_DETAILS.md`.
+
+Actual validation:
+
+- `./gradlew assembleDebug testDebugUnitTest` passed **146 app tests, 0 failures, 6 skipped** (the live-server cases, no fixture variables). The same command on the base (feat/quantity-display-style + fix/account-switch-stale-results) passed 131 tests, 6 skipped. New: `StockDetailsTest` (13) and `StockDetailsUiTest` (2, Robolectric).
+- Userfield bulk availability was checked against the recorded Grocy 4.6.0/4.7.1 responses in `docs/evidence/stage1/`, not a live server. **No phone, emulator, or live Grocy test ran for this change.**
