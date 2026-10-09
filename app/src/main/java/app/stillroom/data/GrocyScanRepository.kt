@@ -11,8 +11,7 @@ import kotlin.coroutines.resumeWithException
 
 /** Separate unauthenticated, read-only public client. No Grocy headers, redirects, images or household records. */
 class OpenFoodFactsLookup(private val origin: String = "https://world.openfoodfacts.org") {
-    private val client=OkHttpClient.Builder().followRedirects(false).followSslRedirects(false)
-        .retryOnConnectionFailure(false).callTimeout(15,TimeUnit.SECONDS).build()
+    internal val client=HttpClients.base.newBuilder().callTimeout(15,TimeUnit.SECONDS).build()
     suspend fun lookup(code: String): JsonObject? {
         require(validGtin(code))
         require(origin == "https://world.openfoodfacts.org" || origin.matches(Regex("http://127\\.0\\.0\\.1:[0-9]+")))

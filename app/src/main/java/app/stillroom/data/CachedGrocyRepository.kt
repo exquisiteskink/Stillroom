@@ -20,8 +20,7 @@ import kotlin.coroutines.resumeWithException
 
 /** No redirects, connection retries, or authenticators: one mutation attempt per claim. */
 class MutationTransport(timeoutMillis: Long = 15_000) {
-    private val client = OkHttpClient.Builder().retryOnConnectionFailure(false)
-        .followRedirects(false).followSslRedirects(false)
+    internal val client = HttpClients.base.newBuilder()
         .callTimeout(timeoutMillis, TimeUnit.MILLISECONDS).build()
     suspend fun request(address: ServerAddress, key: String, method: String, path: String, payload: String = ""): Pair<Int, String> {
         validatePath(path)

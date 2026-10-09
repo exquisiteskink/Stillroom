@@ -13,8 +13,7 @@ import java.util.concurrent.TimeUnit
 import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
 
-private fun recipeClient()=OkHttpClient.Builder().followRedirects(false).followSslRedirects(false)
-    .retryOnConnectionFailure(false).callTimeout(15,TimeUnit.SECONDS)
+private fun recipeClient()=HttpClients.base.newBuilder().callTimeout(15,TimeUnit.SECONDS)
 
 internal suspend fun recipeBytes(client:OkHttpClient,request:Request,limit:Long):ByteArray=suspendCancellableCoroutine { c->
     val call=client.newCall(request);c.invokeOnCancellation { call.cancel() }
@@ -32,7 +31,7 @@ internal suspend fun recipeBytes(client:OkHttpClient,request:Request,limit:Long)
     })
 }
 class RecipeFiles(private val address:ServerAddress,private val key:String) {
-    private val client=recipeClient().build()
+    internal val client=recipeClient().build()
     suspend fun request(name:String,bytes:ByteArray?):ByteArray {
         require(name.isNotBlank() && !name.contains('/') && !name.contains(".."))
         val encoded=java.util.Base64.getEncoder().encodeToString(name.toByteArray(Charsets.UTF_8))
@@ -42,15 +41,17 @@ class RecipeFiles(private val address:ServerAddress,private val key:String) {
         return recipeBytes(client,builder.build(),5_242_880)
     }
 }
-/** Anonymous URL reader: only public HTTPS hosts, no redirects, no cookies, no household payload. */
-class RecipeUrlReader {
-    private val client=recipeClient().dns(object:Dns {
-        override fun lookup(host:String):List<InetAddress> {
-        val addresses=InetAddress.getAllByName(host).toList()
+/** Resolves only public addresses. A single instance, so pooled connections stay reusable across readers. */
+private object PublicOnlyDns:Dns {
+    override fun lookup(hostname:String):List<InetAddress> {
+        val addresses=InetAddress.getAllByName(hostname).toList()
         check(addresses.isNotEmpty() && addresses.none { it.isAnyLocalAddress || it.isLoopbackAddress || it.isLinkLocalAddress || it.isSiteLocalAddress || it.isMulticastAddress || (it.address.size==16 && (it.address[0].toInt() and 0xfe)==0xfc) }) { "Use a public recipe URL." }
         return addresses
-        }
-    }).build()
+    }
+}
+/** Anonymous URL reader: only public HTTPS hosts, no redirects, no cookies, no household payload. */
+class RecipeUrlReader {
+    internal val client=recipeClient().dns(PublicOnlyDns).build()
     suspend fun read(source:String):RecipeImport {
         val url=source.toHttpUrl();require(url.scheme=="https" && url.username.isEmpty() && url.password.isEmpty() && source.length<=4096 && url.port==443)
         val bytes=recipeBytes(client,Request.Builder().url(url).header("Accept","text/html").get().build(),2_097_152)
