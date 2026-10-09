@@ -90,7 +90,7 @@ fun HouseholdChoresScreen(model: HouseholdViewModel, account: Account) {
             onDismissRequest = { deleting = null },
             title = { Text("Delete chore?") },
             text = { Text("Remove this chore from Grocy?") },
-            confirmButton = { QuietButton(onClick = { model.delete(id); deleting = null }) { Text("Delete") } },
+            confirmButton = { PrimaryButton(onClick = { model.delete(id); deleting = null }) { Text("Delete") } },
             dismissButton = { QuietButton(onClick = { deleting = null }) { Text("Cancel") } },
         )
     }
@@ -108,7 +108,7 @@ fun HouseholdChoresScreen(model: HouseholdViewModel, account: Account) {
                     Text("${houseDueDay(row.houseText("tracked_time"), locale) ?: row.houseText("tracked_time")} • ${householdAssigneeName(user).ifBlank { "User ${row.houseText("done_by_user_id")}" }} • $status")
                 }
             }
-        }, confirmButton = { QuietButton(onClick = model::closeHistory) { Text("Close") } })
+        }, dismissButton = { QuietButton(onClick = model::closeHistory) { Text("Close") } }, confirmButton = {})
     }
 }
 
@@ -185,7 +185,7 @@ fun HouseholdTasksScreen(model: HouseholdViewModel, account: Account) {
             onDismissRequest = { deleting = null },
             title = { Text("Delete task?") },
             text = { Text("Remove this task from Grocy?") },
-            confirmButton = { QuietButton(onClick = { model.deleteTask(id); deleting = null }) { Text("Delete") } },
+            confirmButton = { PrimaryButton(onClick = { model.deleteTask(id); deleting = null }) { Text("Delete") } },
             dismissButton = { QuietButton(onClick = { deleting = null }) { Text("Cancel") } },
         )
     }
@@ -219,7 +219,7 @@ private fun ChoreEditor(
     val valid = name.isNotBlank() && interval.toIntOrNull()?.let { it > 0 } == true && days.toIntOrNull()?.let { it >= 0 } == true &&
         runCatching { java.time.LocalDateTime.parse(start.replace(' ', 'T')) }.isSuccess && (period != "weekly" || config.isNotEmpty())
     AlertDialog(onDismissRequest = close, title = { Text(if (row == null) "Add chore" else "Edit chore") }, text = {
-        Column(Modifier.imePadding().verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Column(Modifier.imePadding().verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(16.dp)) {
             LabeledTextField(name, { name = it }, label = "Name", isError = name.isBlank(), supportingText = if(name.isBlank()) "Enter a name." else null, modifier = Modifier.fillMaxWidth())
             LabeledTextField(instructions, { instructions = it }, label = "Instructions", modifier = Modifier.fillMaxWidth())
             Text("Assign to", style = MaterialTheme.typography.titleMedium)
@@ -253,7 +253,7 @@ private fun ChoreEditor(
             }
         }
     }, confirmButton = {
-        QuietButton(enabled = valid && !busy, onClick = {
+        PrimaryButton(enabled = valid && !busy, onClick = {
             save(buildJsonObject {
                 put("name", name.trim()); put("description", instructions); put("period_type", period)
                 put("period_interval", interval.toInt()); put("period_days", days.toInt()); put("period_config", config.joinToString(","))
@@ -282,7 +282,7 @@ private fun TaskEditor(
     var assigned by remember { mutableStateOf(row?.houseId("assigned_to_user_id")) }
     val valid = name.isNotBlank() && (due.isBlank() || runCatching { LocalDate.parse(due) }.isSuccess)
     AlertDialog(onDismissRequest = close, title = { Text(if (row == null) "Add task" else "Edit task") }, text = {
-        Column(Modifier.imePadding().verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Column(Modifier.imePadding().verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(16.dp)) {
             LabeledTextField(name, { name = it }, label = "Name", isError = name.isBlank(), supportingText = if(name.isBlank()) "Enter a name." else null, modifier = Modifier.fillMaxWidth())
             LabeledTextField(description, { description = it }, label = "Notes", modifier = Modifier.fillMaxWidth())
             LabeledTextField(due, { due = it }, label = "Due date (optional)", isError = due.isNotBlank() && !runCatching { LocalDate.parse(due) }.isSuccess, supportingText = "Use YYYY-MM-DD.", modifier = Modifier.fillMaxWidth())
@@ -291,7 +291,7 @@ private fun TaskEditor(
             if (onDelete != null) QuietButton(onClick = onDelete, enabled = !busy) { Text("Delete") }
         }
     }, confirmButton = {
-        QuietButton(enabled = valid && !busy, onClick = {
+        PrimaryButton(enabled = valid && !busy, onClick = {
             save(buildJsonObject {
                 put("name", name.trim()); put("description", description)
                 if (due.isBlank()) put("due_date", JsonNull) else put("due_date", due)

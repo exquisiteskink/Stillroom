@@ -87,7 +87,7 @@ fun ChoiceField(
                         if (matches.isEmpty() && !(allowNone && (query.isBlank() || noneLabel.contains(query, true)))) item { Text("No matching options", style = MaterialTheme.typography.bodyMedium) }
                     }
                 }
-            }, confirmButton = { QuietButton(onClick = { expanded = false }) { Text("Cancel") } },
+            }, dismissButton = { QuietButton(onClick = { expanded = false }) { Text("Cancel") } }, confirmButton = {},
         )
     }
 }

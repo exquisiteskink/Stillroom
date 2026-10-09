@@ -179,6 +179,25 @@ class OutboxTest {
         assertEquals(1, server.requestCount)
     }
 
+    @Test fun cancelBeforeRequestReturnsTheRowToPending() = runBlocking(Dispatchers.IO) {
+        val started = CompletableDeferred<Unit>()
+        val repo = CachedGrocyRepository(db, address, "synthetic-key", MutationTransport(250), beforeRequest = {
+            started.complete(Unit)
+            awaitCancellation()
+        })
+        val operation = enqueue(repo)
+        val worker = launch { repo.drain() }
+        withTimeout(5_000) { started.await() }
+        assertEquals("in-flight", db.operation(operation)!!.state)
+        worker.cancelAndJoin()
+        assertEquals("pending", db.operation(operation)!!.state)
+        assertEquals(0, server.requestCount)
+        server.enqueue(MockResponse().setResponseCode(204))
+        repository().drain()
+        assertEquals("confirmed", db.operation(operation)!!.state)
+        assertEquals(1, server.requestCount)
+    }
+
     @Test fun stage3CacheMigratesWithoutLosingLastPayload() = runBlocking(Dispatchers.IO) {
         db.close(); AccountDatabase.delete(context, id, namespace)
         context.openOrCreateDatabase(AccountDatabase.name(id, namespace), 0, null).use {

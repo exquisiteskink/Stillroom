@@ -88,6 +88,12 @@ fun AccountScreen(state: AccountUiState, model: AccountViewModel) {
         LabeledTextField(baseUrl, onValueChange = { baseUrl = it; verifierId = null }, label = "Server URL",
             placeholder = { Text("https://grocy.example") }, singleLine = true, enabled = !state.busy,
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Uri), modifier = Modifier.fillMaxWidth().testTag("server-url"))
+        Text(
+            "If the server uses a private CA, install that CA's root in Android's CA certificate settings. Stillroom then trusts every user-installed CA for its HTTPS connections, not one Grocy server. The server must send its intermediate certificates, and the URL hostname must match the certificate. A failed certificate check does not switch the connection to HTTP.",
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.testTag("private-ca-help"),
+        )
         LabeledTextField(apiKey, onValueChange = { apiKey = it }, label = "API key",
             singleLine = true, enabled = !state.busy, visualTransformation = PasswordVisualTransformation(),
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password, autoCorrectEnabled = false, imeAction = ImeAction.Done),
@@ -138,7 +144,7 @@ fun AccountScreen(state: AccountUiState, model: AccountViewModel) {
             val submitted = apiKey
             apiKey = ""
             model.connect(baseUrl, submitted, insecure, verifierId)
-        }, enabled = !state.busy && baseUrl.isNotBlank() && apiKey.isNotBlank(), modifier = Modifier.sizeIn(minHeight = 48.dp).testTag("connect-account")) {
+        }, enabled = !state.busy && baseUrl.isNotBlank() && apiKey.isNotBlank(), modifier = Modifier.fillMaxWidth().testTag("connect-account")) {
             Text("Connect")
         }
         if (state.busy) {
@@ -154,7 +160,7 @@ fun AccountScreen(state: AccountUiState, model: AccountViewModel) {
         AlertDialog(onDismissRequest = { loggingOut = null }, title = { Text("Log out ${account.username}?") },
             text = { Text("Remove this account and its saved data from this phone. Grocy records stay on the server.") },
             dismissButton = { QuietButton(onClick = { loggingOut = null }) { Text("Cancel") } },
-            confirmButton = { QuietButton(onClick = { model.logout(account.id); loggingOut = null }, modifier = Modifier.testTag("confirm-logout")) { Text("Log out") } })
+            confirmButton = { PrimaryButton(onClick = { model.logout(account.id); loggingOut = null }, modifier = Modifier.testTag("confirm-logout")) { Text("Log out") } })
     }
 
 }

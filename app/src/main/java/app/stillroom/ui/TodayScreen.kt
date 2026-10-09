@@ -25,6 +25,7 @@ import app.stillroom.R
 import app.stillroom.domain.HouseholdAccess
 import app.stillroom.domain.RecipeAccess
 import app.stillroom.domain.Section
+import app.stillroom.domain.catalogId
 import app.stillroom.domain.catalogText
 import app.stillroom.domain.houseDueDay
 import java.time.LocalDate
@@ -32,7 +33,7 @@ import java.time.LocalTime
 import java.time.format.TextStyle
 import java.util.Locale
 
-@Composable fun TodayScreen(model:TodayViewModel,account:Account,open:(Section)->Unit) {
+@Composable fun TodayScreen(model:TodayViewModel,account:Account,open:(Section)->Unit,openRecipe:(Long)->Unit = {},openMeal:(Long)->Unit = {}) {
     val state by model.state.collectAsState();val s=state.snapshot
     LaunchedEffect(Unit){model.refresh()}
     val today=remember { LocalDate.now() }
@@ -85,7 +86,12 @@ import java.util.Locale
                     QuietButton(onClick={open(Section.Meals)}){Text("View meals")}
                 } }
             } else items(s.meals, key={ it.catalogText("id")+it.catalogText("recipe_name") }) { row ->
-                KitchenCard(onClick={open(Section.Meals)}) {
+                KitchenCard(onClick={
+                    when (row.catalogText("type")) {
+                        "recipe" -> row.catalogId("recipe_id")?.let(openRecipe) ?: open(Section.Meals)
+                        else -> row.catalogId("id")?.let(openMeal) ?: open(Section.Meals)
+                    }
+                }) {
                     Column(Modifier.padding(16.dp), verticalArrangement=Arrangement.spacedBy(8.dp)) {
                         Text(row.catalogText("section_name").ifBlank { "Meal" }, style=MaterialTheme.typography.labelLarge, color=MaterialTheme.colorScheme.onSurfaceVariant)
                         Text(row.catalogText("recipe_name").ifBlank { row.catalogText("note").ifBlank { "Planned product" } }, style=MaterialTheme.typography.titleMedium)

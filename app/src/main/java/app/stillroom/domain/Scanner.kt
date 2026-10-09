@@ -52,6 +52,7 @@ interface ScanRepository {
     suspend fun lookup(code: ScanCode): ScanSuggestion
     suspend fun choices(): Pair<List<Pair<Long,String>>,List<Pair<Long,String>>>
     suspend fun create(review: ScanReview): String
+    suspend fun attach(productId: Long, code: ScanCode): String
     suspend fun sync()
     suspend fun createdProduct(operation: String): Long?
     suspend fun operations(): List<PendingChange>
@@ -60,6 +61,7 @@ class ManageScanner(private val repository: ScanRepository) {
     suspend fun lookup(code: ScanCode)=repository.lookup(code.validated())
     suspend fun choices()=repository.choices()
     suspend fun create(review: ScanReview)=repository.create(review)
+    suspend fun attach(productId: Long, code: ScanCode)=repository.attach(productId, code.validated())
     suspend fun sync()=repository.sync()
     suspend fun createdProduct(operation: String)=repository.createdProduct(operation)
     suspend fun operations()=repository.operations()

@@ -21,7 +21,7 @@ class OpenFoodFactsLookup(private val origin: String = "https://world.openfoodfa
             val call=client.newCall(request)
             continuation.invokeOnCancellation { call.cancel() }
             call.enqueue(object:Callback {
-                override fun onFailure(call:Call,e:java.io.IOException) { if(continuation.isActive) continuation.resumeWithException(IllegalStateException("Public product lookup unavailable.")) }
+                override fun onFailure(call:Call,e:java.io.IOException) { if(continuation.isActive) continuation.resumeWithException(TlsFailures.wrap(e,"Public product lookup unavailable.")) }
                 override fun onResponse(call:Call,response:Response) {
                     try {
                         val result=response.use {
@@ -109,6 +109,16 @@ class GrocyScanRepository(private val grants:Set<String>?,private val db:Account
             put("min_stock_amount",0)
         }
         return cache.enqueue("POST","/objects/products",fields.toString(),"/objects/products",operationId=operation)
+    }
+    override suspend fun attach(productId: Long, code: ScanCode): String {
+        access();check(HouseholdAccess.has(grants,"MASTER_DATA_EDIT")) { "Product editing access denied." }
+        code.validated();require(productId>0)
+        require(rows("/objects/products",true).first.any { it.id("id")==productId }) { "Choose an existing product." }
+        check(rows("/objects/product_barcodes",true).first.none { it.value("barcode")==code.raw }) { "This barcode now exists in Grocy. Look it up again." }
+        val body=buildJsonObject { put("product_id",productId);put("barcode",code.raw) }.toString()
+        val existing=db.operations().firstOrNull { it.method=="POST" && it.path=="/objects/product_barcodes" && it.payload==body && it.state!="failed" }
+        if(existing!=null) return existing.clientOperationId
+        return cache.enqueue("POST","/objects/product_barcodes",body,"/objects/product_barcodes")
     }
     private fun followUp(operation:String)=UUID.nameUUIDFromBytes((operation+":barcode").toByteArray()).toString()
     override suspend fun sync() {

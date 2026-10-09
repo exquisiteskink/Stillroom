@@ -20,6 +20,9 @@ data class StockUiState(
     val catalog: CatalogSnapshot? = null,
     val productOutcome: CatalogSaveOutcome? = null,
     val productMessage: String? = null,
+    /** Pantry → Add use soon / running low. kind is `use-soon` or `running-low`. */
+    val shopKind: String? = null,
+    val shopLists: List<Pair<Long, String>> = emptyList(),
 )
 
 data class ProductEditorTarget(val id: Long?)
@@ -116,6 +119,23 @@ class StockViewModel(
         load(listOf("/stock", "/stock/volatile", "/objects/stock_log") + listOf("", "/locations", "/entries", "/price-history").map { "/stock/products/${booking.productId}$it" } + locationPaths())
     }
     fun clearBookingOutcome() { if (!state.value.busy) ui.update { it.copy(bookingOperation = null) } }
+    fun openPantryShop(kind: String) {
+        if (state.value.busy || !ShoppingAccess.allowed(identity?.permissions) || kind !in setOf("use-soon", "running-low")) return
+        execute {
+            val lists = accounts.withShopping { shop -> shop.snapshot().rows("shopping_lists").mapNotNull { row -> row.shoppingText("id").toLongOrNull()?.let { it to row.shoppingText("name").ifBlank { "List $it" } } } }
+            if (lists.isEmpty()) publish { it.copy(productMessage = "Create a shopping list in Shop first.") }
+            else publish { it.copy(shopKind = kind, shopLists = lists, productMessage = null) }
+        }
+    }
+    fun closePantryShop() { if (!state.value.busy) ui.update { it.copy(shopKind = null) } }
+    fun shopAttention(kind: String, listId: Long) = execute {
+        try {
+            accounts.withShopping { it.addPantryAttention(kind, listId) }
+            publish { it.copy(productMessage = "Added to the shopping list in Grocy.", shopKind = null) }
+            reloadAll()
+        } catch (error: CancellationException) { throw error }
+        catch (error: Exception) { publish { it.copy(error = error.message ?: "Could not add these to the shopping list.", shopKind = null) } }
+    }
     fun undo(id: Long) = execute {
         accounts.withStock { it.undo(id) }; accounts.drainStock()
         reloadAfterUndo()

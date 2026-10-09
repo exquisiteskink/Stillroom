@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  System CAs and every user-installed CA. Trust is not limited to one Grocy host.
+  Chain, validity, and hostname checks stay at the platform defaults.
+  Cleartext stays permitted so the explicit HTTP opt-in can still reach a local
+  test server. A TLS failure is not retried as HTTP.
+-->
+<network-security-config>
+    <base-config cleartextTrafficPermitted="true">
+        <trust-anchors>
+            <certificates src="system" />
+            <certificates src="user" />
+        </trust-anchors>
+    </base-config>
+</network-security-config>

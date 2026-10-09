@@ -40,6 +40,25 @@ class ProductEditorTest {
         CatalogFields.validate(CatalogEntity.Products, payload)
     }
 
+    @Test fun partialCreateKeepsUnitDefaultsAndRequiredUserfieldsValid() {
+        val creating = form()
+        val texts = creating.initial() + mapOf("name" to "Oat milk", "location_id" to "3", "qu_id_stock" to "4", "qu_id_purchase" to "5")
+        assertTrue(creating.errors(texts).isEmpty())
+        val editing = form(buildJsonObject { put("id", 41) })
+        assertTrue(editing.errors(texts).containsKey("qu_id_consume"))
+        val seeded = CatalogCreateHandoff.seedUnits(texts)
+        assertTrue(editing.errors(seeded).isEmpty())
+        assertEquals("4", seeded["qu_id_consume"])
+        assertEquals("5", seeded["qu_id_price"])
+        val field = UserfieldDefinition("storage", "Storage", UserfieldTypes.TEXT, inputRequired = true, defaultValue = "Pantry")
+        assertEquals("", UserfieldValues.initial(field, null, creating = false))
+        val kept = UserfieldValues.createDefaults(listOf(field), null, emptyMap(), LocalDateTime.of(2026, 10, 8, 12, 0))
+        assertEquals("Pantry", kept[field.name])
+        assertNull(UserfieldValues.error(field, kept.getValue(field.name), us))
+        val changes = UserfieldValues.changes(listOf(field), null, kept, us)
+        assertEquals("Pantry", changes["storage"]!!.jsonPrimitive.content)
+    }
+
     @Test fun invalidValuesGiveFieldMessages() {
         val f = form()
         val errors = f.errors(f.initial() + mapOf("name" to "X", "location_id" to "3", "qu_id_stock" to "4", "qu_id_purchase" to "4",

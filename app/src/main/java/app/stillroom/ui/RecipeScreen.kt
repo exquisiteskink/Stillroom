@@ -47,7 +47,7 @@ private fun number(amount:BigDecimal)=Json.parseToJsonElement(amount.toPlainStri
 }
 @Composable private fun RecipeDialog(title:String,close:()->Unit,save:(()->Unit)?=null,valid:Boolean=true,content:@Composable ColumnScope.()->Unit) {
     AlertDialog(onDismissRequest=close,title={Text(title)},text={Column(Modifier.imePadding().verticalScroll(rememberScrollState()),verticalArrangement=Arrangement.spacedBy(16.dp),content=content)},
-        dismissButton={QuietButton(onClick=close){Text("Cancel")}},confirmButton={if(save!=null)PrimaryButton(onClick=save,enabled=valid){Text("Save")}else QuietButton(onClick=close){Text("Close")}})
+        dismissButton={QuietButton(onClick=close){Text(if(save==null)"Close" else "Cancel")}},confirmButton={if(save!=null)PrimaryButton(onClick=save,enabled=valid){Text("Save")} else {}})
 }
 
 @Composable fun RecipeScreen(model:RecipeViewModel,account:Account) {
@@ -85,6 +85,15 @@ private fun number(amount:BigDecimal)=Json.parseToJsonElement(amount.toPlainStri
         }
     }
     LaunchedEffect(Unit){model.refresh()}
+    LaunchedEffect(state.openRecipeId) {
+        val id=state.openRecipeId ?: return@LaunchedEffect
+        selected=id; mealPlan=false; cooking=false; model.clearOpen()
+    }
+    LaunchedEffect(state.openMealId, s.rows("meal_plan")) {
+        val id=state.openMealId ?: return@LaunchedEffect
+        val row=s.rows("meal_plan").find { it.recipeId("id")==id } ?: return@LaunchedEffect
+        meal=row; mealPlan=true; cooking=false; model.clearOpen()
+    }
     LaunchedEffect(s.normal().map { it.recipeText("picture_file_name") }) { model.loadPictures() }
     BackHandler(enabled = cooking || selected != null || importing) {
         when {
@@ -131,7 +140,7 @@ private fun number(amount:BigDecimal)=Json.parseToJsonElement(amount.toPlainStri
                     val pictureName=s.normal().find { it.recipeId("id")==row.recipeId("recipe_id") }?.recipeText("picture_file_name")
                     RecipeTile("${row.recipeText("day")} · ${s.name("meal_plan_sections",row.recipeId("section_id"))}\n${recipeName.ifBlank { "Meal" }}", state.pictures[pictureName.orEmpty()], onClick={
                         if(row.recipeText("type")=="recipe") { selected=row.recipeId("recipe_id");mealPlan=false } else meal=row
-                    })
+                    }, badge=if(row.recipeText("type")=="recipe") row.recipeId("recipe_id")?.let(s::fulfillmentBadge) else null)
                 }
             } else {
                 val recipes=s.normal()
@@ -140,7 +149,7 @@ private fun number(amount:BigDecimal)=Json.parseToJsonElement(amount.toPlainStri
                 else if(recipes.isEmpty()) kitchenHeader {
                     KitchenEmpty("No recipes","Add a recipe or import a recipe link.", R.drawable.empty_meals)
                 } else items(recipes, key={ it.recipeText("id") }) { row->
-                    RecipeTile(row.recipeText("name"), state.pictures[row.recipeText("picture_file_name")], onClick={selected=row.recipeId("id")})
+                    RecipeTile(row.recipeText("name"), state.pictures[row.recipeText("picture_file_name")], onClick={selected=row.recipeId("id")}, badge=row.recipeId("id")?.let(s::fulfillmentBadge))
                 }
             }
         }
@@ -170,6 +179,7 @@ private fun number(amount:BigDecimal)=Json.parseToJsonElement(amount.toPlainStri
 
                 }
                 item { Text(row.recipeText("name"),style=MaterialTheme.typography.headlineMedium) }
+                selected?.let(s::fulfillmentBadge)?.let { badge -> item { Text("Grocy fulfillment: $badge. This does not change stock.", color=MaterialTheme.colorScheme.onSurfaceVariant) } }
                 item {
                     KitchenError(state.error ?: imageError)
                     KitchenWhisper(if(needsReview) "A recipe change needs review in Settings → Pending changes." else if(state.operations.any { it.state in setOf("pending", "in-flight") }) "Recipe change pending confirmation." else null)
@@ -293,12 +303,16 @@ private fun number(amount:BigDecimal)=Json.parseToJsonElement(amount.toPlainStri
     var checked by rememberSaveable { mutableStateOf(listOf<Long>()) }
     Text("Ingredient checklist",style=MaterialTheme.typography.titleLarge)
     s.rows("recipes_pos").filter { it.recipeId("recipe_id")==row.recipeId("id") }.forEach { ingredient->val id=ingredient.recipeId("id")!!
-        Row(Modifier.fillMaxWidth().heightIn(min=48.dp).toggleable(value=id in checked,role=Role.Checkbox,onValueChange={done->checked=if(done)checked+id else checked-id}),verticalAlignment=androidx.compose.ui.Alignment.CenterVertically) { Checkbox(id in checked,null);Text("${s.name("products",ingredient.recipeId("product_id"))} · ${ingredient.recipeText("note")}") }
+        val resolved=s.rows("recipes_pos_resolved").find { it.recipeId("recipe_id")==row.recipeId("id") && it.recipeId("recipe_pos_id")==id && it.recipeText("is_nested_recipe_pos")!="1" }
+        val amount=resolved?.recipeDecimal("recipe_amount") ?: ingredient.recipeDecimal("amount") ?: BigDecimal.ZERO
+        val note=ingredient.recipeText("note")
+        val label="${qty(amount)} ${s.name("quantity_units",ingredient.recipeId("qu_id"))} ${s.name("products",ingredient.recipeId("product_id"))}".trim() + if(note.isBlank()) "" else " · $note"
+        Row(Modifier.fillMaxWidth().heightIn(min=48.dp).toggleable(value=id in checked,role=Role.Checkbox,onValueChange={done->checked=if(done)checked+id else checked-id}),verticalAlignment=androidx.compose.ui.Alignment.CenterVertically) { Checkbox(id in checked,null);Text(label) }
     }
     if(steps.isEmpty()) Text("No cooking instructions yet.")
     if(steps.isNotEmpty()) {
         index=index.coerceIn(0,steps.lastIndex);Text("Step ${index+1} of ${steps.size}",style=MaterialTheme.typography.titleLarge);Text(steps[index],style=MaterialTheme.typography.headlineSmall)
-        Row { SecondaryButton(onClick={index--},enabled=index>0,modifier=Modifier.heightIn(min=56.dp)){Text("Previous")};Spacer(Modifier.width(8.dp));PrimaryButton(onClick={index++},enabled=index<steps.lastIndex,modifier=Modifier.heightIn(min=56.dp)){Text("Next")} }
+        Row(Modifier.fillMaxWidth(), horizontalArrangement=Arrangement.spacedBy(8.dp)) { SecondaryButton(onClick={index--},enabled=index>0,modifier=Modifier.weight(1f)){Text("Previous")};PrimaryButton(onClick={index++},enabled=index<steps.lastIndex,modifier=Modifier.weight(1f)){Text("Next")} }
     }
     var minutes by rememberSaveable { mutableStateOf("5") };var timers by rememberSaveable { mutableStateOf(listOf<Long>()) };var now by remember { mutableLongStateOf(android.os.SystemClock.elapsedRealtime()) }
     LaunchedEffect(timers) { while(timers.isNotEmpty()) { now=android.os.SystemClock.elapsedRealtime();delay(1000) } }

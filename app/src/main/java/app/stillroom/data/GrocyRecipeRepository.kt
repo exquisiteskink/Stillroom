@@ -25,6 +25,13 @@ class GrocyRecipeRepository(private val grants:Set<String>?,private val db:Accou
             val value=if(fresh)cache.readFresh("/stock")!! else cache.read("/stock").let { stale=stale||it.stale;Json.parseToJsonElement(it.payload) }
             resources["stock"]=value.jsonArray.map { it.jsonObject }
         }
+        try {
+            val path="/recipes/fulfillment"
+            val value=if(fresh)cache.readFresh(path) else cache.read(path).let { stale=stale||it.stale;Json.parseToJsonElement(it.payload) }
+            if(value!=null) resources["recipes_fulfillment"]=value.jsonArray.map { it.jsonObject }
+        } catch(error:kotlinx.coroutines.CancellationException) { throw error }
+        catch(error:GrocyFailure) { if(error.status in setOf(401,403)) throw error }
+        catch(_:Exception) { }
         return RecipeSnapshot(resources,stale)
     }
     override suspend fun snapshot()=snapshot(false)
@@ -103,28 +110,60 @@ class GrocyRecipeRepository(private val grants:Set<String>?,private val db:Accou
     override suspend fun review(recipe:Long):RecipeConsumeReview {
         access();check(StockAccess.canRead(grants));val s=snapshot(true)
         val row=s.normal().single { it.recipeId("id")==recipe }
-        val review=RecipeConsumeReview(UUID.randomUUID().toString(),recipe,row.recipeDecimal("desired_servings")!!,s.requirements(recipe),signature(s,recipe))
+        val sig=signature(s,recipe)
+        val key=reviewKey(sig)
+        val open=db.get("recipe-review-open",key)?.takeIf { it.isNotBlank() }?.let { id->decodeReview(db.get("recipe-review-body",id).orEmpty()) }
+        if(open!=null && open.signature==sig) {
+            val ops=lineIds(open).map { db.operation(it) }
+            val queued=ops.any { it!=null }
+            val confirmed=ops.isNotEmpty() && ops.all { it?.state=="confirmed" }
+            // Same review until every booking is confirmed, so a second cook cannot mint new ids for lines already sent.
+            if(queued && !confirmed) return open
+            if(confirmed) db.put("recipe-review-open",key,"")
+        }
+        val review=RecipeConsumeReview(UUID.randomUUID().toString(),recipe,row.recipeDecimal("desired_servings")!!,s.requirements(recipe),sig)
         require(review.lines.isNotEmpty()) { "Add ingredients first." }
         db.put("recipe-review",review.id,review.signature)
+        db.put("recipe-review-body",review.id,encodeReview(review))
+        db.put("recipe-review-open",key,review.id)
         return review
     }
     override suspend fun consume(review:RecipeConsumeReview):List<String> {
         access();check(StockAccess.canWrite(grants,StockAction.Consume));require(db.get("recipe-review",review.id)==review.signature)
-        val ids=review.lines.map { UUID.nameUUIDFromBytes((review.id+":"+it.product).toByteArray()).toString() }
-        if(ids.any { db.operation(it)!=null }) {
-            check(ids.all { db.operation(it)!=null }) { "Part of this consumption was queued. Inspect pending changes before continuing." }
-            return ids
-        }
+        val ids=lineIds(review)
+        val missing=ids.indices.filter { db.operation(ids[it])==null }
+        if(missing.isEmpty()) return ids
         val s=snapshot(true)
         check(signature(s,review.recipe)==review.signature) { "The recipe changed. Open a new consumption review." }
         val current=s.requirements(review.recipe)
-        check(current.map { it.product to it.required }==review.lines.map { it.product to it.required } && current.all { it.canConsume }) { "Stock changed or ingredients are missing. Refresh the review." }
-        current.forEachIndexed { index,line ->
+        check(current.map { it.product to it.required }==review.lines.map { it.product to it.required } && current.all { it.canConsume }) {
+            if(ids.any { db.operation(it)!=null }) "Part of this consumption is still queued. Inspect Pending changes before continuing."
+            else "Stock changed or ingredients are missing. Refresh the review."
+        }
+        // Queue every still-missing booking locally before anything is sent. A crash mid-loop retries only the missing ids.
+        for(index in missing) {
+            val line=current[index]
             db.put("recipe-consume",ids[index],review.id)
             stock.book(StockBooking(StockAction.Consume,line.product,line.required,recipeId=review.recipe),ids[index])
         }
         return ids
     }
+    private fun lineIds(review:RecipeConsumeReview)=review.lines.map { UUID.nameUUIDFromBytes((review.id+":"+it.product).toByteArray()).toString() }
+    private fun reviewKey(signature:String)=java.security.MessageDigest.getInstance("SHA-256").digest(signature.toByteArray(Charsets.UTF_8)).joinToString("") { "%02x".format(it) }
+    private fun encodeReview(review:RecipeConsumeReview)=buildJsonObject {
+        put("id",review.id);put("recipe",review.recipe);put("servings",Json.parseToJsonElement(review.servings.toPlainString()));put("signature",review.signature)
+        put("lines",JsonArray(review.lines.map { line->buildJsonObject {
+            put("product",line.product);put("unit",line.unit)
+            put("required",Json.parseToJsonElement(line.required.toPlainString()));put("available",Json.parseToJsonElement(line.available.toPlainString()))
+        } }))
+    }.toString()
+    private fun decodeReview(body:String):RecipeConsumeReview? = runCatching {
+        val value=Json.parseToJsonElement(body).jsonObject
+        RecipeConsumeReview(value.recipeText("id"),value.recipeId("recipe")!!,value.recipeDecimal("servings")!!,value["lines"]!!.jsonArray.map { item->
+            val line=item.jsonObject
+            RecipeRequirement(line.recipeId("product")!!,line.recipeId("unit")!!,line.recipeDecimal("required")!!,line.recipeDecimal("available") ?: BigDecimal.ZERO)
+        },value.recipeText("signature"))
+    }.getOrNull()
     override suspend fun missing(recipe:Long,list:Long):List<String> {
         access();check(ShoppingAccess.allowed(grants) && StockAccess.canRead(grants));val s=snapshot(true)
         require(s.rows("shopping_lists").any { it.recipeId("id")==list })

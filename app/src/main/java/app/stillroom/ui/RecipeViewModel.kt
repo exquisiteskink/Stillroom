@@ -9,7 +9,8 @@ import kotlinx.coroutines.flow.*
 import kotlinx.serialization.json.*
 
 data class RecipeUiState(val snapshot:RecipeSnapshot=RecipeSnapshot(),val operations:List<PendingChange> = emptyList(),val busy:Boolean=false,val error:String?=null,
-    val review:RecipeConsumeReview?=null,val imported:RecipeImport?=null,val sharedUrl:String?=null,val image:ByteArray?=null,val pictures:Map<String,ByteArray> = emptyMap())
+    val review:RecipeConsumeReview?=null,val imported:RecipeImport?=null,val sharedUrl:String?=null,val image:ByteArray?=null,val pictures:Map<String,ByteArray> = emptyMap(),
+    val openRecipeId:Long?=null,val openMealId:Long?=null)
 class RecipeViewModel(private val accounts:AndroidAccountsRepository):ViewModel() {
     private val ui=AccountBoundState(RecipeUiState());val state=ui.flow
     private var identity:Account?=null;private var work:Job?=null;private var pictures:Job?=null
@@ -36,6 +37,9 @@ class RecipeViewModel(private val accounts:AndroidAccountsRepository):ViewModel(
     fun delete(entity:String,id:Long)=execute { it.delete(entity,id);it.sync() }
     fun review(id:Long)=execute { r->val review=r.review(id);publish { it.copy(review=review) } }
     fun closeReview() { ui.update { it.copy(review=null) } }
+    fun openRecipe(id:Long) { ui.update { it.copy(openRecipeId=id,openMealId=null) } }
+    fun openMeal(id:Long) { ui.update { it.copy(openMealId=id,openRecipeId=null) } }
+    fun clearOpen() { ui.update { it.copy(openRecipeId=null,openMealId=null) } }
     fun consume() { val review=state.value.review ?: return;execute { it.consume(review);it.sync();publish { s->s.copy(review=null) } } }
     fun missing(id:Long,list:Long)=execute { it.missing(id,list);it.sync() }
     fun share(url:String) { if(url.length<=4096)ui.update { it.copy(sharedUrl=url,imported=RecipeImport(url,"","",emptyList(),null)) } }

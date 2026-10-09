@@ -86,6 +86,21 @@ fun pantryUseSoonIds(volatile: JsonObject?): Set<String> =
 fun pantryRunningLowIds(volatile: JsonObject?): Set<String> =
     pantryVolatileProductIds(volatile, "missing_products")
 
+/** Due in Grocy's list, excluding overdue and expired rows that the bulk shopping routes already cover. */
+fun pantryDueNotOverdueIds(volatile: JsonObject?): Set<String> =
+    pantryVolatileProductIds(volatile, "due_products") - pantryVolatileProductIds(volatile, "overdue_products", "expired_products")
+
+enum class PantryListAdd { Missing, Overdue, Expired }
+
+data class PantryListRequest(val bulk: List<PantryListAdd>, val dueProductIds: List<Long>)
+
+/** Running low uses Grocy's missing-products route. Use soon uses overdue and expired routes, plus ordinary rows for due-but-not-overdue. */
+fun pantryListRequest(volatile: JsonObject?, kind: String): PantryListRequest = when (kind) {
+    "running-low" -> PantryListRequest(listOf(PantryListAdd.Missing), emptyList())
+    "use-soon" -> PantryListRequest(listOf(PantryListAdd.Overdue, PantryListAdd.Expired), pantryDueNotOverdueIds(volatile).mapNotNull { it.toLongOrNull() }.distinct())
+    else -> error("Unknown pantry list.")
+}
+
 /** Formats Grocy best-before dates for a compact pantry row. Far-future sentinels such as 2999-12-31 are omitted. */
 fun pantryDue(raw: String, today: LocalDate, locale: java.util.Locale): PantryDueLabel? {
     if (raw.isBlank()) return null

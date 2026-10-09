@@ -33,7 +33,7 @@ class MutationTransport(timeoutMillis: Long = 15_000) {
             continuation.invokeOnCancellation { call.cancel() }
             call.enqueue(object : Callback {
                 override fun onFailure(call: Call, error: java.io.IOException) {
-                    if (continuation.isActive) continuation.resumeWithException(IllegalStateException("HTTP outcome unavailable."))
+                    if (continuation.isActive) continuation.resumeWithException(TlsFailures.wrap(error, "HTTP outcome unavailable."))
                 }
                 override fun onResponse(call: Call, response: Response) {
                     try {
@@ -74,6 +74,8 @@ class CachedGrocyRepository(
     private val address: ServerAddress,
     private val key: String,
     private val transport: MutationTransport = MutationTransport(),
+    /** Test hook that runs after a row is claimed and before [MutationTransport.request]. */
+    private val beforeRequest: suspend () -> Unit = {},
 ) {
     private val drainLock = Mutex()
 
@@ -130,8 +132,12 @@ class CachedGrocyRepository(
         for (operation in database.operations().filter { it.state == "pending" || (it.state == "guarded" && it.clientOperationId == guardedOperation) }) {
             currentCoroutineContext().ensureActive()
             if (!database.claim(operation.clientOperationId, guarded = operation.state == "guarded")) continue
+            var requested = false
             try {
                 currentCoroutineContext().ensureActive()
+                beforeRequest()
+                currentCoroutineContext().ensureActive()
+                requested = true
                 val (status, response) = transport.request(address, key, operation.method, operation.path, operation.payload)
                 if (status in setOf(401,403)) database.put("background","access-denied","true")
                 val state = when {
@@ -144,11 +150,15 @@ class CachedGrocyRepository(
                 }
                 database.finish(operation.clientOperationId, state, if (state == "confirmed") null else failureDetail(status, response), if (state == "confirmed") response else null)
             } catch (error: CancellationException) {
-                runCatching { database.finish(operation.clientOperationId, "needs-review", "Interrupted HTTP outcome.") }
+                // Nothing was sent yet, so the row can be tried again. After request() starts, Grocy may have applied it.
+                if (!requested) runCatching { database.releaseClaim(operation.clientOperationId) }
+                else runCatching { database.finish(operation.clientOperationId, "needs-review", "Interrupted HTTP outcome.") }
                 throw error
-            } catch (_: Exception) {
+            } catch (error: Exception) {
                 // If the lease closed, its durable in-flight row is recovered on next activation.
-                runCatching { database.finish(operation.clientOperationId, "needs-review", "Unknown HTTP outcome; mutation will not be replayed.") }
+                // A certificate failure is still not replayed: the request may not have been sent, but it is not retried as HTTP.
+                val detail = if (TlsFailures.isTls(error)) TlsFailures.message(error) else "Unknown HTTP outcome; mutation will not be replayed."
+                runCatching { database.finish(operation.clientOperationId, "needs-review", detail) }
             }
         }
         }

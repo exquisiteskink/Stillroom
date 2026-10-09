@@ -7,7 +7,7 @@ import java.net.HttpURLConnection
 import java.net.URL
 import java.util.concurrent.Executors
 import java.util.concurrent.atomic.AtomicReference
-import javax.net.ssl.SSLException
+
 import kotlinx.coroutines.suspendCancellableCoroutine
 import org.json.JSONArray
 import org.json.JSONObject
@@ -27,7 +27,7 @@ interface GrocyTransport {
     suspend fun get(address: ServerAddress, key: String, path: String): String
 }
 
-/** System TLS trust, no cookies, no redirects, no credential logging. */
+/** Platform TLS trust, no cookies, no redirects, no credential logging. HTTPS is not retried as HTTP. */
 class UrlConnectionGrocyTransport : GrocyTransport {
     override suspend fun get(address: ServerAddress, key: String, path: String): String = suspendCancellableCoroutine { continuation ->
         require(address.apiBase.startsWith("https://") || (address.allowInsecure && address.apiBase.startsWith("http://")))
@@ -71,9 +71,9 @@ class UrlConnectionGrocyTransport : GrocyTransport {
                 if (continuation.isActive) continuation.resume(body)
             } catch (error: Exception) {
                 // Never expose URL, request header, response bodies, or TLS internals to the UI.
-                val safe = when (error) {
-                    is GrocyFailure -> error
-                    is SSLException -> IllegalStateException("TLS verification failed. Check the server certificate.")
+                val safe = when {
+                    error is GrocyFailure -> error
+                    TlsFailures.isTls(error) -> IllegalStateException(TlsFailures.message(error), error)
                     else -> IllegalStateException("Cannot reach the server or read its response. Check the address and connection.")
                 }
                 if (continuation.isActive) continuation.resumeWithException(safe)

@@ -52,10 +52,11 @@ class RecipeIntegrationTest {
             assertEquals(0,server.requestCount)
             val repo=GrocyRecipeRepository(setOf("RECIPES"),db,cache,ManageStock(stockRepo),shopping)
             val paths=listOf("recipes","recipes_pos","products","quantity_units","quantity_unit_conversions_resolved")
-            paths.forEach { server.enqueue(okhttp3.mockwebserver.MockResponse().setBody("[]")) }
-            assertFalse(repo.snapshot().stale);repeat(paths.size){server.takeRequest()}
-            paths.forEach { server.enqueue(okhttp3.mockwebserver.MockResponse().setResponseCode(503)) }
-            assertTrue(repo.snapshot().stale);repeat(paths.size){server.takeRequest()}
+            val reads=paths.size+1 // snapshot also requests /recipes/fulfillment
+            repeat(reads) { server.enqueue(okhttp3.mockwebserver.MockResponse().setBody("[]")) }
+            assertFalse(repo.snapshot().stale);repeat(reads){server.takeRequest()}
+            repeat(reads) { server.enqueue(okhttp3.mockwebserver.MockResponse().setResponseCode(503)) }
+            assertTrue(repo.snapshot().stale);repeat(reads){server.takeRequest()}
             server.enqueue(okhttp3.mockwebserver.MockResponse().setResponseCode(403))
             try { repo.snapshot();fail("Denied read used cache") }catch(e:GrocyFailure){assertEquals(403,e.status)}
             server.takeRequest()

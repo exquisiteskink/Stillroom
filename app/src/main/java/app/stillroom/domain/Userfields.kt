@@ -98,6 +98,20 @@ object UserfieldValues {
         else -> field.defaultValue
     }
 
+    /**
+     * After a partial create the row exists but does not store untouched userfields.
+     * Keep the create-time defaults so a required field does not become blank and disable Save.
+     */
+    fun createDefaults(fields: List<UserfieldDefinition>, stored: JsonObject?, touched: Map<String, String>, now: LocalDateTime = LocalDateTime.now()): Map<String, String> {
+        val extra = linkedMapOf<String, String>()
+        for (field in fields) {
+            if (field.name in touched) continue
+            if ((stored?.get(field.name) as? JsonPrimitive)?.contentOrNull != null) continue
+            extra[field.name] = initial(field, null, true, now)
+        }
+        return touched + extra
+    }
+
     /** The string to store. Throws [IllegalArgumentException] with a readable message when invalid. */
     fun normalize(field: UserfieldDefinition, value: String, locale: Locale = Locale.getDefault()): String {
         val type = field.canonicalType

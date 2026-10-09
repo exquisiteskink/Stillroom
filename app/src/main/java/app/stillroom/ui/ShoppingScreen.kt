@@ -95,10 +95,8 @@ fun ShoppingScreen(model: ShoppingViewModel, grants: Set<String>?) {
                     SecondaryButton(onClick = { conflict = change }) { Text("Review change") }
                 }
                 if (estimate != null) Text("About ${estimate.knownTotal.stripTrailingZeros().toPlainString()} · ${estimate.unknownRows} items without a price yet", color = MaterialTheme.colorScheme.onSurfaceVariant)
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    FilterChip(inStore, { inStore = !inStore }, { Text("At the store") })
-                    PrimaryButton(onClick = { adding = true }, enabled = !state.busy && selected != null, modifier = Modifier.heightIn(min = if (inStore) 64.dp else 48.dp)) { Text("Add item") }
-                }
+                FilterChip(inStore, { inStore = !inStore }, { Text("At the store") })
+                PrimaryButton(onClick = { adding = true }, enabled = !state.busy && selected != null, modifier = Modifier.fillMaxWidth()) { Text("Add item") }
                 Text("Group by", style = MaterialTheme.typography.labelLarge)
                 Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) { listOf("Category", "Store", "None").forEach { value -> FilterChip(grouping == value, { grouping = value }, { Text(if (value == "None") "No grouping" else value) }) } }
             }

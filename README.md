@@ -104,11 +104,11 @@ There is no Play Store listing yet. Sideload the signed APK from GitHub.
 
 ### GitHub Releases
 
-1. Download `Stillroom-0.0.1.apk` from [Releases](https://github.com/exquisiteskink/Stillroom/releases/latest).
+1. Download `Stillroom-0.2.apk` from [Releases](https://github.com/exquisiteskink/Stillroom/releases/latest).
 2. Open the APK on your phone (allow installs from your browser or Files if Android asks).
 3. Connect with a Grocy API key as described below.
 
-The APK is signed with Stillroom's first release certificate (`CN=Stillroom`). Later 0.0.x updates will use the same certificate so they can replace this install.
+The APK is signed with Stillroom's first release certificate (`CN=Stillroom`). Later updates use the same certificate so they can replace this install. A debug build already on the phone will not upgrade in place.
 
 ### From source (Omarchy / Linux)
 
@@ -137,7 +137,7 @@ Run JVM tests with `mise run unit-test`. Stage gates (`mise run stage:0` … `st
 1. In Grocy's web app, open **Manage API keys** and create a key for that user.
 2. In Stillroom, open **Accounts**.
 3. Enter the server URL and the API key, or **Scan API key** from Grocy's QR (`{baseUrl}/api|{key}`).
-4. HTTPS is the default. Local HTTP requires the insecure-HTTP toggle.
+4. HTTPS is the default. Local HTTP requires the insecure-HTTP toggle. A private CA works after you install its root in Android's CA certificate settings. Stillroom trusts every user-installed CA for its HTTPS connections, not only one server. The server must send its intermediate certificates, and the URL hostname must match the certificate. A failed certificate check does not switch the connection to HTTP.
 
 Stillroom calls `/system/info` and `/user` before saving. A key can be revoked in Grocy without changing a password.
 
@@ -158,7 +158,7 @@ See [scanning](docs/SCANNING.md) and [sync](docs/SYNC.md).
 
 ## Status
 
-Stillroom is **0.0.1**. Stages 0–11 of the original build plan are complete. A debug APK has been installed and walked on a phone against live Grocy 4.7.1.
+Stillroom is **0.2**. See [CHANGELOG](CHANGELOG.md). Stages 0–11 of the original build plan are complete. A debug APK has been walked on a phone against live Grocy 4.7.1.
 
 The formal rows in [PHONE_TEST.md](docs/PHONE_TEST.md) (child login, a real package scan, offline replay, widgets, reminders) remain **not run**. Treat that as the bar for everyday household use.
 
@@ -170,6 +170,7 @@ Grocy permission gaps for child keys are documented in [COMPATIBILITY.md](docs/C
 
 | Doc | Topic |
 |-----|--------|
+| [CHANGELOG.md](CHANGELOG.md) | What changed in each release |
 | [docs/STATUS.md](docs/STATUS.md) | What actually ran, and what did not |
 | [docs/STOCK.md](docs/STOCK.md) | Pantry, due dates, bookings |
 | [docs/SHOPPING.md](docs/SHOPPING.md) | Lists and purchase review |

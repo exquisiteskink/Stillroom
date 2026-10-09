@@ -56,7 +56,7 @@ private enum class HouseholdTab { Chores, Tasks, Catalog }
     KitchenError(state.error)
     KitchenWhisper(if(s.stale)"Showing the last saved records." else null)
     s.unavailable.forEach { Text(it) }
-    if(entity.writable(account.permissions))PrimaryButton(onClick={create=true},enabled=!state.busy){Text("Add ${entity.singular()}")}
+    if(entity.writable(account.permissions))PrimaryButton(onClick={create=true},enabled=!state.busy,modifier=Modifier.fillMaxWidth()){Text("Add ${entity.singular()}")}
     if(s.rows(entity.entity).isEmpty()) {
         when {
             state.busy -> Text("Loading ${entity.label.lowercase()}…")
@@ -105,7 +105,7 @@ private enum class HouseholdTab { Chores, Tasks, Catalog }
     state.history?.let { rows->AlertDialog(onDismissRequest=model::closeHistory,title={Text("Charge cycles")},text={Column(Modifier.verticalScroll(rememberScrollState())) { if(rows.isEmpty())Text("No charges recorded.")
         rows.forEach { row->Text("${row.catalogText("tracked_time")} · ${if(row.catalogText("undone")=="1")"Undone" else "Confirmed"}")
         if(row.catalogText("undone")!="1" && HouseholdAccess.has(account.permissions,"BATTERIES_UNDO_CHARGE_CYCLE"))QuietButton(onClick={model.undo(row.catalogId("id")!!);model.closeHistory()},enabled=!state.busy){Text("Undo cycle")} }
-    }},confirmButton={QuietButton(onClick=model::closeHistory){Text("Close")}}) }
+    }},dismissButton={QuietButton(onClick=model::closeHistory){Text("Close")}},confirmButton={}) }
 }
 
 /**
@@ -120,24 +120,27 @@ private enum class HouseholdTab { Chores, Tasks, Catalog }
     val quantities=LocalQuantityFormatter.current
     val locale=Locale.getDefault()
     val form=remember(row) { CatalogForm(entity,row,quantities,locale) }
+    val startedCreate=remember { row==null }
     var texts by remember { mutableStateOf(form.initial()) }
     var advanced by remember { mutableStateOf(false) }
     val basicProductFields = setOf("name", "description", "product_group_id", "location_id", "qu_id_stock", "qu_id_purchase", "qu_id_consume", "qu_id_price")
     val custom=s.userfields(entity.entity)
     val original=row?.get("userfields") as? JsonObject
     var touched by remember { mutableStateOf(mapOf<String,String>()) }
-    fun current(field:UserfieldDefinition)=touched[field.name] ?: UserfieldValues.initial(field,(original?.get(field.name) as? JsonPrimitive)?.contentOrNull,row==null)
+    val shownTexts=if(startedCreate && row!=null) CatalogCreateHandoff.seedUnits(texts) else texts
+    val shownTouched=if(startedCreate && row!=null) UserfieldValues.createDefaults(custom,original,touched) else touched
+    fun current(field:UserfieldDefinition)=shownTouched[field.name] ?: UserfieldValues.initial(field,(original?.get(field.name) as? JsonPrimitive)?.contentOrNull,row==null)
     // Product extras: purchase → stock factor and new barcodes.
     val product=entity==CatalogEntity.Products
     val id=row?.catalogId("id")
-    val purchase=texts["qu_id_purchase"]?.toLongOrNull(); val stock=texts["qu_id_stock"]?.toLongOrNull()
+    val purchase=shownTexts["qu_id_purchase"]?.toLongOrNull(); val stock=shownTexts["qu_id_stock"]?.toLongOrNull()
     val currentFactor=ProductExtrasForm.currentFactor(s.rows("quantity_unit_conversions"),id,purchase,stock)
     var factorText by remember { mutableStateOf<String?>(null) }
     val shownFactor=factorText ?: currentFactor.stripTrailingZeros().toPlainString()
     var barcodesText by remember { mutableStateOf("") }
     val ownBarcodes=s.rows("product_barcodes").filter { id!=null && it.catalogId("product_id")==id }.map { it.catalogText("barcode") }
     val newBarcodes=ProductExtrasForm.parseBarcodes(barcodesText).filter { it !in ownBarcodes }
-    val fieldErrors=form.errors(texts)
+    val fieldErrors=form.errors(shownTexts)
     val customErrors=custom.filter { UserfieldTypes.editable(it.type) }.mapNotNull { f-> UserfieldValues.error(f,current(f),locale) }
     val extraErrors=if(product)ProductExtrasForm.errors(shownFactor,purchase,stock,newBarcodes,s.rows("product_barcodes").map { it.catalogText("barcode") },locale) else emptyMap()
     val blockedCreate=if(row==null)custom.firstOrNull { it.inputRequired && !UserfieldTypes.editable(it.type) } else null
@@ -146,7 +149,7 @@ private enum class HouseholdTab { Chores, Tasks, Catalog }
     AlertDialog(onDismissRequest={},properties=androidx.compose.ui.window.DialogProperties(dismissOnClickOutside=false),title={Text(title)},text={Column(Modifier.verticalScroll(rememberScrollState()),verticalArrangement=Arrangement.spacedBy(16.dp)) {
         form.fields.filter { !product || advanced || it.name in basicProductFields }.forEach { f->
             val error=fieldErrors[f.name]
-            val text=texts[f.name].orEmpty()
+            val text=shownTexts[f.name].orEmpty()
             fun set(value:String){texts=texts+(f.name to value)}
             when(f.kind) {
                 CatalogKind.Reference->{
@@ -184,7 +187,7 @@ private enum class HouseholdTab { Chores, Tasks, Catalog }
         if(row!=null)Text("Only changed values are sent. Other server fields, files and images stay as they are.",style=MaterialTheme.typography.bodySmall)
     }},dismissButton={QuietButton(onClick=close,enabled=!busy){Text("Cancel")}},confirmButton={PrimaryButton(onClick={
         runCatching {
-            val fields=form.payload(texts)
+            val fields=form.payload(shownTexts)
             val values=UserfieldValues.changes(custom,original,custom.associate { it.name to current(it) },locale)
             val extras=if(product)ProductExtrasForm.build(shownFactor,currentFactor,purchase,stock,newBarcodes,locale) else ProductExtras()
             save(fields,values,extras)

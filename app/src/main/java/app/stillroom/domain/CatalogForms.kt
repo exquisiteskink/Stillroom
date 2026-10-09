@@ -108,6 +108,18 @@ class CatalogForm(val entity: CatalogEntity, val original: JsonObject?, private 
     }
 }
 
+/** Keeps create-time unit defaults valid after a partial create points the editor at the new product id. */
+object CatalogCreateHandoff {
+    fun seedUnits(texts: Map<String, String>): Map<String, String> {
+        val next = texts.toMutableMap()
+        val stock = texts["qu_id_stock"].orEmpty()
+        val purchase = texts["qu_id_purchase"].orEmpty()
+        if (next["qu_id_consume"].isNullOrBlank() && stock.isNotBlank()) next["qu_id_consume"] = stock
+        if (next["qu_id_price"].isNullOrBlank() && purchase.isNotBlank()) next["qu_id_price"] = purchase
+        return next
+    }
+}
+
 /** Product follow-up writes: a purchase → stock conversion factor and new barcodes. */
 data class ProductExtras(val purchaseToStockFactor: BigDecimal? = null, val newBarcodes: List<String> = emptyList()) {
     val isEmpty: Boolean get() = purchaseToStockFactor == null && newBarcodes.isEmpty()

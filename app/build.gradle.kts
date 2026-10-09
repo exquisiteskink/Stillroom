@@ -14,12 +14,23 @@ android {
         applicationId = "app.stillroom"
         minSdk = 26
         targetSdk = 35
-        versionCode = 1
-        versionName = "0.0.1"
+        versionCode = 2
+        versionName = "0.2"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
     buildFeatures { compose = true; buildConfig = true }
     testOptions { unitTests.isIncludeAndroidResources = true }
+    packaging {
+        resources {
+            // Bouncy Castle is an instrumentation-test dependency. Its jars repeat these metadata files.
+            excludes += setOf(
+                "META-INF/versions/*/OSGI-INF/MANIFEST.MF",
+                "META-INF/*.SF",
+                "META-INF/*.DSA",
+                "META-INF/*.RSA",
+            )
+        }
+    }
     compileOptions {
         isCoreLibraryDesugaringEnabled = true
         sourceCompatibility = JavaVersion.VERSION_21
@@ -61,6 +72,7 @@ dependencies {
     androidTestImplementation("androidx.compose.ui:ui-test-junit4")
     androidTestImplementation("androidx.test.ext:junit:1.2.1")
     androidTestImplementation("androidx.test:runner:1.6.2")
+    androidTestImplementation("org.bouncycastle:bcpkix-jdk18on:1.79")
     debugImplementation("androidx.compose.ui:ui-test-manifest")
 }
 

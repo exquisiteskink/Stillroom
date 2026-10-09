@@ -82,6 +82,7 @@ interface ShoppingRepository {
     suspend fun delete(baseline: JsonObject): String
     suspend fun createList(name: String): String
     suspend fun purchase(baseline: JsonObject, booking: StockBooking): String
+    suspend fun addPantryAttention(kind: String, listId: Long): List<String>
     suspend fun sync()
     suspend fun changes(): List<ShoppingChange>
     suspend fun acceptServer(id: String)
@@ -92,6 +93,7 @@ class ManageShopping(private val repository: ShoppingRepository) {
     suspend fun delete(row: JsonObject) = repository.delete(row)
     suspend fun createList(name: String) = repository.createList(name)
     suspend fun purchase(row: JsonObject, booking: StockBooking) = repository.purchase(row, booking)
+    suspend fun addPantryAttention(kind: String, listId: Long) = repository.addPantryAttention(kind, listId)
     suspend fun sync() = repository.sync()
     suspend fun changes() = repository.changes()
     suspend fun acceptServer(id: String) = repository.acceptServer(id)

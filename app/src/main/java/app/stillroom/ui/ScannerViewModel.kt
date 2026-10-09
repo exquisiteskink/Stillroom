@@ -57,6 +57,13 @@ class ScannerViewModel(private val accounts:AndroidAccountsRepository):ViewModel
         if(identical) state.value.lastCode?.let(session::scanAnotherIdentical)
         ui.update { it.copy(result=null,product=null,candidates=emptyList(),error=null,createOperation=null) }
     }
+    fun attach(productId:Long)=execute { scanner ->
+        val code=state.value.result?.code ?: return@execute
+        val operation=scanner.attach(productId, code)
+        scanner.sync()
+        val confirmed=scanner.operations().any { it.clientOperationId==operation && it.state=="confirmed" }
+        publish { it.copy(product=if(confirmed) productId else null, result=if(confirmed) null else it.result, error=if(confirmed) null else "The barcode was not confirmed. Check Pending changes before scanning it again. A wrong attachment has to be removed in Grocy.") }
+    }
     fun create(review:ScanReview)=execute { scanner ->
         val operation=scanner.create(review)
         val operations=scanner.operations()

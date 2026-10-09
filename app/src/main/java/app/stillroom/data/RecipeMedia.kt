@@ -18,7 +18,7 @@ private fun recipeClient()=HttpClients.base.newBuilder().callTimeout(15,TimeUnit
 internal suspend fun recipeBytes(client:OkHttpClient,request:Request,limit:Long):ByteArray=suspendCancellableCoroutine { c->
     val call=client.newCall(request);c.invokeOnCancellation { call.cancel() }
     call.enqueue(object:Callback {
-        override fun onFailure(call:Call,e:java.io.IOException) { if(c.isActive)c.resumeWithException(IllegalStateException("Request outcome unavailable. Refresh before retrying a save.")) }
+        override fun onFailure(call:Call,e:java.io.IOException) { if(c.isActive)c.resumeWithException(TlsFailures.wrap(e,"Request outcome unavailable. Refresh before retrying a save.")) }
         override fun onResponse(call:Call,response:Response) {
             try {
                 val bytes=response.use {

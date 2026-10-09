@@ -281,6 +281,7 @@ fun RecipeTile(
     picture: ByteArray?,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
+    badge: String? = null,
 ) {
     val bitmap = rememberDownsampledImage(picture, TILE_DECODED_PIXELS)
     Column(
@@ -293,11 +294,10 @@ fun RecipeTile(
             Image(bitmap, contentDescription = null, contentScale = ContentScale.Crop,
                 modifier = Modifier.fillMaxWidth().aspectRatio(1f))
         }
-        Text(
-            name,
-            style = MaterialTheme.typography.titleMedium,
-            modifier = Modifier.padding(16.dp).fillMaxWidth(),
-        )
+        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            Text(name, style = MaterialTheme.typography.titleMedium, modifier = Modifier.fillMaxWidth())
+            if (!badge.isNullOrBlank()) Text(badge, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
     }
 }
 

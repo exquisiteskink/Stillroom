@@ -6,6 +6,7 @@ import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import app.stillroom.data.GrocyFailure
+import app.stillroom.data.TlsFailures
 import app.stillroom.domain.AccountId
 import app.stillroom.domain.AccountState
 import app.stillroom.domain.ManageAccounts
@@ -70,7 +71,11 @@ class AccountViewModel(private val manage: ManageAccounts) : ViewModel() {
             "Use a server URL without credentials, query parameters, or a fragment.",
             "Choose an administrator on the same server.", "The selected administrator cannot verify permissions.",
             "The key no longer belongs to this saved account.",
-            "TLS verification failed. Check the server certificate.",
+            TlsFailures.GENERIC,
+            TlsFailures.EXPIRED,
+            TlsFailures.NOT_YET_VALID,
+            TlsFailures.HOSTNAME,
+            TlsFailures.UNTRUSTED,
             "Cannot reach the server or read its response. Check the address and connection.",
         )
         fun factory(manage: ManageAccounts): ViewModelProvider.Factory = viewModelFactory { initializer { AccountViewModel(manage) } }

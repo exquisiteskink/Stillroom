@@ -56,7 +56,9 @@ fun ScannerScreen(model:ScannerViewModel,stock:StockViewModel,account:Account,on
                     SecondaryButton(onClick={model.chooseProduct(id)},enabled=!locked,modifier=Modifier.fillMaxWidth()) { Text(name) }
                 }
             } else if(HouseholdAccess.has(account.permissions,"MASTER_DATA_EDIT")) {
-                ProductReview(result,state.units,state.locations,state.busy || state.createOperation!=null,model::create)
+                val products=stockState.rows("/objects/products").mapNotNull { row -> row.text("id").toLongOrNull()?.let { it to row.text("name").ifBlank { "Product $it" } } }
+                if(products.isEmpty()) LaunchedEffect(result.code.raw) { stock.refresh() }
+                ProductReview(result,state.units,state.locations,products,state.busy || state.createOperation!=null,model::create,model::attach)
                 if(creationLocked) QuietButton(onClick=model::checkCreation,enabled=!locked) { Text("Check product status") }
                 if(state.createOperation!=null) QuietButton(onClick=onReviewChanges,enabled=!locked) { Text("Check changes") }
             } else Text("No product matches this barcode. Ask someone with product-edit access to add it in Grocy.")
@@ -80,11 +82,12 @@ fun ScannerScreen(model:ScannerViewModel,stock:StockViewModel,account:Account,on
     }
 }
 @Composable
-private fun ProductReview(result:ScanSuggestion,units:List<Pair<Long,String>>,locations:List<Pair<Long,String>>,busy:Boolean,create:(ScanReview)->Unit) {
+private fun ProductReview(result:ScanSuggestion,units:List<Pair<Long,String>>,locations:List<Pair<Long,String>>,products:List<Pair<Long,String>>,busy:Boolean,create:(ScanReview)->Unit,attach:(Long)->Unit) {
     var name by remember(result.code.raw) { mutableStateOf(result.name) }
     var description by remember(result.code.raw) { mutableStateOf(result.description) }
     var unit by remember(result.code.raw) { mutableStateOf<Long?>(null) }
     var location by remember(result.code.raw) { mutableStateOf<Long?>(null) }
+    var existing by remember(result.code.raw) { mutableStateOf<Long?>(null) }
     Text("Review new product",style=MaterialTheme.typography.titleLarge)
     Text("Review the details before creating this product.")
     if(result.source!="Manual review") Text("Suggested by ${result.source}" + if(result.stale) " · last saved suggestion" else "",color=MaterialTheme.colorScheme.onSurfaceVariant)
@@ -95,4 +98,9 @@ private fun ProductReview(result:ScanSuggestion,units:List<Pair<Long,String>>,lo
     if(units.isEmpty() || locations.isEmpty()) Text("Create the required unit or location in Grocy, then look up the code again.")
     if(name.isBlank() || unit==null || location==null) Text("Enter a name and choose a stock unit and location.",color=MaterialTheme.colorScheme.onSurfaceVariant)
     PrimaryButton(onClick={create(ScanReview(result.code,name,description,unit!!,location!!))},enabled=!busy && name.isNotBlank() && name.length<=200 && description.length<=5000 && unit!=null && location!=null,modifier=Modifier.fillMaxWidth()) { Text("Create product") }
+    Text("Or add this barcode to a product already in Grocy.", style=MaterialTheme.typography.titleMedium)
+    if(products.isEmpty()) Text("Loading products…")
+    else ChoiceField("Existing product", products, existing, { existing = it }, enabled = !busy)
+    Text("A wrong barcode stays on that product until it is removed in Grocy. Stillroom cannot delete it.", color=MaterialTheme.colorScheme.onSurfaceVariant)
+    SecondaryButton(onClick={existing?.let(attach)},enabled=!busy && existing!=null,modifier=Modifier.fillMaxWidth()) { Text("Attach barcode") }
 }

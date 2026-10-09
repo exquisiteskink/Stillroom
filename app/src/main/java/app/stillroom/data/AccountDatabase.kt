@@ -49,6 +49,8 @@ interface AccountDao {
     @Query("SELECT * FROM outbox WHERE clientOperationId=:id") fun operation(id: String): OutboxOperation?
     @Query("UPDATE outbox SET state='in-flight' WHERE clientOperationId=:id AND state='pending'") fun claim(id: String): Int
     @Query("UPDATE outbox SET state='in-flight' WHERE clientOperationId=:id AND state='guarded'") fun claimGuarded(id: String): Int
+    /** Puts a claimed row back to pending. Used only when cancellation happened before the HTTP call started. */
+    @Query("UPDATE outbox SET state='pending', detail=NULL WHERE clientOperationId=:id AND state='in-flight'") fun releaseClaim(id: String): Int
     @Query("UPDATE outbox SET state='confirmed', observedPayload=:payload WHERE clientOperationId=:id AND state='guarded'") fun confirmGuarded(id: String, payload: String)
     @Query("UPDATE outbox SET state=:state, detail=:detail, responsePayload=:responsePayload WHERE clientOperationId=:id AND state IN ('in-flight','needs-review')") fun finish(id: String, state: String, detail: String?, responsePayload: String?)
     @Query("UPDATE outbox SET state='needs-review', detail='Interrupted request; read server state before resolving.' WHERE state='in-flight'") fun recover()
@@ -83,6 +85,7 @@ class AccountDatabase(context: Context, id: AccountId, namespace: String = "acco
     @Synchronized fun operations(): List<OutboxOperation> { checkOpen(); return room.rows().operations() }
     @Synchronized fun operation(id: String): OutboxOperation? { checkOpen(); return room.rows().operation(id) }
     @Synchronized fun claim(id: String, guarded: Boolean = false): Boolean { checkOpen(); return (if (guarded) room.rows().claimGuarded(id) else room.rows().claim(id)) == 1 }
+    @Synchronized fun releaseClaim(id: String): Boolean { checkOpen(); return room.rows().releaseClaim(id) == 1 }
     @Synchronized fun confirmGuarded(id: String, payload: String) { checkOpen(); room.rows().confirmGuarded(id, payload) }
     @Synchronized fun finish(id: String, state: String, detail: String? = null, responsePayload: String? = null) { checkOpen(); room.rows().finish(id, state, detail, responsePayload) }
     @Synchronized fun reconcile(id: String, payload: String, confirmed: Boolean) {

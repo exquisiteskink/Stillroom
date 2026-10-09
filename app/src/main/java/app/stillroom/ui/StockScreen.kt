@@ -88,8 +88,10 @@ fun StockScreen(model: StockViewModel, grants: Set<String>?, barcodeOnly: Boolea
                 Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     tabs.forEach { tab -> FilterChip(filter == tab, { filter = tab }, { Text(labeled(tab)) }) }
                 }
+                if (!barcodeOnly && CatalogEntity.Products.writable(grants)) PrimaryButton(onClick = { model.openProductEditor(null) }, enabled = !state.busy, modifier = Modifier.fillMaxWidth()) { Text("Add product") }
+                if (ShoppingAccess.allowed(grants) && filter == "Use soon" && useSoonIds.isNotEmpty()) SecondaryButton(onClick = { model.openPantryShop("use-soon") }, enabled = !state.busy, modifier = Modifier.fillMaxWidth()) { Text("Add use soon to a shopping list") }
+                if (ShoppingAccess.allowed(grants) && filter == "Running low" && runningLowIds.isNotEmpty()) SecondaryButton(onClick = { model.openPantryShop("running-low") }, enabled = !state.busy, modifier = Modifier.fillMaxWidth()) { Text("Add running low to a shopping list") }
                 Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    if (!barcodeOnly && CatalogEntity.Products.writable(grants)) QuietButton(onClick = { model.openProductEditor(null) }, enabled = !state.busy) { Text("Add product") }
                     QuietButton(onClick={filter="Locations"}) { Text("Browse locations") }
                     QuietButton(onClick={filter="Journal"}) { Text("View stock history") }
                 }
@@ -115,12 +117,14 @@ fun StockScreen(model: StockViewModel, grants: Set<String>?, barcodeOnly: Boolea
             if (showAttention) {
                 if (useSoonIds.isNotEmpty()) {
                     item { KitchenSectionTitle("Use soon", Modifier.padding(top = 8.dp)) }
+                    if (ShoppingAccess.allowed(grants)) item { SecondaryButton(onClick = { model.openPantryShop("use-soon") }, enabled = !state.busy, modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp)) { Text("Add use soon to a shopping list") } }
                     items(byDue(useSoonIds), key = { "soon"+it.text("id") }) { product ->
                         PantryProductRow(product, details, lookups, state, location, today, locale) { model.select(product.text("id").toLong()) }
                     }
                 }
                 if (runningLowIds.isNotEmpty()) {
                     item { KitchenSectionTitle("Running low", Modifier.padding(top = 12.dp)) }
+                    if (ShoppingAccess.allowed(grants)) item { SecondaryButton(onClick = { model.openPantryShop("running-low") }, enabled = !state.busy, modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp)) { Text("Add running low to a shopping list") } }
                     items(catalog.filter { it.text("id") in runningLowIds }, key = { "low"+it.text("id") }) { product ->
                         PantryProductRow(product, details, lookups, state, location, today, locale) { model.select(product.text("id").toLong()) }
                     }
@@ -147,6 +151,25 @@ fun StockScreen(model: StockViewModel, grants: Set<String>?, barcodeOnly: Boolea
             }
         }
     }
+    state.shopKind?.let { kind -> PantryShopDialog(kind, state.shopLists, state.busy, model::closePantryShop, model::shopAttention) }
+}
+
+@Composable
+private fun PantryShopDialog(kind: String, lists: List<Pair<Long, String>>, busy: Boolean, close: () -> Unit, add: (String, Long) -> Unit) {
+    var listId by remember(lists) { mutableStateOf(lists.firstOrNull()?.first) }
+    val title = if (kind == "running-low") "Add running low" else "Add use soon"
+    val detail = if (kind == "running-low") "Grocy adds products that are below their minimum stock. This does not remove them from the pantry."
+        else "Grocy adds overdue and expired products. Food that is due, but not overdue yet, is added as a normal shopping row."
+    AlertDialog(onDismissRequest = { if (!busy) close() }, title = { Text(title) }, text = {
+        Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+            Text(detail)
+            if (lists.isEmpty()) Text("Create a shopping list in Shop first.")
+            else ChoiceField("Shopping list", lists, listId, { listId = it }, enabled = !busy)
+            Text("If the connection drops after sending, check Pending changes before trying again.", color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
+    }, dismissButton = { QuietButton(onClick = close, enabled = !busy) { Text("Cancel") } }, confirmButton = {
+        PrimaryButton(onClick = { listId?.let { add(kind, it) } }, enabled = !busy && listId != null) { Text("Add to list") }
+    })
 }
 
 @Composable
@@ -190,11 +213,12 @@ private fun StockDetail(state: StockUiState, id: Long, model: StockViewModel, gr
     }
     val product = detail["product"] as? JsonObject
     if (product == null) { ErrorState("Could not load this product.", model::refresh); return }
+    Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
     Text(product.text("name"), style = MaterialTheme.typography.titleLarge)
     KitchenError(state.error)
     if(state.busy) TaskProgress()
     if(product.text("description").isNotBlank()) Text(product.text("description"))
-    if (CatalogEntity.Products.writable(grants)) SecondaryButton(onClick = { model.openProductEditor(id) }, enabled = !state.busy) { Text("Edit product") }
+    if (CatalogEntity.Products.writable(grants)) SecondaryButton(onClick = { model.openProductEditor(id) }, enabled = !state.busy, modifier = Modifier.fillMaxWidth()) { Text("Edit product") }
     else Text("Editing products needs Grocy's master-data permission (MASTER_DATA_EDIT) for this account.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
     KitchenWhisper(state.productMessage)
     Text("Stock ${quantity(detail.decimal("stock_amount"))} · opened ${quantity(detail.decimal("stock_amount_opened"))} · due ${detail.text("next_due_date")}")
@@ -218,6 +242,7 @@ private fun StockDetail(state: StockUiState, id: Long, model: StockViewModel, gr
     Text("Price history", style = MaterialTheme.typography.titleMedium)
     state.rows("/stock/products/$id/price-history").forEach { row -> Text("${row.text("date")} ${row.text("purchased_date")} · ${row.text("price")} · store ${(row["shopping_location"] as? JsonObject)?.text("name").orEmpty()}") }
     Journal(state, id, model, grants)
+    }
     }
 }
 
@@ -256,7 +281,9 @@ private fun Journal(state: StockUiState, product: Long?, model: StockViewModel, 
 
 @Composable
 internal fun StockForm(state: StockUiState, product: JsonObject, book: (StockBooking) -> Unit, clearBookingOutcome: () -> Unit, grants: Set<String>?, scannerActions: Boolean, scanAction:StockAction?=null) {
-    var chosenAction by remember(product.text("id")) { mutableStateOf(StockAction.entries.firstOrNull { StockAccess.canWrite(grants,it) } ?: StockAction.Purchase) }
+    var chosenAction by remember(product.text("id"), scannerActions) {
+        mutableStateOf(if (!scannerActions && StockAccess.canWrite(grants, StockAction.Consume)) StockAction.Consume else StockAction.entries.firstOrNull { StockAccess.canWrite(grants, it) } ?: StockAction.Purchase)
+    }
     val action=scanAction ?: chosenAction
     val unresolved=state.operations.firstOrNull { it.path=="/stock/products/${product.text("id")}/${action.endpoint}" && it.state in setOf("pending","guarded","in-flight","needs-review") }
     val boundOperation=state.bookingOperation ?: unresolved?.clientOperationId
@@ -347,7 +374,8 @@ private fun ProductEditorHost(state: StockUiState, model: StockViewModel) {
                 if (state.busy) { TaskProgress(); Text("Loading product data from Grocy…") }
                 else Text(state.error ?: "This product could not be loaded from Grocy.", color = MaterialTheme.colorScheme.error)
             } },
-            confirmButton = { QuietButton(onClick = model::closeProductEditor, enabled = !state.busy) { Text("Close") } })
+            dismissButton = { QuietButton(onClick = model::closeProductEditor, enabled = !state.busy) { Text("Close") } },
+            confirmButton = {})
         return
     }
     // No key: after a partial create the same editor continues on the new product with the user's entries.

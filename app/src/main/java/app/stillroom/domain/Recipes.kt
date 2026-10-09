@@ -51,6 +51,18 @@ data class RecipeSnapshot(val resources:Map<String,List<JsonObject>> = emptyMap(
             amount.subtract(available).max(BigDecimal.ZERO)
         }.filterValues { it.signum()>0 }
     }
+    fun fulfillment(recipe:Long)=rows("recipes_fulfillment").find { it.recipeId("recipe_id")==recipe }
+    /** Display only. Grocy's figure can disagree with Add missing ingredients and must not book stock. */
+    fun fulfillmentBadge(recipe:Long):String? {
+        val row=fulfillment(recipe) ?: return null
+        val missing=row.recipeText("missing_products_count").toIntOrNull()
+        return when {
+            row.recipeText("need_fulfilled")=="1" -> "In stock"
+            missing!=null && missing>0 -> "Missing $missing"
+            row.recipeText("need_fulfilled")=="0" -> "Missing ingredients"
+            else -> null
+        }
+    }
     fun requirements(recipe:Long):List<RecipeRequirement> {
         val amounts=linkedMapOf<Long,BigDecimal>()
         rows("recipes_pos_resolved").filter { it.recipeId("recipe_id")==recipe }.forEach { row->
