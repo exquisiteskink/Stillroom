@@ -184,6 +184,8 @@ fun KitchenStockRow(
     modifier: Modifier = Modifier,
     due: String? = null,
     tone: ColorTone = ColorTone.Neutral,
+    /** Extra lines chosen in Settings → Stock → Shown details. Empty keeps the row exactly as before. */
+    details: List<String> = emptyList(),
 ) {
     Column(modifier.fillMaxWidth()) {
         Row(
@@ -198,6 +200,15 @@ fun KitchenStockRow(
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 Text(name, style = MaterialTheme.typography.bodyLarge)
                 if (!due.isNullOrBlank()) QuantityBadge(due, tone)
+                details.forEach { line ->
+                    Text(
+                        line,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                }
             }
             if (amount.isNotBlank()) {
                 Text(

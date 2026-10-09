@@ -33,7 +33,7 @@ class MainActivity : ComponentActivity() {
         object : androidx.lifecycle.ViewModelProvider.Factory {
             override fun <T : androidx.lifecycle.ViewModel> create(modelClass: Class<T>): T {
                 @Suppress("UNCHECKED_CAST")
-                return app.stillroom.ui.StockViewModel((application as StillroomApplication).accounts) as T
+                return app.stillroom.ui.StockViewModel((application as StillroomApplication).accounts, app.stillroom.data.AndroidStockDetailsStore(application)) as T
             }
         }
     }

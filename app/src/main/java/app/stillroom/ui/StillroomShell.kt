@@ -78,6 +78,7 @@ import androidx.compose.ui.unit.dp
 import app.stillroom.background.HouseholdWork
 import app.stillroom.background.ReminderPreferences
 import app.stillroom.domain.Section
+import app.stillroom.domain.StockAccess
 import app.stillroom.domain.ThemeChoice
 import app.stillroom.fractions.QuantityFormatter
 import app.stillroom.fractions.QuantityStyle
@@ -262,6 +263,11 @@ private fun ShellContent(state: ShellUiState, model: ShellViewModel, accounts: A
             ShellPage.PendingChanges -> Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp)) { pendingChanges() }
             ShellPage.Settings -> Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp).widthIn(max = 720.dp)) {
                 ShellSettings(state, model, accounts.accounts.active?.restricted == true)
+                val active = accounts.accounts.active
+                if (active != null && stockModel != null && StockAccess.canRead(active.permissions)) {
+                    HorizontalDivider(Modifier.padding(vertical = 8.dp))
+                    StockDetailsSettings(stockModel)
+                }
             }
             ShellPage.Accounts -> Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp).widthIn(max = 720.dp)) {
                 if (accountModel != null) AccountScreen(accounts, accountModel)
@@ -290,7 +296,7 @@ private fun ShellContent(state: ShellUiState, model: ShellViewModel, accounts: A
 }
 
 @Composable
-private fun SettingToggle(
+internal fun SettingToggle(
     title: String,
     checked: Boolean,
     enabled: Boolean = true,
