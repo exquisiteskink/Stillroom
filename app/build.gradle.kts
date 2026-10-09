@@ -36,6 +36,54 @@ android {
         sourceCompatibility = JavaVersion.VERSION_21
         targetCompatibility = JavaVersion.VERSION_21
     }
+    val stillroomSigning = stillroomReleaseSigning()
+    signingConfigs {
+        if (stillroomSigning != null) {
+            create("stillroom") {
+                storeFile = stillroomSigning.storeFile
+                storePassword = stillroomSigning.storePassword
+                keyAlias = stillroomSigning.keyAlias
+                keyPassword = stillroomSigning.keyPassword
+            }
+        }
+    }
+    buildTypes {
+        // Debug and release share CN=Stillroom. The Android debug key is not used when the
+        // official keystore is present, so adb install -r can replace a GitHub APK.
+        if (stillroomSigning != null) {
+            named("debug") { signingConfig = signingConfigs.getByName("stillroom") }
+            named("release") { signingConfig = signingConfigs.getByName("stillroom") }
+        }
+    }
+}
+
+private class StillroomSigning(
+    val storeFile: File,
+    val storePassword: String,
+    val keyAlias: String,
+    val keyPassword: String,
+)
+
+private fun stillroomReleaseSigning(): StillroomSigning? {
+    val values = linkedMapOf<String, String>()
+    val envFile = File(System.getProperty("user.home"), ".stillroom-release.env")
+    if (envFile.isFile) {
+        envFile.readLines().forEach { line ->
+            val text = line.trim()
+            if (text.isEmpty() || text.startsWith("#") || !text.contains("=")) return@forEach
+            val (name, raw) = text.split("=", limit = 2)
+            values[name] = raw.trim().trim('"')
+        }
+    }
+    listOf("STILLROOM_KEYSTORE", "STILLROOM_KEY_ALIAS", "STILLROOM_STORE_PASS", "STILLROOM_KEY_PASS").forEach { name ->
+        System.getenv(name)?.takeIf { it.isNotEmpty() }?.let { values[name] = it }
+    }
+    val storeFile = values["STILLROOM_KEYSTORE"]?.let(::File) ?: return null
+    val storePassword = values["STILLROOM_STORE_PASS"] ?: return null
+    val keyAlias = values["STILLROOM_KEY_ALIAS"] ?: return null
+    val keyPassword = values["STILLROOM_KEY_PASS"] ?: return null
+    if (!storeFile.isFile) return null
+    return StillroomSigning(storeFile, storePassword, keyAlias, keyPassword)
 }
 kotlin { jvmToolchain(21) }
 

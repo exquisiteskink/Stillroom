@@ -20,7 +20,7 @@ mise run unit-test
 mise exec -- ./gradlew --no-daemon assembleDebug
 ```
 
-Java 21 and a project-local Android SDK 35 are installed by mise. What has been validated lives in [docs/STATUS.md](docs/STATUS.md).
+Java 21 and a project-local Android SDK 35 are installed by mise. What has been validated lives in [docs/STATUS.md](docs/STATUS.md). Debug and release APKs use the same Stillroom signing key from `~/.stillroom-release.env`. Do not commit that file or the keystore.
 
 ## Pull requests
 
