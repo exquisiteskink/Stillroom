@@ -6,6 +6,10 @@ Current scope: Stage 11 complete. The user authorized the existing-screen Androi
 
 Current gate: `mise run stage:11` (existing local Grocy battery-cycle/unit-conversion parity, regressions, lint, and build).
 
+## GitHub release 0.2 — 2026-10-09
+
+Published signed `Stillroom-0.2.apk` as GitHub Release tag `v0.2` (`app.stillroom`, versionCode 2, versionName 0.2). Source commit `dca4ebb`. `assembleRelease` produced the unsigned APK; it was zipaligned (`-P 16`) and signed privately with the same `CN=Stillroom` certificate as 0.0.1 (certificate SHA-256 `35b617c8fd0a8bfa1aad1d63abd4f361629d031007c85a58a3b2df4f28f60d3b`). APK SHA-256 `6b822ce5cf91e03574a9450047ebf51e4fdbb244880c26876bc841bfba6fdb69`. Signing keys stay outside the repository. Kitchen changelog: [CHANGELOG.md](../CHANGELOG.md). Physical [PHONE_TEST.md](PHONE_TEST.md) rows remain **NOT RUN**.
+
 ## GitHub release 0.0.1 — 2026-10-07
 
 Published signed `Stillroom-0.0.1.apk` as GitHub Release tag `v0.0.1` (`app.stillroom`, versionCode 1). `assembleRelease` produced the unsigned APK; it was zipaligned and signed privately with `CN=Stillroom` (certificate SHA-256 `35b617c8fd0a8bfa1aad1d63abd4f361629d031007c85a58a3b2df4f28f60d3b`). Signing keys stay outside the repository. Physical [PHONE_TEST.md](PHONE_TEST.md) rows remain **NOT RUN**.
