@@ -5,187 +5,149 @@
 <h1 align="center">Stillroom</h1>
 
 <p align="center">
-  <strong>A kitchen companion for the Grocy pantry you already run.</strong>
+  <strong>The kitchen phone for the Grocy pantry you already run.</strong>
 </p>
 
 <p align="center">
-  Pantry, shopping, meals, chores, and a barcode scanner on your phone.<br>
+  Pantry, shopping, meals, chores, and a barcode scanner on Android.<br>
   <a href="https://grocy.info/">Grocy</a> stays the system of record.
 </p>
 
 <p align="center">
+  <a href="https://github.com/exquisiteskink/Stillroom/releases/latest"><img src="https://img.shields.io/github/v/release/exquisiteskink/Stillroom?style=flat-square&label=Download%20APK&color=8B4A32" alt="Download APK"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-8B4A32?style=flat-square" alt="MIT License"></a>
-  <a href="https://github.com/exquisiteskink/Stillroom/releases/latest"><img src="https://img.shields.io/github/v/release/exquisiteskink/Stillroom?style=flat-square&color=8B4A32" alt="GitHub release"></a>
-  <a href="https://github.com/exquisiteskink/Stillroom/actions/workflows/unit-tests.yml"><img src="https://github.com/exquisiteskink/Stillroom/actions/workflows/unit-tests.yml/badge.svg" alt="Unit tests"></a>
   <img src="https://img.shields.io/badge/Android-8.0%2B-8B4A32?style=flat-square" alt="Android 8.0+">
-  <img src="https://img.shields.io/badge/package-app.stillroom-8B4A32?style=flat-square" alt="app.stillroom">
   <img src="https://img.shields.io/badge/Grocy-4.6%20·%204.7-8B4A32?style=flat-square" alt="Grocy 4.6 and 4.7">
 </p>
 
 <p align="center">
   <a href="#install">Install</a> ·
-  <a href="#connect">Connect</a> ·
-  <a href="#features">Features</a> ·
+  <a href="#connect-to-grocy">Connect</a> ·
+  <a href="#using-stillroom">Using Stillroom</a> ·
   <a href="#privacy">Privacy</a> ·
-  <a href="#documentation">Docs</a> ·
-  <a href="#support--donations">Donate</a>
+  <a href="#support">Support</a>
 </p>
 
 ---
 
 ## Screenshots
 
-| Today | Shop |
-|:---:|:---:|
-| <a href="docs/screenshots/today.jpg"><img src="docs/screenshots/today.jpg" alt="Today with evening still-life, chores, and meals" width="290"></a> | <a href="docs/screenshots/shop.jpg"><img src="docs/screenshots/shop.jpg" alt="Empty shopping list with Add item" width="290"></a> |
-| **Meals** | **Household** |
-| <a href="docs/screenshots/meals-plan.jpg"><img src="docs/screenshots/meals-plan.jpg" alt="Meal plan empty state with cookbook illustration" width="290"></a> | <a href="docs/screenshots/household.jpg"><img src="docs/screenshots/household.jpg" alt="Household chores with Add chore" width="290"></a> |
-
-Captured on a Galaxy Z Fold 6 cover display. Live pantry and recipe names stay off GitHub.
-
-> Drop extra portrait frames in `docs/screenshots/` (Pantry, Scan, Settings). Leave household product names and Grocy URLs out of the tree.
+| Today | Shop | Meals |
+|:---:|:---:|:---:|
+| <a href="docs/screenshots/today.jpg"><img src="docs/screenshots/today.jpg" alt="Today with evening still-life, chores, and meals" width="240"></a> | <a href="docs/screenshots/shop.jpg"><img src="docs/screenshots/shop.jpg" alt="Shopping list with Add item" width="240"></a> | <a href="docs/screenshots/meals-plan.jpg"><img src="docs/screenshots/meals-plan.jpg" alt="Meal plan empty state" width="240"></a> |
+| **Household** | **Scan** | |
+| <a href="docs/screenshots/household.jpg"><img src="docs/screenshots/household.jpg" alt="Household chores" width="240"></a> | <a href="docs/screenshots/scanner.jpg"><img src="docs/screenshots/scanner.jpg" alt="Scan products" width="240"></a> | |
 
 ---
 
-## What it is
+## You need Grocy first
 
-Stillroom is the phone you keep on the counter. [Grocy](https://grocy.info/) stays the ledger.
+Stillroom is a companion for a Grocy server you already host. Your food, lists, recipes, and chores live in Grocy. This app is the phone you keep on the counter.
 
-It is a native Android companion for households that already run Grocy — pantry, shopping, meals, chores, and a barcode scanner — in one terracotta-and-cream kitchen. The official Grocy web app remains authoritative. Every write is meant to show up there after sync.
+Before you install:
 
-Sign in with a Grocy **API key** (one key per Grocy user). Child accounts are separate Grocy users with their own keys. Today swaps a breakfast, lunch, or dinner still-life by the hour; recipes are a photo grid.
+1. Run [Grocy](https://grocy.info/) somewhere the phone can reach (home server, VPS, or [Grocy Desktop](https://github.com/grocy/grocy-desktop)).
+2. Open that Grocy in a browser and sign in. A public try-out is at [demo.grocy.info](https://demo.grocy.info).
+3. Confirm the phone is on Android **8.0** or newer.
 
-Package `app.stillroom` · Kotlin · Jetpack Compose · Material 3 · minSdk 26 · MIT.
-
----
-
-## Features
-
-### Kitchen
-- **Today** — due chores and today's meals, with a breakfast / lunch / dinner still-life
-- **Pantry** — stock rows (name, amount, due), Use soon and Running low from Grocy, locations and journal
-- **Shop** — shopping lists, in-store mode, add/edit items, purchase review
-- **Meals** — recipe photo grid, meal plan, cooking mode, consume after review
-- **Household** — chores, tasks, batteries, equipment, and master data (Records)
-
-### Capture & stock
-- **Scan** — CameraX + on-device ML Kit; torch, zoom, and a clipped viewfinder
-- Camera permission is optional; manual barcode entry always works
-- Lookup order: Grocy barcodes → enabled Grocy plugin (`add=false`) → Open Food Facts for validated grocery codes
-- Purchase and consume from a scan; scanner purchases require the package due date
-- Quantities accept fractions; prices stay decimals; barcodes stay strings
-
-### Accounts & sync
-- API key stored in the Android Keystore, outside Room, logs, and backups
-- One SQLite database per verified account (server + Grocy user id)
-- Cache-then-network reads; pull to refresh
-- Durable outbox for writes; unknown HTTP outcomes need review instead of silent replay
-- Home screen widgets for chores, shopping, and scan
-- Optional kitchen reminders with quiet hours
-
----
-
-## Requirements
-
-| | |
-|--|--|
-| Android | **8.0+** (`minSdk` 26) |
-| Target SDK | 35 |
-| Package | `app.stillroom` |
-| Server | [Grocy](https://grocy.info/) **4.7.1** (chores, scanner, recipes, meals, batteries, equipment) and **4.6.0** (stock and shopping) |
-
-You need a reachable Grocy URL. Stillroom does not host your pantry.
+Stillroom is built for **Grocy 4.7**. Pantry and shopping also work with **4.6**. Chores, recipes, meals, batteries, equipment, and the fuller scanner path need 4.7.
 
 ---
 
 ## Install
 
-There is no Play Store listing yet. Sideload the signed APK from GitHub.
+Install the signed APK from GitHub.
 
-### GitHub Releases
+1. On your phone, open **[Releases](https://github.com/exquisiteskink/Stillroom/releases/latest)**.
+2. Download `Stillroom-0.2.apk` (or the newest `Stillroom-*.apk`).
+3. Open the file. If Android blocks it, allow installs from that browser or Files app, then open the APK again.
+4. Tap **Install**, then open Stillroom.
+5. [Connect to Grocy](#connect-to-grocy) with an API key.
 
-1. Download `Stillroom-0.2.apk` from [Releases](https://github.com/exquisiteskink/Stillroom/releases/latest).
-2. Open the APK on your phone (allow installs from your browser or Files if Android asks).
-3. Connect with a Grocy API key as described below.
+### Updates
 
-The APK is signed with Stillroom's first release certificate (`CN=Stillroom`). Later updates use the same certificate so they can replace this install. A debug build already on the phone will not upgrade in place.
+Download the newer APK from the same Releases page and install it over the current app. Official releases share one signing certificate, so Android replaces Stillroom and keeps the accounts already on the phone.
 
-### From source (Omarchy / Linux)
+If Android says the package conflicts, uninstall Stillroom first, then install the new APK. You will need to add the API key again after that.
 
-Requires [mise](https://mise.jdx.dev/), curl, unzip, and Linux x86_64:
+---
 
-```sh
-mise trust
-mise install
-mise exec -- ./gradlew --no-daemon assembleDebug
-```
+## Connect to Grocy
 
-mise pins **Java 21** and downloads a project-local Android SDK 35 into ignored `.android-sdk/`. Android Studio is optional.
+Stillroom signs in with a Grocy **API key**, one key per Grocy user. There is no username-and-password login.
 
-Debug APK: `app/build/outputs/apk/debug/app-debug.apk`
+1. In Grocy's web app, open the user menu → **Manage API keys**.
+2. Create a key for the Grocy user who should appear on this phone. Grocy shows a QR code for that key.
+3. In Stillroom, tap the **account** icon in the top bar → **Add account**.
+4. Tap **Scan API key** and point the camera at Grocy's QR, or type the server URL (`https://…`) and paste the key.
+5. Tap **Connect**.
 
-```sh
-adb install -r app/build/outputs/apk/debug/app-debug.apk
-```
+Each household member uses their own Grocy user and their own key. Add more accounts the same way and switch them under Accounts.
 
-`assembleRelease` produces an unsigned APK. Distribution builds are signed privately; keep signing keys out of the repository.
+To disconnect a phone, revoke that key in Grocy. Grocy's password stays the same. Logging out in Stillroom removes the saved account from the phone; Grocy's records stay on the server.
 
-Run JVM tests with `mise run unit-test`. Stage gates (`mise run stage:0` … `stage:11`) and disposable Grocy fixtures are documented in [STATUS](docs/STATUS.md).
+### If it will not connect
 
-### Connect
+- Use `https://` for any server on the public internet.
+- For a home server with your own certificate, install that CA's **root** in Android: **Settings → Security → Encryption & credentials → Install a certificate → CA certificate**. The address you type must match the name on the certificate, and the server must send its intermediate certificates.
+- For a local HTTP test server only, turn on **Allow insecure HTTP**. HTTP sends the API key without encryption.
+- A failed certificate check stays failed. Stillroom does not retry the same address as HTTP.
 
-1. In Grocy's web app, open **Manage API keys** and create a key for that user.
-2. In Stillroom, open **Accounts**.
-3. Enter the server URL and the API key, or **Scan API key** from Grocy's QR (`{baseUrl}/api|{key}`).
-4. HTTPS is the default. Local HTTP requires the insecure-HTTP toggle. A private CA works after you install its root in Android's CA certificate settings. Stillroom trusts every user-installed CA for its HTTPS connections, not only one server. The server must send its intermediate certificates, and the URL hostname must match the certificate. A failed certificate check does not switch the connection to HTTP.
+---
 
-Stillroom calls `/system/info` and `/user` before saving. A key can be revoked in Grocy without changing a password.
+## Using Stillroom
+
+Pull down on a screen to refresh from Grocy.
+
+### Today
+
+Due chores and today's meals. The still-life at the top follows the time of day (breakfast, lunch, or dinner). Kitchen reminder settings live under **Settings**, including quiet hours.
+
+### Pantry
+
+What is in stock: name on the left, amount on the right, due date under the name.
+
+- **Use soon** and **Running low** come from Grocy (due / overdue / expired, and below minimum).
+- Tap a product to use stock, add stock, or **Edit product**.
+- **Add product** creates the product in Grocy, including Grocy's extra fields.
+- **Settings → Stock → Shown details** chooses which extras appear on each row.
+- You can send Use soon or Running low items to a shopping list.
+
+### Shop
+
+Shopping lists from Grocy. **At the store** enlarges the list. Checking an item off can open a purchase review so the pantry updates when you get home.
+
+### Meals
+
+Recipes as a photo grid (picture, name underneath). Open a recipe to cook; amounts scale with servings. Confirming a cook uses stock in Grocy. Today's planned meals open from Today.
+
+### Household
+
+Chores, one-off tasks, batteries, equipment, and **Records** (products, locations, units, and the rest of Grocy's household master data).
+
+### Scan
+
+The **Scan** button in the top bar. Choose **Add stock** or **Use stock**, then **Start camera** or type the barcode.
+
+Camera permission is optional; typing always works. The camera looks up Grocy's barcodes first. For a grocery UPC/EAN it can also ask Grocy's plugin, then [Open Food Facts](https://world.openfoodfacts.org/). Confirm add or confirm use before anything is booked. An unknown barcode can be attached to a product you already have; a wrong attachment is removed in Grocy.
+
+### Home screen
+
+Optional widgets for due chores, shopping counts, and scan. They show cached numbers and open the matching screen.
 
 ---
 
 ## Privacy
 
 - Talks to **your Grocy**. No analytics, crash reporters, or ads.
-- `allowBackup` is off. API keys never go in saved state, navigation arguments, or the outbox payload store.
-- Public servers should use HTTPS. HTTP sends the key in the clear and needs an explicit opt-in.
-- Barcode frames are analyzed on the device. Images are not stored or uploaded.
-- Open Food Facts receives only a validated grocery code, a fixed field list, and an identifying User-Agent — never the Grocy key, household inventory, or photos.
-- QR codes from the scanner are looked up as text; links are never opened.
-
-See [scanning](docs/SCANNING.md) and [sync](docs/SYNC.md).
+- API keys stay in Android's Keystore on this phone. They are left out of backups.
+- Barcode frames are read on the device. The scan is not saved or uploaded.
+- Open Food Facts receives only a validated grocery code, a short field list, and an identifying User-Agent — never the Grocy key, your inventory, or photos.
+- QR codes from the scanner are treated as text. Links are not opened.
 
 ---
 
-## Status
-
-Stillroom is **0.2**. See [CHANGELOG](CHANGELOG.md). Stages 0–11 of the original build plan are complete. A debug APK has been walked on a phone against live Grocy 4.7.1.
-
-The formal rows in [PHONE_TEST.md](docs/PHONE_TEST.md) (child login, a real package scan, offline replay, widgets, reminders) remain **not run**. Treat that as the bar for everyday household use.
-
-Grocy permission gaps for child keys are documented in [COMPATIBILITY.md](docs/COMPATIBILITY.md). Stillroom does not add a proxy or fork Grocy to paper over them.
-
----
-
-## Documentation
-
-| Doc | Topic |
-|-----|--------|
-| [CHANGELOG.md](CHANGELOG.md) | What changed in each release |
-| [docs/STATUS.md](docs/STATUS.md) | What actually ran, and what did not |
-| [docs/STOCK.md](docs/STOCK.md) | Pantry, due dates, bookings |
-| [docs/SHOPPING.md](docs/SHOPPING.md) | Lists and purchase review |
-| [docs/RECIPES.md](docs/RECIPES.md) | Recipes, meal plan, cooking |
-| [docs/SCANNING.md](docs/SCANNING.md) | Camera, lookup, Open Food Facts |
-| [docs/HOUSEHOLD_TOOLS.md](docs/HOUSEHOLD_TOOLS.md) | Chores, tasks, batteries, widgets |
-| [docs/SYNC.md](docs/SYNC.md) | Cache, outbox, review |
-| [docs/PHONE_TEST.md](docs/PHONE_TEST.md) | Physical-phone checklist |
-| [AGENTS.md](AGENTS.md) | Project boundaries for contributors |
-
-Architecture: UI → ViewModel → use case → repository. No GPL copies of grocy-android. No Home Assistant or Hermes.
-
----
-
-## Support & donations
+## Support
 
 Stillroom is free and open source. If you want to support development:
 
@@ -194,11 +156,13 @@ Stillroom is free and open source. If you want to support development:
 
 These are the only donation channels. Donations are optional; every feature is available without payment.
 
+Something broken? [Open an issue](https://github.com/exquisiteskink/Stillroom/issues).
+
 ---
 
 ## Contributing
 
-Bug reports, ideas, and pull requests are welcome. See [CONTRIBUTING.md](CONTRIBUTING.md). Keep Grocy as the only backend, keep household API keys and live pantry screenshots out of the repository, and read [AGENTS.md](AGENTS.md) before changing product boundaries.
+Bug reports, ideas, and pull requests are welcome. Build-from-source and project boundaries are in [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ---
 

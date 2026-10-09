@@ -13,6 +13,8 @@ Read [AGENTS.md](AGENTS.md) first. In short:
 
 ## Development
 
+Requires [mise](https://mise.jdx.dev/), curl, unzip, and Linux x86_64:
+
 ```sh
 mise trust
 mise install
@@ -20,7 +22,15 @@ mise run unit-test
 mise exec -- ./gradlew --no-daemon assembleDebug
 ```
 
-Java 21 and a project-local Android SDK 35 are installed by mise. What has been validated lives in [docs/STATUS.md](docs/STATUS.md).
+mise pins Java 21 and downloads a project-local Android SDK 35 into ignored `.android-sdk/`. Android Studio is optional.
+
+Debug APK: `app/build/outputs/apk/debug/app-debug.apk`
+
+```sh
+adb install -r app/build/outputs/apk/debug/app-debug.apk
+```
+
+Keep signing keys out of the repository. What has been validated lives in [docs/STATUS.md](docs/STATUS.md). Stage gates (`mise run stage:0` … `stage:11`) and disposable Grocy fixtures are documented there. Architecture is UI → ViewModel → use case → repository.
 
 ## Pull requests
 
