@@ -15,7 +15,6 @@ import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
@@ -78,7 +77,8 @@ private fun number(amount:BigDecimal)=Json.parseToJsonElement(amount.toPlainStri
                 val options=android.graphics.BitmapFactory.Options().apply { inJustDecodeBounds=true }
                 android.graphics.BitmapFactory.decodeByteArray(bytes,0,bytes.size,options)
                 require(options.outWidth>0 && options.outHeight>0 && options.outWidth.toLong()*options.outHeight<=40_000_000) { "Image is too large." }
-                val bitmap=android.graphics.BitmapFactory.decodeByteArray(bytes,0,bytes.size) ?: error("Invalid image.")
+                val scaled=android.graphics.BitmapFactory.Options().apply { inSampleSize=decodeSampleSize(options.outWidth,options.outHeight) }
+                val bitmap=android.graphics.BitmapFactory.decodeByteArray(bytes,0,bytes.size,scaled) ?: error("Invalid image.")
                 java.io.ByteArrayOutputStream().use { out->bitmap.compress(android.graphics.Bitmap.CompressFormat.JPEG,85,out);bitmap.recycle();out.toByteArray().also { require(it.size<=5_242_880) } }
             } }catch(e:CancellationException){throw e}catch(e:Exception){imageError=e.message}
         }
@@ -164,7 +164,7 @@ private fun number(amount:BigDecimal)=Json.parseToJsonElement(amount.toPlainStri
                 item { CookingMode(row,s) }
             } else {
                 item {
-                    val bitmap=remember(picture){picture?.let { android.graphics.BitmapFactory.decodeByteArray(it,0,it.size)?.asImageBitmap() }}
+                    val bitmap=rememberDownsampledImage(picture)
                     if(bitmap!=null) Image(bitmap,row.recipeText("name"),contentScale=ContentScale.Crop,modifier=Modifier.fillMaxWidth().height(220.dp).clip(MaterialTheme.shapes.large))
 
                 }
@@ -216,7 +216,7 @@ private fun number(amount:BigDecimal)=Json.parseToJsonElement(amount.toPlainStri
     if(newIngredient || ingredient!=null)IngredientEditor(s,selected!!,ingredient,{newIngredient=false;ingredient=null}) { fields->model.save("recipes_pos",ingredient?.recipeId("id"),fields);newIngredient=false;ingredient=null }
     if(newMeal || meal!=null)MealEditor(s,meal,{newMeal=false;meal=null}) { fields->model.save("meal_plan",meal?.recipeId("id"),fields);newMeal=false;meal=null }
     delete?.let { (entity,id)->AlertDialog(onDismissRequest={delete=null},title={Text(if(entity=="recipes") "Delete recipe?" else if(entity=="recipes_pos") "Remove ingredient?" else "Delete meal?")},text={Text("This deletes the record in Grocy.")},dismissButton={QuietButton(onClick={delete=null}){Text("Cancel")}},confirmButton={PrimaryButton(onClick={model.delete(entity,id);delete=null}){Text("Delete")}}) }
-    picked?.let { bytes->RecipeDialog("Review image",{picked=null},save={selected?.let { model.attachImage(it,bytes) };picked=null}) { Text("Save this selected image to Grocy?");val bmp=remember(bytes){android.graphics.BitmapFactory.decodeByteArray(bytes,0,bytes.size)};if(bmp!=null)Image(bmp.asImageBitmap(),"Selected image",Modifier.heightIn(max=220.dp)) } }
+    picked?.let { bytes->RecipeDialog("Review image",{picked=null},save={selected?.let { model.attachImage(it,bytes) };picked=null}) { Text("Save this selected image to Grocy?");val bmp=rememberDownsampledImage(bytes);if(bmp!=null)Image(bmp,"Selected image",Modifier.heightIn(max=220.dp)) } }
     state.review?.let { review->AlertDialog(onDismissRequest=model::closeReview,title={Text("Review consumption")},text={Column(Modifier.verticalScroll(rememberScrollState())) {
         Text("${qty(review.servings)} servings · stock units")
         review.lines.forEach { line->Text("${s.name("products",line.product)}: consume ${qty(line.required)} ${s.name("quantity_units",line.unit)} · available ${qty(line.available)}") }
