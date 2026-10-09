@@ -79,6 +79,8 @@ import app.stillroom.background.HouseholdWork
 import app.stillroom.background.ReminderPreferences
 import app.stillroom.domain.Section
 import app.stillroom.domain.ThemeChoice
+import app.stillroom.fractions.QuantityFormatter
+import app.stillroom.fractions.QuantityStyle
 import java.time.LocalTime
 
 private fun Section.icon(): ImageVector = when (this) {
@@ -95,6 +97,8 @@ fun StillroomShell(state: ShellUiState, model: ShellViewModel, accounts: Account
     LaunchedEffect(active?.id) { model.accountChanged(active?.id?.value, active?.restricted == true) }
     val navigationState = if (active?.restricted == true) state.copy(preferences = state.preferences.copy(visibleSections = setOf(Section.Today, Section.Household))) else state
     BackHandler(enabled = state.page != ShellPage.Sections) { model.back() }
+    val quantities = remember(state.preferences.quantityStyle) { QuantityFormatter(state.preferences.quantityStyle) }
+    androidx.compose.runtime.CompositionLocalProvider(LocalQuantityFormatter provides quantities) {
     Surface(modifier = Modifier.fillMaxSize().testTag("shell"), color = MaterialTheme.colorScheme.background) {
         BoxWithConstraints(Modifier.fillMaxSize().safeDrawingPadding()) {
             val tablet = maxWidth >= 600.dp
@@ -112,6 +116,7 @@ fun StillroomShell(state: ShellUiState, model: ShellViewModel, accounts: Account
                 }
             }
         }
+    }
     }
 }
 
@@ -348,6 +353,19 @@ private fun ShellSettings(state: ShellUiState, model: ShellViewModel, restricted
     SettingToggle("Reduced motion", prefs.reducedMotion,
         supportingText = "Remove animations and use a static loading message. System animation settings are also respected.",
         onChange = model::setReducedMotion)
+    Text("Show quantities as", style = MaterialTheme.typography.titleMedium, modifier = Modifier.padding(top = 8.dp).semantics { heading() })
+    Text("Changes only how amounts look. Grocy keeps the exact values, and fields accept 1 1/2, 1½ or 1.5.",
+        style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+    Column(Modifier.selectableGroup().testTag("quantity-style")) {
+        listOf(QuantityStyle.Fractions to "Fractions (1½, ⅓)", QuantityStyle.Decimals to "Decimals (1.5, 0.333)").forEach { (style, label) ->
+            Row(Modifier.fillMaxWidth().sizeIn(minHeight = 56.dp)
+                .selectable(selected = prefs.quantityStyle == style, role = Role.RadioButton, onClick = { model.setQuantityStyle(style) })
+                .semantics { contentDescription = "Show quantities as ${style.name.lowercase()}" }, verticalAlignment = Alignment.CenterVertically) {
+                RadioButton(selected = prefs.quantityStyle == style, onClick = null)
+                Text(label, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.padding(start = 12.dp))
+            }
+        }
+    }
 }
 
 @Composable

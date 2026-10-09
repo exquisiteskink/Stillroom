@@ -18,11 +18,12 @@ import java.math.BigDecimal
 import java.time.LocalDate
 import java.util.Locale
 
+/** Input parsing only; display goes through the shared quantity formatter. */
 private val fractions = QuantityFractions()
-private fun quantity(value: BigDecimal): String {
-    val shown = fractions.format(value.abs(), Locale.getDefault()).text
-    return if (value.signum() < 0) "-$shown" else shown
-}
+
+/** Negative journal amounts keep their leading minus; the shared formatter handles the sign. */
+@Composable @ReadOnlyComposable
+private fun quantity(value: BigDecimal): String = quantityText(value)
 
 @Composable
 fun StockScreen(model: StockViewModel, grants: Set<String>?, barcodeOnly: Boolean = false, scannerActions: Boolean = false, searchAll: Boolean = false) {
@@ -266,7 +267,7 @@ internal fun StockForm(state: StockUiState, product: JsonObject, book: (StockBoo
     val dateError=if(!purchaseFields) null else if(date.isNotBlank() && runCatching { LocalDate.parse(date) }.isFailure) "Use YYYY-MM-DD" else if(scannerActions && action==StockAction.Purchase && date.isBlank()) "Enter the package due date" else null
     val priceError=if(!purchaseFields) null else if(price.isNotBlank() && (price.toBigDecimalOrNull()==null || price.toBigDecimalOrNull()!!.signum()<0)) "Enter a price of zero or more" else null
     LabeledTextField(amount, { amount = it;error=null }, label = if (action == StockAction.Inventory) "New total quantity" else "Quantity",supportingText=quantityError ?: "Decimals and fractions accepted",isError=quantityError!=null,enabled=enabled,modifier=Modifier.fillMaxWidth())
-    parsedQuantity?.let { Text("Input: ${fractions.format(it, Locale.getDefault()).text} · stock quantity: ${quantity(it.value.multiply(factor ?: BigDecimal.ONE))}") }
+    parsedQuantity?.let { Text("Input: ${quantity(it.value)} · stock quantity: ${quantity(it.value.multiply(factor ?: BigDecimal.ONE))}") }
     val locationChoices=state.rows("/objects/locations").map { it.text("id").toLong() to it.text("name") }
     if (action != StockAction.Open) {
         ChoiceField(if(action==StockAction.Transfer) "From location (required)" else "Location",locationChoices,location,{location=it},allowNone=action!=StockAction.Transfer,noneLabel="Product default",enabled=enabled)

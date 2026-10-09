@@ -11,6 +11,7 @@ import app.stillroom.domain.Section
 import app.stillroom.domain.ShellPreferences
 import app.stillroom.domain.ShellPreferencesRepository
 import app.stillroom.domain.ThemeChoice
+import app.stillroom.fractions.QuantityStyle
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -78,6 +79,7 @@ class ShellViewModel(
     fun setTheme(theme: ThemeChoice) { applyPreferences(settings.update { it.copy(theme = theme) }) }
     fun setDynamicColor(enabled: Boolean) { applyPreferences(settings.update { it.copy(dynamicColor = enabled) }) }
     fun setReducedMotion(enabled: Boolean) { applyPreferences(settings.update { it.copy(reducedMotion = enabled) }) }
+    fun setQuantityStyle(style: QuantityStyle) { applyPreferences(settings.update { it.copy(quantityStyle = style) }) }
 
     companion object {
         fun factory(repository: ShellPreferencesRepository): ViewModelProvider.Factory = viewModelFactory {

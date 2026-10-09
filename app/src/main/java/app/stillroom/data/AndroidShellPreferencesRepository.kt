@@ -5,6 +5,7 @@ import app.stillroom.domain.Section
 import app.stillroom.domain.ShellPreferences
 import app.stillroom.domain.ShellPreferencesRepository
 import app.stillroom.domain.ThemeChoice
+import app.stillroom.fractions.QuantityStyle
 
 /** Device-local UI preferences only. Never store accounts or secrets here. */
 class AndroidShellPreferencesRepository(context: Context) : ShellPreferencesRepository {
@@ -21,6 +22,8 @@ class AndroidShellPreferencesRepository(context: Context) : ShellPreferencesRepo
                 ?: ThemeChoice.System,
             dynamicColor = storage.getBoolean("dynamic_color", false),
             reducedMotion = storage.getBoolean("reduced_motion", false),
+            quantityStyle = QuantityStyle.entries.find { it.name == storage.getString("quantity_style", null) }
+                ?: QuantityStyle.Fractions,
         ).normalized()
     }
 
@@ -31,6 +34,7 @@ class AndroidShellPreferencesRepository(context: Context) : ShellPreferencesRepo
             .putString("theme", preferences.theme.name)
             .putBoolean("dynamic_color", preferences.dynamicColor)
             .putBoolean("reduced_motion", preferences.reducedMotion)
+            .putString("quantity_style", preferences.quantityStyle.name)
             .apply()
     }
 }
