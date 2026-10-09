@@ -47,32 +47,49 @@ enum class StockBuiltIn(val id: String, val label: String, val rowLabel: String,
     val key: String get() = "builtin:$id"
 }
 
-/** A product userfield definition from `GET /objects/userfields` (entity `products`). */
+/**
+ * A userfield definition from `GET /objects/userfields`. Shared by Shown details (display),
+ * the product editor and the Household records editor (typed inputs via [UserfieldValues]).
+ */
 data class UserfieldDefinition(
     val name: String,
     val caption: String,
     val type: String,
     val showAsColumn: Boolean = false,
     val sortNumber: Int? = null,
+    val inputRequired: Boolean = false,
+    val defaultValue: String = "",
+    /** Preset options for `preset-list` / `preset-checklist`, one per line (Grocy's format). */
+    val config: String = "",
+    val entity: String = ENTITY,
 ) {
     val key: String get() = "userfield:$name"
     val label: String get() = caption.ifBlank { name }
+    /** Grocy type name, with Stillroom's earlier non-Grocy names mapped to the real ones. */
+    val canonicalType: String get() = UserfieldTypes.canonical(type)
 
     companion object {
         const val ENTITY = "products"
 
         /** Product userfields in Grocy's own order (sort number, then caption). Malformed rows are skipped. */
-        fun parse(rows: List<JsonObject>): List<UserfieldDefinition> = rows
-            .filter { it.str("entity") == ENTITY && it.str("name").isNotBlank() }
+        fun parse(rows: List<JsonObject>): List<UserfieldDefinition> = parse(rows, ENTITY)
+
+        /** Userfields of [entity] in Grocy's own order (sort number, then caption). Malformed rows are skipped. */
+        fun parse(rows: List<JsonObject>, entity: String): List<UserfieldDefinition> = rows
+            .filter { it.str("entity") == entity && it.str("name").isNotBlank() }
             .map {
                 UserfieldDefinition(
                     name = it.str("name"), caption = it.str("caption"), type = it.str("type"),
-                    showAsColumn = it.str("show_as_column_in_tables").let { v -> v == "1" || v.equals("true", true) },
+                    showAsColumn = it.str("show_as_column_in_tables").isTrue(),
                     sortNumber = it.str("sort_number").toIntOrNull(),
+                    inputRequired = it.str("input_required").isTrue(),
+                    defaultValue = it.str("default_value"), config = it.str("config"), entity = entity,
                 )
             }
             .distinctBy { it.name }
             .sortedWith(compareBy<UserfieldDefinition>({ it.sortNumber == null }, { it.sortNumber ?: 0 }, { it.label.lowercase() }))
+
+        private fun String.isTrue() = this == "1" || equals("true", true)
     }
 }
 
@@ -195,7 +212,7 @@ object UserfieldText {
     fun render(type: String, raw: JsonElement?, quantities: QuantityFormatter, locale: Locale): String? {
         val value = (raw as? JsonPrimitive)?.contentOrNull?.trim().orEmpty()
         if (value.isEmpty()) return null
-        return when (type) {
+        return when (UserfieldTypes.canonical(type)) {
             "text-single-line" -> value
             "text-multi-line" -> value.lines().map { it.trim() }.filter { it.isNotEmpty() }.joinToString(" · ").take(MAX_TEXT).let { if (it.length == MAX_TEXT) "$it…" else it }
             "number-integral", "number-decimal" -> value.toBigDecimalOrNull()?.let { quantities.format(it, locale) } ?: value
@@ -208,8 +225,7 @@ object UserfieldText {
             "preset-list" -> value
             "preset-checklist" -> value.split(',').map { it.trim() }.filter { it.isNotEmpty() }.joinToString(", ").ifEmpty { null }
             "link" -> value
-            "link-with-title" -> runCatching { Json.parseToJsonElement(value) as JsonObject }.getOrNull()
-                ?.let { it.str("title").ifBlank { it.str("link") }.ifBlank { null } } ?: value
+            "link-with-title" -> UserfieldValues.link(value).let { it.title.ifBlank { it.link }.ifBlank { null } }
             "file" -> "File: ${userfileName(value)}"
             "image" -> "Image: ${userfileName(value)}"
             else -> value
@@ -229,7 +245,7 @@ object UserfieldText {
         return if (separator == '.') text else text.replace('.', separator)
     }
 
-    fun typeLabel(type: String): String = when (type) {
+    fun typeLabel(type: String): String = when (UserfieldTypes.canonical(type)) {
         "text-single-line" -> "Text"
         "text-multi-line" -> "Multi-line text"
         "number-integral" -> "Whole number"

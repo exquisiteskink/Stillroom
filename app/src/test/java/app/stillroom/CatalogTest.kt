@@ -12,10 +12,10 @@ class CatalogTest {
         assertFalse(CatalogEntity.Batteries.writable(setOf("BATTERIES")))
         assertTrue(CatalogEntity.Units.writable(setOf("MASTER_DATA_EDIT")))
         assertTrue(CatalogEntity.Equipment.readable(setOf("EQUIPMENT")))
-        val field=Json.parseToJsonElement("""{"name":"mystery","caption":"Mystery","type":"future-widget"}""").jsonObject
-        assertTrue(CustomFields.reason(field)!!.contains("future-widget"))
-        assertFalse(CustomFields.supported(field))
-        assertTrue(CustomFields.supported(buildJsonObject { put("type","numeric") }))
+        val field=UserfieldDefinition("mystery","Mystery","future-widget")
+        assertTrue(UserfieldTypes.reason(field)!!.contains("future-widget"))
+        assertFalse(UserfieldTypes.editable(field.type))
+        assertTrue(UserfieldTypes.editable("number-decimal"))
     }
     @Test fun cachedTodayHonorsAssignmentPermissionsAndServerDueDate() {
         val address=ServerAddress.parse("example.org");val child=Account(AccountId.of(address,4),address,4,"child","4.7.1",setOf("CHORES"))
@@ -41,11 +41,11 @@ class CatalogTest {
         assertTrue(runCatching { CatalogFields.validate(CatalogEntity.Products,buildJsonObject { put("name","") }) }.isFailure)
         assertTrue(runCatching { CatalogFields.validate(CatalogEntity.Units,buildJsonObject { put("unrecognized",1) }) }.isFailure)
         CatalogFields.validate(CatalogEntity.Products,buildJsonObject { put("default_best_before_days",-1);put("active",1);put("min_stock_amount",Json.parseToJsonElement("0.25"));put("shopping_location_id",JsonNull) })
-        fun field(type:String)=buildJsonObject { put("type",type);put("input_required",1);put("caption","Synthetic") }
-        CustomFields.validate(field("numeric"),"1.25");CustomFields.validate(field("date"),"2026-10-07");CustomFields.validate(field("date-time"),"2026-10-07 12:00:00");CustomFields.validate(field("checkbox"),"1")
-        assertTrue(runCatching { CustomFields.validate(field("numeric"),"") }.isFailure)
-        assertTrue(runCatching { CustomFields.validate(field("numeric"),"not numeric") }.isFailure)
-        assertNull(CustomFields.reason(field("text")))
+        fun field(type:String)=UserfieldDefinition("synthetic","Synthetic",type,inputRequired=true)
+        UserfieldValues.normalize(field("number-decimal"),"1.25");UserfieldValues.normalize(field("date"),"2026-10-07");UserfieldValues.normalize(field("datetime"),"2026-10-07 12:00:00");UserfieldValues.normalize(field("checkbox"),"1")
+        assertTrue(runCatching { UserfieldValues.normalize(field("number-decimal"),"") }.isFailure)
+        assertTrue(runCatching { UserfieldValues.normalize(field("number-decimal"),"not numeric") }.isFailure)
+        assertNull(UserfieldTypes.reason(field("text-single-line")))
     }
     @Test fun parentTodayUsesServerMealSectionsAndVolatileStock() {
         val address=ServerAddress.parse("example.org");val account=Account(AccountId.of(address,1),address,1,"parent","4.7.1",setOf("ADMIN"))

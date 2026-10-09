@@ -142,7 +142,7 @@ class CachedGrocyRepository(
                     status in setOf(400, 401, 403, 404, 405, 422) -> "failed"
                     else -> "needs-review" // Even a 500 can follow a committed mutation.
                 }
-                database.finish(operation.clientOperationId, state, if (state == "confirmed") null else "HTTP $status", if (state == "confirmed") response else null)
+                database.finish(operation.clientOperationId, state, if (state == "confirmed") null else failureDetail(status, response), if (state == "confirmed") response else null)
             } catch (error: CancellationException) {
                 runCatching { database.finish(operation.clientOperationId, "needs-review", "Interrupted HTTP outcome.") }
                 throw error
@@ -152,6 +152,12 @@ class CachedGrocyRepository(
             }
         }
         }
+    }
+
+    /** "HTTP 400: <Grocy error_message>" so Pending changes and editors can show Grocy's reason. */
+    internal fun failureDetail(status: Int, response: String): String {
+        val message = runCatching { (Json.parseToJsonElement(response) as? JsonObject)?.get("error_message")?.jsonPrimitive?.contentOrNull }.getOrNull()
+        return if (message.isNullOrBlank()) "HTTP $status" else "HTTP $status: ${message.take(500)}"
     }
 
     internal suspend fun outboxRecords(): List<OutboxOperation> = withContext(Dispatchers.IO) { database.operations() }

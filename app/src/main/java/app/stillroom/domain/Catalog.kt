@@ -25,6 +25,7 @@ object CatalogFields {
         CatalogEntity.Units->common+listOf(CatalogField("name_plural","Plural name"),CatalogField("active","Active",CatalogKind.Toggle))
         CatalogEntity.Conversions->listOf(CatalogField("product_id","Product (empty means global)",CatalogKind.Reference,"products"),CatalogField("from_qu_id","From unit",CatalogKind.Reference,"quantity_units",true),CatalogField("to_qu_id","To unit",CatalogKind.Reference,"quantity_units",true),CatalogField("factor","Conversion factor",CatalogKind.Decimal,required=true))
         CatalogEntity.Products->common+listOf(
+            CatalogField("product_group_id","Product group",CatalogKind.Reference,"product_groups"),
             CatalogField("location_id","Default location",CatalogKind.Reference,"locations",true),CatalogField("shopping_location_id","Default store",CatalogKind.Reference,"shopping_locations"),
             CatalogField("qu_id_stock","Stock unit",CatalogKind.Reference,"quantity_units",true),CatalogField("qu_id_purchase","Purchase unit",CatalogKind.Reference,"quantity_units",true),
             CatalogField("qu_id_consume","Consume unit",CatalogKind.Reference,"quantity_units",true),CatalogField("qu_id_price","Price unit",CatalogKind.Reference,"quantity_units",true),
@@ -49,29 +50,17 @@ object CatalogFields {
         if(entity==CatalogEntity.Conversions && fields.containsKey("from_qu_id") && fields.containsKey("to_qu_id"))require(fields.catalogId("from_qu_id")!=fields.catalogId("to_qu_id")) { "Choose two different units." }
     }
 }
-object CustomFields {
-    private val types=setOf("text","numeric","checkbox","date","date-time")
-    fun supported(field:JsonObject)=field.catalogText("type") in types
-    fun reason(field:JsonObject):String?=if(supported(field))null else "Skipped ${field.catalogText("caption").ifBlank { field.catalogText("name") }}: type '${field.catalogText("type")}' has no supported editor; its value is preserved."
-    fun validate(field:JsonObject,value:String) {
-        require(supported(field) && value.length<=50000)
-        require(field.catalogText("input_required")!="1" || value.isNotBlank()) { "${field.catalogText("caption")} is required." }
-        if(value.isBlank())return
-        when(field.catalogText("type")) {
-            "numeric"->require(value.toBigDecimalOrNull()!=null)
-            "checkbox"->require(value in setOf("0","1"))
-            "date"->java.time.LocalDate.parse(value)
-            "date-time"->java.time.LocalDateTime.parse(value.replace(' ','T'))
-        }
-    }
-}
 data class CatalogSnapshot(val resources:Map<String,List<JsonObject>> = emptyMap(),val stale:Boolean=false,val unavailable:List<String> = emptyList()) {
     fun rows(entity:String)=resources[entity].orEmpty()
     fun definitions(entity:String)=rows("userfields").filter { it.catalogText("entity")==entity }
+    /** Typed userfield definitions for [entity], shared with Shown details and the product editor. */
+    fun userfields(entity:String)=UserfieldDefinition.parse(rows("userfields"),entity)
 }
 interface CatalogRepository {
     suspend fun snapshot():CatalogSnapshot
-    suspend fun save(entity:CatalogEntity,id:Long?,fields:JsonObject,userfields:JsonObject=JsonObject(emptyMap())):String
+    suspend fun save(entity:CatalogEntity,id:Long?,fields:JsonObject,userfields:JsonObject=JsonObject(emptyMap()),extras:ProductExtras=ProductExtras()):String
+    /** What happened to a save started by [save], including its follow-up writes. */
+    suspend fun outcome(operationId:String):CatalogSaveOutcome
     suspend fun delete(entity:CatalogEntity,id:Long):String
     suspend fun charge(id:Long):String
     suspend fun undoCycle(id:Long):String
@@ -81,7 +70,19 @@ interface CatalogRepository {
 }
 class ManageCatalog(private val repository:CatalogRepository) {
     suspend fun snapshot()=repository.snapshot()
-    suspend fun save(entity:CatalogEntity,id:Long?,fields:JsonObject,userfields:JsonObject=JsonObject(emptyMap()))=repository.save(entity,id,fields,userfields)
+    suspend fun save(entity:CatalogEntity,id:Long?,fields:JsonObject,userfields:JsonObject=JsonObject(emptyMap()),extras:ProductExtras=ProductExtras())=repository.save(entity,id,fields,userfields,extras)
+    /**
+     * Save, send, and report the confirmed result. Never throws for validation, offline or server
+     * rejection: the caller keeps its form open on anything but [CatalogSaveOutcome.Saved].
+     */
+    suspend fun saveAndSync(entity:CatalogEntity,id:Long?,fields:JsonObject,userfields:JsonObject=JsonObject(emptyMap()),extras:ProductExtras=ProductExtras()):CatalogSaveOutcome {
+        val operation=try { repository.save(entity,id,fields,userfields,extras) }
+            catch(e:kotlinx.coroutines.CancellationException){throw e}
+            catch(e:java.io.IOException){return CatalogSaveOutcome.Failed(CatalogErrors.OFFLINE)}
+            catch(e:Exception){return CatalogSaveOutcome.Failed(CatalogErrors.friendly(e.message))}
+        try { repository.sync() } catch(e:kotlinx.coroutines.CancellationException){throw e} catch(_:Exception){}
+        return repository.outcome(operation)
+    }
     suspend fun delete(entity:CatalogEntity,id:Long)=repository.delete(entity,id)
     suspend fun charge(id:Long)=repository.charge(id)
     suspend fun undoCycle(id:Long)=repository.undoCycle(id)

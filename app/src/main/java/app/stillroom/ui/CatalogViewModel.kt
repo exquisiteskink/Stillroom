@@ -8,7 +8,7 @@ import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.*
 import kotlinx.serialization.json.*
 
-data class CatalogUiState(val snapshot:CatalogSnapshot=CatalogSnapshot(),val operations:List<PendingChange> = emptyList(),val history:List<JsonObject>?=null,val busy:Boolean=false,val error:String?=null)
+data class CatalogUiState(val snapshot:CatalogSnapshot=CatalogSnapshot(),val operations:List<PendingChange> = emptyList(),val history:List<JsonObject>?=null,val busy:Boolean=false,val error:String?=null,val outcome:CatalogSaveOutcome?=null)
 class CatalogViewModel(private val accounts:AndroidAccountsRepository):ViewModel() {
     private val ui=AccountBoundState(CatalogUiState());val state=ui.flow
     private var identity:Account?=null;private var work:Job?=null
@@ -17,7 +17,12 @@ class CatalogViewModel(private val accounts:AndroidAccountsRepository):ViewModel
         if(next.active!=null && CatalogEntity.entries.any { it.readable(next.active.permissions) })refresh()
     } } } }
     fun refresh()=execute { it.sync() }
-    fun save(entity:CatalogEntity,id:Long?,fields:JsonObject,custom:JsonObject)=execute { it.save(entity,id,fields,custom);it.sync() }
+    fun save(entity:CatalogEntity,id:Long?,fields:JsonObject,custom:JsonObject,extras:ProductExtras=ProductExtras())=execute { r->
+        publish { it.copy(outcome=null) }
+        val outcome=r.saveAndSync(entity,id,fields,custom,extras)
+        publish { it.copy(outcome=outcome) }
+    }
+    fun clearOutcome(){ui.update { it.copy(outcome=null) }}
     fun delete(entity:CatalogEntity,id:Long)=execute { it.delete(entity,id);it.sync() }
     fun charge(id:Long)=execute { it.charge(id);it.sync() }
     fun undo(id:Long)=execute { it.undoCycle(id);it.sync() }

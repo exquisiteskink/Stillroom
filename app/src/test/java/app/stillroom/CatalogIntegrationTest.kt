@@ -59,7 +59,7 @@ class CatalogIntegrationTest {
             confirmed(catalog.save(CatalogEntity.Conversions,conversion,buildJsonObject { put("factor",3) }))
             assertEquals("3",http("GET","/objects/quantity_unit_conversions/$conversion").jsonObject.catalogText("factor"))
             val name="stage11_note_$token"
-            val field=http("POST","/objects/userfields",buildJsonObject { put("entity","equipment");put("name",name);put("caption","Stage11 note $token");put("type","text") }.toString()).jsonObject.catalogId("created_object_id")!!
+            val field=http("POST","/objects/userfields",buildJsonObject { put("entity","equipment");put("name",name);put("caption","Stage11 note $token");put("type","text-single-line") }.toString()).jsonObject.catalogId("created_object_id")!!
             created+="userfields" to field
             val equipment=create(CatalogEntity.Equipment,buildJsonObject { put("name","Stage11 equipment $token");put("description","Synthetic manual instructions") },buildJsonObject { put(name,"Reviewed equipment note") })
             catalog.sync()
@@ -110,7 +110,7 @@ class CatalogIntegrationTest {
             val cache=CachedGrocyRepository(db,address,"private",MutationTransport(300));val repo=GrocyCatalogRepository(setOf("BATTERIES","BATTERIES_TRACK_CHARGE_CYCLE"),db,cache)
             val spec="""{"components":{"schemas":{"ExposedEntity":{"enum":["batteries","userfields"]}}}}"""
             server.enqueue(MockResponse().setBody(spec));server.enqueue(MockResponse().setBody("[]"));server.enqueue(MockResponse().setBody("""[{"entity":"batteries","name":"mystery","caption":"Mystery","type":"future-widget"}]"""));server.enqueue(MockResponse().setBody("[]"))
-            assertTrue(CustomFields.reason(repo.snapshot().definitions("batteries").single())!!.contains("future-widget"));repeat(4){server.takeRequest()}
+            assertTrue(UserfieldTypes.reason(repo.snapshot().userfields("batteries").single())!!.contains("future-widget"));repeat(4){server.takeRequest()}
             repeat(4){server.enqueue(MockResponse().setResponseCode(503))};assertTrue(repo.snapshot().stale);repeat(4){server.takeRequest()}
             server.enqueue(MockResponse().setResponseCode(403));try { repo.snapshot();fail("Used denied cache") }catch(e:GrocyFailure){assertEquals(403,e.status)};server.takeRequest()
             val cycle=repo.charge(2);assertEquals("pending",db.operation(cycle)!!.state)
