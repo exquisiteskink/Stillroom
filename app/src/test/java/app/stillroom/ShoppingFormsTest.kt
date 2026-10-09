@@ -155,7 +155,7 @@ class ShoppingFormsTest {
         }
         compose.setContent { StillroomTheme {
             Column(Modifier.verticalScroll(rememberScrollState())) {
-                CatalogEditor(CatalogEntity.Products, row, CatalogSnapshot(), {}) { fields, _ -> saved = fields }
+                CatalogEditor(CatalogEntity.Products, row, CatalogSnapshot(), false, null, {}) { fields, _, _ -> saved = fields }
             }
         } }
         compose.onNodeWithContentDescription("Description").performTextReplacement("Changed description")
@@ -163,7 +163,8 @@ class ShoppingFormsTest {
         compose.runOnIdle {
             assertNotNull(saved)
             assertEquals("Changed description", saved!!.catalogText("description"))
-            assertEquals(0, BigDecimal("0.5001").compareTo(saved!!.catalogText("min_stock_amount").toBigDecimal()))
+            // Only changed fields are sent: the stored 0.5001 is kept by not sending it at all.
+            assertFalse(saved!!.containsKey("min_stock_amount"))
             assertFalse(saved!!.containsKey("calories"))
             assertFalse(saved!!.containsKey("quick_consume_amount"))
         }
@@ -176,7 +177,7 @@ class ShoppingFormsTest {
             put("qu_id_stock", 3); put("qu_id_purchase", 3); put("qu_id_consume", 3); put("qu_id_price", 3)
         }
         compose.setContent { StillroomTheme {
-            CatalogEditor(CatalogEntity.Products, row, CatalogSnapshot(), {}) { fields, _ -> saved = fields }
+            CatalogEditor(CatalogEntity.Products, row, CatalogSnapshot(), false, null, {}) { fields, _, _ -> saved = fields }
         } }
         compose.onNodeWithText("Advanced product settings").performScrollTo().performClick()
         compose.onNodeWithContentDescription("Calories per stock unit").performScrollTo().performTextReplacement("12")

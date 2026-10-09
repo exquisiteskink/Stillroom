@@ -56,7 +56,6 @@ private enum class HouseholdTab { Chores, Tasks, Catalog }
     KitchenError(state.error)
     KitchenWhisper(if(s.stale)"Showing the last saved records." else null)
     s.unavailable.forEach { Text(it) }
-    s.definitions(entity.entity).mapNotNull(CustomFields::reason).forEach { Text(it) }
     if(entity.writable(account.permissions))PrimaryButton(onClick={create=true},enabled=!state.busy){Text("Add ${entity.singular()}")}
     if(s.rows(entity.entity).isEmpty()) {
         when {
@@ -88,12 +87,20 @@ private enum class HouseholdTab { Chores, Tasks, Catalog }
                 if(HouseholdAccess.has(account.permissions,"BATTERIES"))QuietButton(onClick={model.history(id)},enabled=!state.busy){Text("Charge history")}
             }
             val values=row["userfields"] as? JsonObject
-            s.definitions(entity.entity).filter(CustomFields::supported).forEach { field->Text("${field.catalogText("caption")}: ${values?.catalogText(field.catalogText("name")).orEmpty()}") }
+            s.userfields(entity.entity).forEach { field->UserfieldText.render(field.type,values?.get(field.name),LocalQuantityFormatter.current,Locale.getDefault())?.let { Text("${field.label}: $it") } }
             if(entity.writable(account.permissions))Row { QuietButton(onClick={edit=row},enabled=!state.busy){Text("Edit")};QuietButton(onClick={deletion=id},enabled=!state.busy){Text("Delete")} }
         } }
     }
     }
-    if(create || edit!=null)CatalogEditor(entity,edit,s,{create=false;edit=null}) { fields,custom->model.save(entity,edit?.catalogId("id"),fields,custom);create=false;edit=null }
+    if(create || edit!=null)CatalogEditor(entity,edit,s,state.busy,state.outcome,{create=false;edit=null;model.clearOutcome()}) { fields,custom,extras->model.save(entity,edit?.catalogId("id"),fields,custom,extras) }
+    // Close only when Grocy confirmed the save; after a partial create, keep editing the new record.
+    LaunchedEffect(state.outcome, s) {
+        when(val outcome=state.outcome) {
+            is CatalogSaveOutcome.Saved->{create=false;edit=null;model.clearOutcome()}
+            is CatalogSaveOutcome.Partial->s.rows(entity.entity).find { it.catalogId("id")==outcome.id }?.let { edit=it;create=false }
+            else->Unit
+        }
+    }
     deletion?.let { id->AlertDialog(onDismissRequest={deletion=null},title={Text("Delete ${entity.singular()}?")},text={Text("Grocy checks references and may reject deletion of a record still in use.")},dismissButton={QuietButton(onClick={deletion=null}){Text("Cancel")}},confirmButton={PrimaryButton(onClick={model.delete(entity,id);deletion=null}){Text("Delete")}}) }
     state.history?.let { rows->AlertDialog(onDismissRequest=model::closeHistory,title={Text("Charge cycles")},text={Column(Modifier.verticalScroll(rememberScrollState())) { if(rows.isEmpty())Text("No charges recorded.")
         rows.forEach { row->Text("${row.catalogText("tracked_time")} · ${if(row.catalogText("undone")=="1")"Undone" else "Confirmed"}")
@@ -101,61 +108,90 @@ private enum class HouseholdTab { Chores, Tasks, Catalog }
     }},confirmButton={QuietButton(onClick=model::closeHistory){Text("Close")}}) }
 }
 
-@Composable internal fun CatalogEditor(entity:CatalogEntity,row:JsonObject?,s:CatalogSnapshot,close:()->Unit,save:(JsonObject,JsonObject)->Unit) {
+/**
+ * The one record editor: Household → Records for every record type, and Pantry → Add product /
+ * Edit product for products. Stays open until Grocy confirms the save ([CatalogSaveOutcome.Saved]);
+ * on failure the entries are kept and the reason is shown. Tapping outside does not discard it.
+ */
+@Composable internal fun CatalogEditor(
+    entity:CatalogEntity,row:JsonObject?,s:CatalogSnapshot,busy:Boolean,outcome:CatalogSaveOutcome?,
+    close:()->Unit,save:(JsonObject,JsonObject,ProductExtras)->Unit,
+) {
     val quantities=LocalQuantityFormatter.current
-    val definitions=remember(entity){CatalogFields.fields(entity)}
-    var values by remember { mutableStateOf(definitions.associate { f->f.name to (row?.get(f.name) ?: if(f.kind==CatalogKind.Toggle)JsonPrimitive(if(f.name=="active")1 else 0) else JsonNull) }) }
-    val amounts=remember { definitions.filter { it.kind==CatalogKind.Decimal }.associate { field->
-        val original=(row?.get(field.name) as? JsonPrimitive)?.contentOrNull?.toBigDecimalOrNull()
-        field.name to original?.let { RecipeAmountInput(it,Locale.getDefault(),quantities) }
-    } }
-    var decimalTexts by remember { mutableStateOf(amounts.mapValues { it.value?.text.orEmpty() }) }
+    val locale=Locale.getDefault()
+    val form=remember(row) { CatalogForm(entity,row,quantities,locale) }
+    var texts by remember { mutableStateOf(form.initial()) }
     var advanced by remember { mutableStateOf(false) }
-    val basicProductFields = setOf("name", "description", "location_id", "qu_id_stock", "qu_id_purchase", "qu_id_consume", "qu_id_price")
-    val custom=s.definitions(entity.entity)
+    val basicProductFields = setOf("name", "description", "product_group_id", "location_id", "qu_id_stock", "qu_id_purchase", "qu_id_consume", "qu_id_price")
+    val custom=s.userfields(entity.entity)
     val original=row?.get("userfields") as? JsonObject
-    var customValues by remember { mutableStateOf(custom.filter(CustomFields::supported).associate { it.catalogText("name") to (original?.catalogText(it.catalogText("name")) ?: it.catalogText("default_value")) }) }
-    fun payload():JsonObject=buildJsonObject { for(f in definitions) {
-        val value=if(f.kind==CatalogKind.Decimal) {
-            val text=decimalTexts[f.name].orEmpty();val input=amounts[f.name]
-            when {
-                text.isBlank()->JsonNull
-                input!=null->Json.parseToJsonElement(input.saved().toPlainString())
-                else->Json.parseToJsonElement((QuantityFractions().parse(text,Locale.getDefault())?.value ?: error("Enter a quantity.")).toPlainString())
+    var touched by remember { mutableStateOf(mapOf<String,String>()) }
+    fun current(field:UserfieldDefinition)=touched[field.name] ?: UserfieldValues.initial(field,(original?.get(field.name) as? JsonPrimitive)?.contentOrNull,row==null)
+    // Product extras: purchase → stock factor and new barcodes.
+    val product=entity==CatalogEntity.Products
+    val id=row?.catalogId("id")
+    val purchase=texts["qu_id_purchase"]?.toLongOrNull(); val stock=texts["qu_id_stock"]?.toLongOrNull()
+    val currentFactor=ProductExtrasForm.currentFactor(s.rows("quantity_unit_conversions"),id,purchase,stock)
+    var factorText by remember { mutableStateOf<String?>(null) }
+    val shownFactor=factorText ?: currentFactor.stripTrailingZeros().toPlainString()
+    var barcodesText by remember { mutableStateOf("") }
+    val ownBarcodes=s.rows("product_barcodes").filter { id!=null && it.catalogId("product_id")==id }.map { it.catalogText("barcode") }
+    val newBarcodes=ProductExtrasForm.parseBarcodes(barcodesText).filter { it !in ownBarcodes }
+    val fieldErrors=form.errors(texts)
+    val customErrors=custom.filter { UserfieldTypes.editable(it.type) }.mapNotNull { f-> UserfieldValues.error(f,current(f),locale) }
+    val extraErrors=if(product)ProductExtrasForm.errors(shownFactor,purchase,stock,newBarcodes,s.rows("product_barcodes").map { it.catalogText("barcode") },locale) else emptyMap()
+    val blockedCreate=if(row==null)custom.firstOrNull { it.inputRequired && !UserfieldTypes.editable(it.type) } else null
+    val problems=fieldErrors.values+customErrors+extraErrors.values+listOfNotNull(blockedCreate?.let { "Required custom field ${it.label} must be filled in Grocy's web app first." })
+    val title=(if(row==null)"Add " else "Edit ")+entity.singular()
+    AlertDialog(onDismissRequest={},properties=androidx.compose.ui.window.DialogProperties(dismissOnClickOutside=false),title={Text(title)},text={Column(Modifier.verticalScroll(rememberScrollState()),verticalArrangement=Arrangement.spacedBy(16.dp)) {
+        form.fields.filter { !product || advanced || it.name in basicProductFields }.forEach { f->
+            val error=fieldErrors[f.name]
+            val text=texts[f.name].orEmpty()
+            fun set(value:String){texts=texts+(f.name to value)}
+            when(f.kind) {
+                CatalogKind.Reference->{
+                    val none=when(f.name){ "qu_id_consume"->"Same as stock unit"; "qu_id_price"->"Same as purchase unit"; else->"None" }
+                    ChoiceField(f.label+if(form.optional(f))"" else " (required)",s.rows(f.reference!!).mapNotNull { r->r.catalogId("id")?.let { it to r.catalogText("name") } },text.toLongOrNull(),{ v->set(v?.toString().orEmpty()) },allowNone=form.optional(f),noneLabel=none,enabled=!busy)
+                    error?.let { Text(it,color=MaterialTheme.colorScheme.error) }
+                }
+                CatalogKind.Toggle->CheckRow(f.label,text=="1",!busy) { set(if(it)"1" else "0") }
+                else->LabeledTextField(text,::set,label=f.label+if(form.optional(f))"" else " (required)",enabled=!busy,isError=error!=null,
+                    supportingText=error ?: when(f.kind){ CatalogKind.Decimal->"1.5 and 1½ both work"; else->null })
             }
-        } else values.getValue(f.name)
-        if(value!=JsonNull || f.kind==CatalogKind.Reference)put(f.name,value)
-    } }
-    val valid=runCatching {
-        val fields=payload();CatalogFields.validate(entity,fields)
-        require(definitions.filter { it.required }.all { fields[it.name]!=null && fields[it.name]!=JsonNull })
-        custom.filter(CustomFields::supported).forEach { CustomFields.validate(it,customValues[it.catalogText("name")].orEmpty()) }
-        require(row!=null || custom.none { !CustomFields.supported(it) && it.catalogText("input_required")=="1" })
-    }.isSuccess
-    AlertDialog(onDismissRequest=close,title={Text(if(row==null)"Add ${entity.singular()}" else "Edit ${entity.singular()}")},text={Column(Modifier.verticalScroll(rememberScrollState()),verticalArrangement=Arrangement.spacedBy(16.dp)) {
-        definitions.filter { entity != CatalogEntity.Products || advanced || it.name in basicProductFields }.forEach { f->when(f.kind) {
-            CatalogKind.Reference->CatalogReference(f.label,s.rows(f.reference!!),values[f.name]?.jsonPrimitive?.longOrNull,!f.required) { id->values=values+(f.name to (id?.let(::JsonPrimitive) ?: JsonNull)) }
-            CatalogKind.Toggle->RecordToggle(f.label, values[f.name]?.jsonPrimitive?.content=="1") { checked->values=values+(f.name to JsonPrimitive(if(checked)1 else 0)) }
-            CatalogKind.Decimal->LabeledTextField(decimalTexts[f.name].orEmpty(),{text->amounts[f.name]?.change(text);decimalTexts=decimalTexts+(f.name to text)},label = f.label)
-            else->LabeledTextField((values[f.name] as? JsonPrimitive)?.contentOrNull.orEmpty(),{text->values=values+(f.name to if(f.kind==CatalogKind.Whole && text.toLongOrNull()!=null)JsonPrimitive(text.toLong()) else JsonPrimitive(text))},label = f.label, isError = !runCatching { val fieldValue=values.getValue(f.name); if(f.required)require(fieldValue!=JsonNull && (fieldValue as? JsonPrimitive)?.contentOrNull?.isNotBlank()==true); if(fieldValue!=JsonNull)CatalogFields.validate(entity,JsonObject(mapOf(f.name to fieldValue))) }.isSuccess, supportingText = if(f.required) "Required" else null)
-        } }
-        if(entity==CatalogEntity.Products)QuietButton(onClick={advanced=!advanced}){Text(if(advanced) "Hide advanced product settings" else "Advanced product settings")}
-        if(entity==CatalogEntity.Products)QuietButton(onClick={values["qu_id_stock"]?.takeIf { it!=JsonNull }?.let { stock->values=values+listOf("qu_id_purchase","qu_id_consume","qu_id_price").associateWith { stock } }}){Text("Use selected stock unit for purchase, consume and price")}
-        custom.forEach { field->val key=field.catalogText("name");val reason=CustomFields.reason(field)
-            if(reason!=null)Text(reason) else if(field.catalogText("type")=="checkbox")RecordToggle(field.catalogText("caption"),customValues[key]=="1"){customValues=customValues+(key to if(it)"1" else "0")}
-            else LabeledTextField(customValues[key].orEmpty(),{customValues=customValues+(key to it)},label = field.catalogText("caption")+if(field.catalogText("input_required")=="1")" (required)" else "")
         }
-        if(!valid)Text("Check required fields and values before saving.",color=MaterialTheme.colorScheme.error)
-        if(row!=null)Text("Additional server fields and unsupported custom values remain unchanged.")
-    }},dismissButton={QuietButton(onClick=close){Text("Cancel")}},confirmButton={PrimaryButton(onClick={save(payload(),buildJsonObject { customValues.forEach { (key,value)->put(key,value) } })},enabled=valid){Text("Save")}})
+        if(product) {
+            QuietButton(onClick={advanced=!advanced}){Text(if(advanced) "Hide advanced product settings" else "Advanced product settings")}
+            if(purchase!=null && stock!=null && purchase!=stock) {
+                val unitName={ u:Long-> s.rows("quantity_units").find { it.catalogId("id")==u }?.catalogText("name").orEmpty() }
+                LabeledTextField(shownFactor,{ factorText=it },label="Stock units per ${unitName(purchase)} (${unitName(stock)})",enabled=!busy,isError=extraErrors["factor"]!=null,
+                    supportingText=extraErrors["factor"] ?: "Saved as this product's ${unitName(purchase)} → ${unitName(stock)} conversion in Grocy.")
+            }
+            if(ownBarcodes.isNotEmpty())Text("Barcodes: "+ownBarcodes.joinToString(", "))
+            LabeledTextField(barcodesText,{ barcodesText=it },label="Add barcodes",enabled=!busy,isError=extraErrors["barcodes"]!=null,
+                supportingText=extraErrors["barcodes"] ?: "One per line. Existing barcodes are changed in Grocy's web app.")
+        }
+        if(custom.isNotEmpty())Text("Custom fields",style=MaterialTheme.typography.titleMedium)
+        custom.forEach { field-> UserfieldEditor(field,current(field),{ touched=touched+(field.name to it) },enabled=!busy) }
+        blockedCreate?.let { Text("Required custom field ${it.label} (${UserfieldText.typeLabel(it.type)}) cannot be filled here, so this record must be created in Grocy's web app.",color=MaterialTheme.colorScheme.error) }
+        if(busy)TaskProgress()
+        when(outcome) {
+            is CatalogSaveOutcome.Failed->Text(outcome.message,color=MaterialTheme.colorScheme.error)
+            is CatalogSaveOutcome.Partial->Text(outcome.message,color=MaterialTheme.colorScheme.error)
+            is CatalogSaveOutcome.Unconfirmed->Text(outcome.message,color=MaterialTheme.colorScheme.error)
+            else->Unit
+        }
+        if(problems.isNotEmpty() && !busy)Text("Check: "+problems.first(),color=MaterialTheme.colorScheme.error)
+        if(row!=null)Text("Only changed values are sent. Other server fields, files and images stay as they are.",style=MaterialTheme.typography.bodySmall)
+    }},dismissButton={QuietButton(onClick=close,enabled=!busy){Text("Cancel")}},confirmButton={PrimaryButton(onClick={
+        runCatching {
+            val fields=form.payload(texts)
+            val values=UserfieldValues.changes(custom,original,custom.associate { it.name to current(it) },locale)
+            val extras=if(product)ProductExtrasForm.build(shownFactor,currentFactor,purchase,stock,newBarcodes,locale) else ProductExtras()
+            save(fields,values,extras)
+        }
+    },enabled=problems.isEmpty() && !busy){Text(if(busy)"Saving…" else "Save")}})
 }
 @Composable private fun CatalogReference(label:String,rows:List<JsonObject>,selected:Long?,nullable:Boolean,choose:(Long?)->Unit) {
     ChoiceField(label, rows.mapNotNull { row -> row.catalogId("id")?.let { it to row.catalogText("name") } }, selected, choose, allowNone=nullable)
 }
 
-@Composable private fun RecordToggle(label:String,checked:Boolean,onChange:(Boolean)->Unit) {
-    Row(Modifier.fillMaxWidth().heightIn(min=48.dp).toggleable(value=checked,role=Role.Checkbox,onValueChange=onChange),verticalAlignment=Alignment.CenterVertically) {
-        Checkbox(checked,null)
-        Text(label,Modifier.weight(1f))
-    }
-}

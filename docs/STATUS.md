@@ -382,3 +382,12 @@ Actual validation:
 
 - `./gradlew assembleDebug testDebugUnitTest` passed **146 app tests, 0 failures, 6 skipped** (the live-server cases, no fixture variables). The same command on the base (feat/quantity-display-style + fix/account-switch-stale-results) passed 131 tests, 6 skipped. New: `StockDetailsTest` (13) and `StockDetailsUiTest` (2, Robolectric).
 - Userfield bulk availability was checked against the recorded Grocy 4.6.0/4.7.1 responses in `docs/evidence/stage1/`, not a live server. **No phone, emulator, or live Grocy test ran for this change.**
+
+### Pantry product editor — 2026-10-08
+
+Pantry → Add product and product page → Edit product open the shared record editor (also Household → Records). It covers core Grocy product fields, the purchase → stock conversion factor, new barcodes, and every product userfield through one typed editor. The catalog editor's non-Grocy userfield type names were fixed at the root. Writes go through the existing outbox; only Grocy-confirmed saves close the editor. Details: `docs/PRODUCT_EDITOR.md`.
+
+Actual validation:
+
+- `./gradlew assembleDebug testDebugUnitTest` passed **162 app tests, 0 failures, 6 skipped** (the live-server cases). The base (feat/stock-shown-details) passed 146. New: `ProductEditorTest` (10), `ProductEditorIntegrationTest` (4, MockWebServer standing in for Grocy plus production Room outbox), and `ProductEditorUiTest` (2, Robolectric). `CatalogTest` and `ShoppingFormsTest` were updated for the shared userfield model and edits that send only changed fields.
+- **No phone, emulator, or live Grocy test ran for this change.** Field requirements come from Grocy's migrations and the recorded 4.6.0/4.7.1 evidence.

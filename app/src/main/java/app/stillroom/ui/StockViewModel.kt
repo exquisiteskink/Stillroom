@@ -15,7 +15,14 @@ data class StockUiState(
     val selected: Long? = null, val bookingOperation: String? = null, val operations: List<PendingChange> = emptyList(),
     /** Settings → Stock → Shown details for this account; null means defaults (unchanged rows). */
     val detailSettings: List<StockDetailSetting>? = null,
+    /** Pantry → Add/Edit product: the open editor (null id = new product), its data and last result. */
+    val productEditor: ProductEditorTarget? = null,
+    val catalog: CatalogSnapshot? = null,
+    val productOutcome: CatalogSaveOutcome? = null,
+    val productMessage: String? = null,
 )
+
+data class ProductEditorTarget(val id: Long?)
 
 /** Product userfield definitions, or null when they could not be read (older server, no access, not loaded yet). */
 internal fun StockUiState.userfieldDefinitions(): List<UserfieldDefinition>? =
@@ -45,11 +52,41 @@ class StockViewModel(
     }
     fun refresh() = execute {
         accounts.drainStock()
+        reloadAll()
+    }
+    private suspend fun AccountBoundState<StockUiState>.Publisher.reloadAll() {
         val paths = listOf("/stock", "/stock/volatile", "/objects/products", "/objects/locations", "/objects/quantity_units", "/objects/product_barcodes", "/objects/stock_log", "/objects/quantity_unit_conversions_resolved", "/openapi/specification") +
             state.value.selected?.let { listOf("/stock/products/$it", "/stock/products/$it/locations", "/stock/products/$it/entries", "/stock/products/$it/price-history") }.orEmpty()
         load(paths)
         load(locationPaths())
         loadOptional(OPTIONAL_PATHS)
+    }
+
+    /**
+     * Product editing from the pantry. Uses the same catalog repository and editor as
+     * Household → Records, inside this view model's account-bound state, so an account switch
+     * closes the editor and drops any late result.
+     */
+    fun openProductEditor(id: Long?) {
+        if (state.value.busy || !CatalogEntity.Products.writable(identity?.permissions)) return
+        ui.update { it.copy(productEditor = ProductEditorTarget(id), productOutcome = null, productMessage = null) }
+        execute { val snapshot = accounts.withCatalog { it.snapshot() }; publish { it.copy(catalog = snapshot) } }
+    }
+    fun closeProductEditor() { if (!state.value.busy) ui.update { it.copy(productEditor = null, productOutcome = null) } }
+    fun saveProduct(fields: JsonObject, userfields: JsonObject, extras: ProductExtras) = execute {
+        val target = state.value.productEditor ?: return@execute
+        publish { it.copy(productOutcome = null, productMessage = null) }
+        val (outcome, snapshot) = accounts.withCatalog { catalog ->
+            val result = catalog.saveAndSync(CatalogEntity.Products, target.id, fields, userfields, extras)
+            result to runCatching { catalog.snapshot() }.getOrNull()
+        }
+        publish { current -> current.copy(
+            productOutcome = outcome, catalog = snapshot ?: current.catalog,
+            // Close only on a confirmed save; after a partial create keep editing the new product.
+            productEditor = when (outcome) { is CatalogSaveOutcome.Saved -> null; is CatalogSaveOutcome.Partial -> ProductEditorTarget(outcome.id); else -> current.productEditor },
+            productMessage = if (outcome is CatalogSaveOutcome.Saved) "Product saved in Grocy." else null,
+        ) }
+        if (outcome is CatalogSaveOutcome.Saved || outcome is CatalogSaveOutcome.Partial) reloadAll()
     }
 
     /** Shown details: changes apply to the active account only and are saved on this phone. */

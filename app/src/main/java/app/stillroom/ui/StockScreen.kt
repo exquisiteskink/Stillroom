@@ -33,6 +33,7 @@ fun StockScreen(model: StockViewModel, grants: Set<String>?, barcodeOnly: Boolea
     var location by remember { mutableStateOf<Long?>(null) }
     LaunchedEffect(Unit) { if (!state.denied) model.refresh() }
     if (state.denied || !StockAccess.canRead(grants)) { PermissionDeniedState(); return }
+    ProductEditorHost(state, model)
     val selected = state.selected
     androidx.activity.compose.BackHandler(enabled=selected!=null) { if(!state.busy) model.select(null) }
     if (selected != null) {
@@ -87,10 +88,12 @@ fun StockScreen(model: StockViewModel, grants: Set<String>?, barcodeOnly: Boolea
                 Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     tabs.forEach { tab -> FilterChip(filter == tab, { filter = tab }, { Text(labeled(tab)) }) }
                 }
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    if (!barcodeOnly && CatalogEntity.Products.writable(grants)) QuietButton(onClick = { model.openProductEditor(null) }, enabled = !state.busy) { Text("Add product") }
                     QuietButton(onClick={filter="Locations"}) { Text("Browse locations") }
                     QuietButton(onClick={filter="Journal"}) { Text("View stock history") }
                 }
+                KitchenWhisper(state.productMessage)
                 location?.let { id ->
                     Text("In " + (state.rows("/objects/locations").find { it.text("id") == id.toString() }?.text("name") ?: "this location"), color = MaterialTheme.colorScheme.onSurfaceVariant)
                     QuietButton(onClick = { location = null }) { Text("Show every location") }
@@ -191,6 +194,9 @@ private fun StockDetail(state: StockUiState, id: Long, model: StockViewModel, gr
     KitchenError(state.error)
     if(state.busy) TaskProgress()
     if(product.text("description").isNotBlank()) Text(product.text("description"))
+    if (CatalogEntity.Products.writable(grants)) SecondaryButton(onClick = { model.openProductEditor(id) }, enabled = !state.busy) { Text("Edit product") }
+    else Text("Editing products needs Grocy's master-data permission (MASTER_DATA_EDIT) for this account.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+    KitchenWhisper(state.productMessage)
     Text("Stock ${quantity(detail.decimal("stock_amount"))} · opened ${quantity(detail.decimal("stock_amount_opened"))} · due ${detail.text("next_due_date")}")
     StockForm(state, product, model::book, model::clearBookingOutcome, grants, scannerActions)
     var showDetails by remember(id) { mutableStateOf(false) }
@@ -325,4 +331,25 @@ internal fun ScannerStockReview(state:StockUiState,id:Long,model:StockViewModel,
     KitchenWhisper(if(state.stale) "Showing last synced stock." else null)
     KitchenError(state.error)
     key(id,action) { StockForm(state,product,model::book,model::clearBookingOutcome,grants,true,action) }
+}
+
+/** Pantry → Add product / Edit product, using the shared record editor. */
+@Composable
+private fun ProductEditorHost(state: StockUiState, model: StockViewModel) {
+    val target = state.productEditor ?: return
+    val catalog = state.catalog
+    val row = target.id?.let { id -> catalog?.rows("products")?.find { it.text("id") == id.toString() }
+        // After a partial create the product exists even if the refreshed list did not arrive: keep the entries.
+        ?: (state.productOutcome as? CatalogSaveOutcome.Partial)?.takeIf { it.id == id }?.let { buildJsonObject { put("id", id) } } }
+    if (catalog == null || (target.id != null && row == null)) {
+        AlertDialog(onDismissRequest = {}, title = { Text(if (target.id == null) "Add product" else "Edit product") },
+            text = { Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                if (state.busy) { TaskProgress(); Text("Loading product data from Grocy…") }
+                else Text(state.error ?: "This product could not be loaded from Grocy.", color = MaterialTheme.colorScheme.error)
+            } },
+            confirmButton = { QuietButton(onClick = model::closeProductEditor, enabled = !state.busy) { Text("Close") } })
+        return
+    }
+    // No key: after a partial create the same editor continues on the new product with the user's entries.
+    CatalogEditor(CatalogEntity.Products, row, catalog, state.busy, state.productOutcome, model::closeProductEditor, model::saveProduct)
 }
