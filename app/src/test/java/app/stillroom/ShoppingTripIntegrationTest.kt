@@ -82,12 +82,15 @@ class ShoppingTripIntegrationTest {
         assertTrue(runCatching { repository.submit() }.isFailure)
         assertEquals(0,posts.get());assertTrue(db.operations().isEmpty());assertFalse(repository.snapshot().submitted)
     }
-    @Test fun externalOwnerAndRevokedOrDisabledAccessBlockBooking()=runBlocking(Dispatchers.IO) {
+    @Test fun legacyExternalSettingDoesNotBlockNewExplicitTripPurchases()=runBlocking(Dispatchers.IO) {
         val repository=repo();repository.add(booking(1))
-        db.put("addon-settings","current",AddonSettings(shoppingPurchaseOwner="external").json())
-        assertTrue(runCatching { repository.submit() }.isFailure)
+        db.put("addon-settings","current","""{"purchase_owner":"external"}""")
+        assertTrue(repository.submit().confirmed);assertEquals(1,posts.get())
+    }
+    @Test fun revokedOrDisabledAccessStillBlocksBooking()=runBlocking(Dispatchers.IO) {
+        val repository=repo();repository.add(booking(1))
         assertTrue(runCatching { repo(emptySet()).snapshot() }.isFailure)
-        db.put("addon-settings","current",AddonSettings().json());db.put("/system/config","current","{\"FEATURE_FLAG_STOCK\":false}")
+        db.put("/system/config","current","{\"FEATURE_FLAG_STOCK\":false}")
         assertTrue(runCatching { repository.submit() }.isFailure);assertEquals(0,posts.get())
     }
     @Test fun cancellationBeforeRequestRestoresGuardedStateAndOrdinarySyncCannotReplayIt()=runBlocking(Dispatchers.IO) {

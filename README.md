@@ -59,7 +59,7 @@ Stillroom is built for **Grocy 4.7**. Pantry and shopping also work with **4.6**
 Install the signed APK from GitHub.
 
 1. On your phone, open **[Releases](https://github.com/exquisiteskink/Stillroom/releases/latest)**.
-2. Download `Stillroom-0.3.apk` (or the newest `Stillroom-*.apk`).
+2. Download `Stillroom-0.4.apk` (or the newest `Stillroom-*.apk`).
 3. Open the file. If Android blocks it, allow installs from that browser or Files app, then open the APK again.
 4. Tap **Install**, then open Stillroom.
 5. [Connect to Grocy](#connect-to-grocy) with an API key.
@@ -115,7 +115,7 @@ What is in stock: name on the left, amount on the right, due date under the name
 
 ### Shop
 
-Shopping lists from Grocy. **At the store** enlarges the list. Checking off a product adds its amount to your pantry. Tap an amount to edit it; press and hold a row to remove it. If another tool books your purchases, select it under **Settings → Grocy add-ons → Shopping purchases** so checkboxes only cross items off.
+Shopping lists from Grocy. **At the store** enlarges the list. Check an unfinished product to choose **Buy and add to pantry** or **Mark done**. Mark done only crosses the item off, which is useful after scanning or importing the purchase elsewhere. Unchecking a completed item puts it back on the list without changing stock. Tap an amount to edit it; press and hold a row, then confirm **Remove**, to remove it. All scanning and import methods stay available together.
 
 ### Meals
 
@@ -135,7 +135,7 @@ Camera permission is optional; typing always works. The camera looks up Grocy's 
 
 ### Grocy add-ons
 
-Under **Settings → Grocy add-ons**, control public barcode lookups, choose which tool books shopping purchases, save a web shortcut, or connect BarcodeBuddy with an administrator account. Household also offers Grocy custom records and their image/file attachments.
+Under **Settings → Grocy add-ons**, control public barcode lookups, save a web shortcut, or connect BarcodeBuddy with an administrator account. Household also offers Grocy custom records and their image/file attachments.
 
 ### Home screen
 

@@ -7,12 +7,13 @@ Authorized by the user on 2026-10-09 after the ecosystem research. Grocy remains
 Settings → Grocy add-ons contains account-specific settings and external-change diagnostics:
 
 - Check changes immediately, control the anonymous Open Food Facts fallback, and inspect disabled server features.
-- Choose **Stillroom checkbox** or **Another scanner or importer** as the shopping purchase owner. The default retains checkbox-to-pantry behavior. External ownership makes checkboxes only cross out items; it also holds unsent pending Stillroom shopping purchases. Previously confirmed purchases still finish their list completion.
 - Save an optional web add-on shortcut, with explicit HTTP opt-in. Links are opened in the system browser without either API key. Browser authentication remains independent.
 - Administrators can save a separate BarcodeBuddy API URL/key, test its connection/current mode, and select **BarcodeBuddy** in the scanner. A detected code is reviewed before **Send scan to BarcodeBuddy**. It uses BarcodeBuddy's current shared mode without changing that mode. The mode can change between review and submission. The BarcodeBuddy route does not call Stillroom's product-creation or stock-booking flow.
 - Users with master-data editing permission can manage Grocy custom records, select an entity, browse 50 named records per page, create/edit typed fields, remove records with confirmation, upload image/file fields, preview images, and save files through Android's document picker. Entity and field definitions remain managed in Grocy. Stillroom's reserved shopping coordination records are hidden.
 
 BarcodeBuddy credentials use the existing Keystore-backed encrypted account store in a separate namespace; they never enter settings JSON, HTTP logs, browser links, or Grocy request headers. Logout removes the extra credential record. A failed BarcodeBuddy key does not revoke Grocy access. Administrator-only routing avoids silently using an add-on's more powerful credential from a restricted account.
+
+Shopping-list products offer **Buy and add to pantry** or **Mark done** per item. All scanners/importers remain available together; the global purchase-owner setting has been retired. See [SHOPPING.md](SHOPPING.md) for the upgrade behavior of formerly held purchases.
 
 ## Synchronization and capabilities
 

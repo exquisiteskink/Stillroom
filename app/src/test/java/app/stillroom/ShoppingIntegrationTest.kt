@@ -181,8 +181,23 @@ class ShoppingIntegrationTest {
         } finally { reopened.close() }
     } }
 
+    @Test fun markDoneAndReopenOnlyChangeTheListWithoutPurchasingStock() = runBlocking(Dispatchers.IO) { mockTest { address, fixture ->
+        val (repo, db) = client(address, "synthetic", "mark-done")
+        val original = fixture.current
+        repo.save(ShoppingDraft(1, 3, original.shoppingText("note"), BigDecimal("2.5"), 4, true), original)
+        repo.sync()
+        assertEquals("1", fixture.current.shoppingText("done"))
+        assertEquals(0, fixture.purchases)
+        repo.save(ShoppingDraft(1, 3, original.shoppingText("note"), BigDecimal("2.5"), 4, false), fixture.current)
+        repo.sync()
+        assertEquals("0", fixture.current.shoppingText("done"))
+        assertEquals(0, fixture.purchases)
+        assertTrue(db.shoppingOperations().all { it.state == "confirmed" })
+    } }
+
     @Test fun purchaseReceiptAllowsLaterEditsButBlocksAnotherCheckout() = runBlocking(Dispatchers.IO) { mockTest { address, fixture ->
-        val (a, _) = client(address, "synthetic", "shopping_a"); val (b, _) = client(address, "synthetic", "shopping_b")
+        val (a, db) = client(address, "synthetic", "shopping_a"); val (b, _) = client(address, "synthetic", "shopping_b")
+        db.put("addon-settings", "current", """{"purchase_owner":"external"}""")
         a.purchase(row(), StockBooking(StockAction.Purchase, 3, BigDecimal.ONE)); a.sync()
         assertEquals("confirmed", a.changes().single().state)
         assertFalse(fixture.claims.containsKey(ShoppingClaims.id("shopping_list", row()).toString()))

@@ -1,5 +1,26 @@
 # Changelog
 
+## 0.4 — 2026-10-10
+
+Shopping is clearer, and removing an item now gives you a chance to cancel. Download `Stillroom-0.4.apk` from [Releases](https://github.com/exquisiteskink/Stillroom/releases/latest) and install it over your official Stillroom release to keep your saved accounts.
+
+### Choose what happens when you check an item
+
+- Checking a shopping-list product now offers two choices: **Buy and add to pantry** adds its listed amount to Grocy stock and marks it done; **Mark done** only crosses it off the list.
+- Use **Mark done** when a scanner or importer has already added the groceries to your pantry. Note-only items still check off directly.
+- The **Shopping purchases** setting has been removed. Stillroom scanning, shopping-trip purchases, BarcodeBuddy, and other importers can all be used without switching a global setting.
+- Uncheck a completed item to put it back on the list. This leaves your pantry stock unchanged.
+
+### Confirm before removing
+
+- Press and hold a shopping item to open **Remove [item]?**. Tap **Remove** to delete it from the list, or **Cancel** to keep it.
+- Removing a list item leaves your pantry stock unchanged.
+
+### Safer shopping updates
+
+- Items waiting to sync or needing review block further purchase, completion, and removal actions until their existing change is resolved.
+- If the old setting had paused a purchase, upgrading keeps it for review instead of sending it automatically.
+
 ## 0.3 — 2026-10-10
 
 More help with shopping, everyday tasks, and time in the kitchen. Download `Stillroom-0.3.apk` from [Releases](https://github.com/exquisiteskink/Stillroom/releases/latest) and install it over the official 0.2 release to keep your saved accounts.

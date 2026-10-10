@@ -36,9 +36,6 @@ fun AddonSettingsScreen(model:AddonViewModel) {
         if(state.observation.capabilities.disabled.isNotEmpty())Text("Disabled in Grocy: ${state.observation.capabilities.disabled.sorted().joinToString()}")
         QuietButton(onClick=model::refresh,enabled=!state.busy) { Text("Check external changes") }
         SettingToggle("Use public barcode lookup",draft.publicLookup,supportingText="Use Open Food Facts when Grocy's lookup cannot find a product.",onChange={draft=draft.copy(publicLookup=it)})
-        Text("Shopping purchases",style=MaterialTheme.typography.titleMedium)
-        ChoiceField("Who adds purchases to pantry?",listOf(0L to "Stillroom checkbox",1L to "Another scanner or importer"),if(draft.shoppingPurchaseOwner=="external")1L else 0L,{draft=draft.copy(shoppingPurchaseOwner=if(it==1L)"external" else "stillroom")},enabled=!state.busy)
-        Text(if(draft.shoppingPurchaseOwner=="external")"Checking a grocery item only crosses it out. Your other tool must add the purchase to Grocy." else "Checking a grocery item adds its quantity to Grocy stock.",style=MaterialTheme.typography.bodySmall)
         LabeledTextField(draft.webAddonUrl,{draft=draft.copy(webAddonUrl=it)},"Web add-on URL (optional)",singleLine=true,modifier=Modifier.fillMaxWidth())
         SettingToggle("Allow HTTP for web add-on",draft.webAddonInsecure,onChange={draft=draft.copy(webAddonInsecure=it)})
         if(draft.webAddonUrl.isNotBlank())QuietButton(onClick={

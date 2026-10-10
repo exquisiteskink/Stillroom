@@ -2,9 +2,36 @@
 
 Authorized stage: **11 only**, per the user request on 2026-10-07. Stages 0 through 11 are complete.
 
-Current scope: Stage 11 complete. The user authorized the existing-screen Android design/scanning redesign on 2026-10-07; no new Grocy capabilities are included. The user subsequently authorized defect review and cleanup on 2026-10-07, limited to already-started behavior. No further feature stage is authorized. See [defect review](REVIEW.md) for fixes, regression names, and remaining risks.
+Current scope: Stages 0–11 and the subsequent 0.3 additions are complete. On 2026-10-10 the user authorized replacing the global shopping purchase-owner setting with per-item buy/mark-done choices and adding confirmation before long-press removal. This is maintenance of existing shopping and scanner behavior; no new feature stage is authorized.
 
-Current gate: `mise run stage:11` (existing local Grocy battery-cycle/unit-conversion parity, regressions, lint, and build).
+Current gate for this maintenance: debug build, full host regression suite, shopping/add-on/priority-one scoped coverage gates, separate Android lint, and diff review. Historical stage gates remain documented below.
+
+## Release 0.4 preparation — 2026-10-10
+
+The user authorized publishing the shopping item actions and removal confirmation as version 0.4, with an easy-to-understand changelog. Android versionName is 0.4; versionCode is 4. User release notes: [CHANGELOG.md](../CHANGELOG.md).
+
+Actual validation:
+
+- `mise exec -- ./gradlew :app:assembleRelease :app:testDebugUnitTest :fractions:test :app:shoppingCoverageVerification :app:priorityOneCoverageVerification :app:addonCoverageVerification --max-workers=1` passed. App: **277 cases, 271 passed, 6 skipped, 0 failures/errors**. Fractions: **23 passed** (unchanged Gradle outputs reused). All three existing 80% scoped coverage gates passed; they do not measure whole-app coverage or physical-device behavior.
+- Signed APK metadata: `app.stillroom`, versionName **0.4**, versionCode **4**, minSdk **26**, targetSdk **35**. `apksigner verify --verbose --print-certs` and `zipalign -c -P 16 4` passed. Certificate SHA-256 `35b617c8fd0a8bfa1aad1d63abd4f361629d031007c85a58a3b2df4f28f60d3b` matches the official releases. APK SHA-256: `c38dc06f3230164485f08ae356109db6bd7787644274629ec51a2077061690e4`.
+- Separate `mise exec -- ./gradlew :app:lintRelease --max-workers=1` passed: **0 errors, 42 warnings**, 1 informational finding. Debug lint for the unchanged shopping implementation passed in the maintenance checks below. `git diff --check` passed.
+- **No new live Grocy/add-on, emulator, physical-phone/camera or installation checks ran.** The six live-fixture cases remain skipped.
+
+## Shopping item actions and removal confirmation — 2026-10-10
+
+Unfinished products now open a **Buy and add to pantry** / **Mark done** dialog. Mark done and reopening completed items change only the list. Note-only checkboxes remain direct. Long press (including its accessibility action) opens **Remove [item]?**; only its Remove button queues deletion. Unresolved row operations block new completion, purchase and removal. Buy also respects stock permissions, product availability, positive quantities and server purchase capability.
+
+Removed the global purchase-owner control from settings, settings serialization, shopping dispatch and shopping-trip UI/repository guards. All native and external purchase methods remain available. Existing guarded operations and purchase receipts remain intact. On database open, a transaction removes the legacy setting and holds formerly paused pending purchases as conflicts for explicit review, preserving other settings, edits and purchased states. It runs once per account's legacy settings; new purchases are unaffected.
+
+Actual validation:
+
+- Before implementation, the focused regression run failed **14 cases** against the old shopping/owner/removal behavior. After implementation, the focused shopping UI/repository/upgrade checks passed.
+- Final `mise exec -- ./gradlew :app:assembleDebug :app:testDebugUnitTest :fractions:test :app:shoppingCoverageVerification :app:priorityOneCoverageVerification :app:addonCoverageVerification --max-workers=1` passed. App: **277 cases, 271 passed, 6 skipped, 0 failures/errors**; fractions: **23 passed** (unchanged outputs reused). This adds **10 host cases** beyond 0.3, alongside rewritten existing regressions. Tests cover exact purchases, list-only completion/reopening, cancel/confirm removal, accessibility removal, permission/server-feature restrictions, pending-action guards, scanner availability and durable account-cache upgrade.
+- Existing 80% scoped line coverage gates passed: shopping **86.90% (272/313)**, priority one **94.67% (160/169)**, add-ons **90.04% (235/261)**. These scopes exclude Compose and are not whole-app coverage claims. UI behavior was exercised through Robolectric Compose host tests.
+- Separate `mise exec -- ./gradlew :app:lintDebug --max-workers=1` passed: **0 errors, 42 warnings**, 1 informational finding. `git diff --check` passed.
+- Debug APK: `app/build/outputs/apk/debug/app-debug.apk`. **No live Grocy/add-on, emulator, physical-phone/camera or browser checks ran.** No installation or GitHub publication was performed for this maintenance.
+
+The user subsequently authorized publishing these changes as version 0.4 on 2026-10-10.
 
 ## Release 0.3 preparation — 2026-10-10
 
