@@ -4,7 +4,7 @@ Research date: 2026-10-09. Priority-one implementation subsequently authorized a
 
 ## What is already present
 
-- Grocery-list shopping: quantity editing, hold to remove, checkbox purchase, clear checked rows, and optional external purchase ownership.
+- Grocery-list shopping: quantity editing, confirmed removal on hold, per-item buy or mark-done choices, and clearing checked rows.
 - Personal Today tasks backed by Household, with Everyone tasks, completion and inline category creation.
 - Stock actions, product editing, unit conversions, stock journal and textual product price history.
 - Recipe URL sharing/import with JSON-LD, manually mapped ingredients, meal planning, shortages-to-shopping, cooking mode and local timers. Recipe images already support upload.

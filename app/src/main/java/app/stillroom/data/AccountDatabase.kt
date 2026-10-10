@@ -6,7 +6,7 @@ import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
 import app.stillroom.domain.AccountCache
 import app.stillroom.domain.AccountId
-import kotlinx.serialization.json.jsonObject
+import kotlinx.serialization.json.*
 
 @Entity(tableName = "cached_rows", primaryKeys = ["resource", "row_id"])
 data class CachedRow(val resource: String, @ColumnInfo(name = "row_id") val rowId: String, val payload: String)
@@ -77,7 +77,24 @@ class AccountDatabase(context: Context, id: AccountId, namespace: String = "acco
                 db.execSQL("CREATE TABLE shopping_outbox (id TEXT NOT NULL PRIMARY KEY, kind TEXT NOT NULL, entity TEXT NOT NULL, rowId INTEGER, baseline TEXT, desired TEXT NOT NULL, state TEXT NOT NULL, observed TEXT, detail TEXT, claimOwned INTEGER NOT NULL, createdAt INTEGER NOT NULL)")
             }
         }).build()
-    init { if (recoverOperations) { room.rows().recover(); room.rows().recoverShopping() } }
+    init {
+        room.runInTransaction {
+            val settings = room.rows().get("addon-settings", "current")?.let {
+                runCatching { Json.parseToJsonElement(it).jsonObject }.getOrNull()
+            }
+            if (settings?.containsKey("purchase_owner") == true) {
+                // Do not dispatch purchases the old external-tool setting had held back.
+                if ((settings["purchase_owner"] as? JsonPrimitive)?.contentOrNull == "external") {
+                    room.rows().shoppingOperations().filter { it.kind == "purchase" && it.state == "pending" }.forEach {
+                        room.rows().shopping(it.copy(state = "conflict", detail =
+                            "This purchase was paused before the update. Check Grocy and keep its current version before starting a new purchase."))
+                    }
+                }
+                room.rows().put(CachedRow("addon-settings", "current", JsonObject(settings - "purchase_owner").toString()))
+            }
+            if (recoverOperations) { room.rows().recover(); room.rows().recoverShopping() }
+        }
+    }
     private fun checkOpen() = check(!closed) { "This account cache is closed." }
     @Synchronized override fun put(resource: String, rowId: String, payload: String) { checkOpen(); room.rows().put(CachedRow(resource, rowId, payload)) }
     @Synchronized override fun get(resource: String, rowId: String): String? { checkOpen(); return room.rows().get(resource, rowId) }

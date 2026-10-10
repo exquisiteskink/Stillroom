@@ -22,13 +22,14 @@ import java.math.BigDecimal
 class AddonFoundationUiTest {
     @get:Rule val compose=createComposeRule()
     private val row=Json.parseToJsonElement("""{"id":7,"shopping_list_id":1,"product_id":3,"amount":1.5,"qu_id":1,"done":0}""").jsonObject
-    @Test fun externallyOwnedPurchasesOnlyCrossOutTheItem() {
+    @Test fun markDoneOnlyCrossesOutTheItem() {
         var saved:ShoppingDraft?=null
         val snapshot=ShoppingSnapshot(mapOf("products" to Json.parseToJsonElement("""[{"id":3,"name":"Apples","qu_id_stock":1}]""").jsonArray),false)
-        compose.setContent { StillroomTheme { CompositionLocalProvider(LocalAddonSettings provides AddonSettings(shoppingPurchaseOwner="external")) {
+        compose.setContent { StillroomTheme { CompositionLocalProvider(LocalAddonSettings provides AddonSettings.parse("""{"purchase_owner":"external"}""")) {
             ShoppingItem(row,row,snapshot,null,false,false,false,{saved=it},{},{fail("Stock booked twice")})
         } } }
-        compose.onNodeWithContentDescription("Mark Apples complete").performClick()
+        compose.onNodeWithContentDescription("Choose action for Apples").performClick()
+        compose.onNodeWithText("Mark done").performClick()
         compose.runOnIdle { assertTrue(saved!!.done);assertEquals(BigDecimal("1.5"),saved!!.amount) }
     }
     @Test fun barcodeQuantityAndUnitAreReviewedWithoutLosingPrecision() {

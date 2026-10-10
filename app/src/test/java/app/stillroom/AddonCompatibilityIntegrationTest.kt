@@ -17,6 +17,7 @@ import org.robolectric.annotation.Config
 @Config(sdk=[35],application=android.app.Application::class)
 class AddonCompatibilityIntegrationTest {
     private val context:Context get()=ApplicationProvider.getApplicationContext()
+    private inline fun <T> AccountDatabase.withClosed(block: (AccountDatabase) -> T): T = try { block(this) } finally { close() }
     private fun response(body:String)=MockResponse().setBody(body)
     private suspend fun fixture(block:suspend(MockWebServer,AccountDatabase,CachedGrocyRepository,ServerAddress)->Unit) {
         val server=MockWebServer();server.start(java.net.InetAddress.getByName("127.0.0.1"),0)
@@ -105,14 +106,37 @@ class AddonCompatibilityIntegrationTest {
             server.enqueue(MockResponse().setResponseCode(204));files.upload("new.txt","test".toByteArray());assertEquals("PUT",server.takeRequest().method)
         }
     }
-    @Test fun externalPurchaseOwnerBlocksNativeShoppingBooking()=runBlocking(Dispatchers.IO) {
+    @Test fun legacySettingDoesNotBlockAnExplicitShoppingPurchase()=runBlocking(Dispatchers.IO) {
         fixture { server,db,cache,_->
-            db.put("addon-settings","current",AddonSettings(shoppingPurchaseOwner="external").json())
+            db.put("addon-settings","current","""{"purchase_owner":"external"}""")
             val repo=GrocyShoppingRepository(db,cache,GrocyStockRepository(setOf("ADMIN"),cache){emptyList()},setOf("ADMIN"))
-            val row=buildJsonObject { put("id",1);put("product_id",2);put("shopping_list_id",1);put("done",0) }
-            try { repo.purchase(row,StockBooking(StockAction.Purchase,2,java.math.BigDecimal.ONE));fail("Double purchase") }catch(_:IllegalStateException){}
-            assertTrue(db.operations().isEmpty());assertEquals(0,server.requestCount)
+            val row=buildJsonObject { put("id",1);put("product_id",2);put("shopping_list_id",1);put("done",0);put("row_created_timestamp","2026-10-10 12:00:00") }
+            val id=repo.purchase(row,StockBooking(StockAction.Purchase,2,java.math.BigDecimal.ONE))
+            assertEquals("purchase",db.shoppingOperation(id)!!.kind)
+            assertEquals(0,server.requestCount)
         }
+    }
+    @Test fun upgradingLegacyExternalSettingsKeepsHeldPurchasesForReview()=runBlocking(Dispatchers.IO) {
+        val address=ServerAddress.parse("example.org");val id=AccountId.of(address,1)
+        val ns="shopping-upgrade-${java.util.UUID.randomUUID()}"
+        try {
+            AccountDatabase(context,id,ns).withClosed { db ->
+                db.put("addon-settings","current","""{"purchase_owner":"external","public_lookup":false,"web_url":"https://example.org/addon"}""")
+                db.queueShopping(ShoppingOperation("held","purchase","shopping_list",1,"{}","{}"))
+                db.queueShopping(ShoppingOperation("edit","edit","shopping_list",2,"{}","{}"))
+                db.queueShopping(ShoppingOperation("purchased","purchase","shopping_list",3,"{}","{}",state="purchased"))
+            }
+            AccountDatabase(context,id,ns).withClosed { db ->
+                assertEquals("conflict",db.shoppingOperation("held")!!.state)
+                assertEquals("pending",db.shoppingOperation("edit")!!.state)
+                assertEquals("purchased",db.shoppingOperation("purchased")!!.state)
+                val settings=Json.parseToJsonElement(db.get("addon-settings","current")!!).jsonObject
+                assertFalse(settings.containsKey("purchase_owner"));assertEquals(false,settings["public_lookup"]!!.jsonPrimitive.boolean)
+                assertEquals("https://example.org/addon",settings["web_url"]!!.jsonPrimitive.content)
+                db.queueShopping(ShoppingOperation("new","purchase","shopping_list",4,"{}","{}"))
+            }
+            AccountDatabase(context,id,ns).withClosed { db ->assertEquals("pending",db.shoppingOperation("new")!!.state) }
+        } finally { AccountDatabase.delete(context,id,ns) }
     }
     @Test fun uncertainBuddyReceiptSurvivesRestartAndBlocksDuplicateUntilReviewed()=runBlocking(Dispatchers.IO) {
         fixture { _,db,_,_->

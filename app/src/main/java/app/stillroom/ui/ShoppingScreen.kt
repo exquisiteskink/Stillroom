@@ -93,7 +93,7 @@ fun ShoppingScreen(model: ShoppingViewModel, grants: Set<String>?) {
                 FilterChip(inStore, { inStore = !inStore }, { Text("At the store") })
                 PrimaryButton(onClick = { adding = true }, enabled = !state.busy && selected != null, modifier = Modifier.fillMaxWidth()) { Text("Add item") }
                 RemoveCheckedShoppingItems(rows, state.changes, state.busy, model::removeChecked)
-                Text(if(LocalAddonSettings.current.shoppingPurchaseOwner=="external")"Tap a quantity to change it. Hold an item to remove it. Check an item to cross it out; your other tool adds pantry stock." else "Tap a quantity to change it. Hold an item to remove it. Check a product to add it to your pantry.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text("Check a product to buy it or mark it done. Tap a quantity to change it. Hold an item to review removal.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 Text("Group by", style = MaterialTheme.typography.labelLarge)
                 Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) { listOf("Category", "Store", "None").forEach { value -> FilterChip(grouping == value, { grouping = value }, { Text(if (value == "None") "No grouping" else value) }) } }
             }
@@ -107,7 +107,7 @@ fun ShoppingScreen(model: ShoppingViewModel, grants: Set<String>?) {
             items(entries.sortedWith(compareBy({ it.shoppingText("done") == "1" }, { it.shoppingText("note") })), key = { it.shoppingText("id") }) { row ->
                 val baseline = state.snapshot.rows("shopping_list").find { it.shoppingText("id") == row.shoppingText("id") }
                 val change = state.changes.lastOrNull { it.rowId?.toString() == row.shoppingText("id") && it.state !in setOf("confirmed", "discarded") }
-                ShoppingItem(row, baseline, projection, change, inStore, state.busy, StockAccess.canRead(grants),
+                ShoppingItem(row, baseline, projection, change, inStore, state.busy, StockAccess.canRead(grants) && StockAccess.canWrite(grants, StockAction.Purchase),
                     onDone = { draft -> model.save(draft, baseline) }, onDelete = { baseline?.let(model::delete) }, onPurchase = { booking -> baseline?.let { model.purchase(it, booking) } })
             }
         }
@@ -128,7 +128,6 @@ internal fun RemoveCheckedShoppingItems(rows: List<JsonObject>, changes: List<Sh
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 internal fun ShoppingItem(row: JsonObject, baseline: JsonObject?, snapshot: ShoppingSnapshot, change: ShoppingChange?, inStore: Boolean, busy: Boolean, canPurchase: Boolean, onDone: (ShoppingDraft) -> Unit, onDelete: () -> Unit, onPurchase: (StockBooking) -> Unit) {
-    val externalPurchases=LocalAddonSettings.current.shoppingPurchaseOwner=="external"
     val product = snapshot.rows("products").find { it.shoppingText("id") == row.shoppingText("product_id") }
     val noteOnly = row.shoppingText("product_id").isBlank()
     val name = product?.shoppingText("name") ?: row.shoppingText("note").ifBlank { "Unavailable product" }
@@ -139,24 +138,28 @@ internal fun ShoppingItem(row: JsonObject, baseline: JsonObject?, snapshot: Shop
     val unitName = snapshot.rows("quantity_units").find { it.shoppingText("id") == unit }?.shoppingText("name").orEmpty()
     val done = row.shoppingText("done") == "1"
     val enabled = !busy && baseline != null && (change == null || change.state == "pending")
-    var editingQuantity by remember(row) { mutableStateOf(false) }
+    val canAct = !busy && baseline != null && change == null
+    val purchaseEnabled = canAct && product != null && !done && canPurchase && stockAmount.signum() > 0 &&
+        LocalServerCapabilities.current.allows("/stock/products/${row.shoppingText("product_id")}/add") &&
+        LocalServerCapabilities.current.requestSupported("POST", "/stock/products/${row.shoppingText("product_id")}/add") != false
+    var editingQuantity by remember(row, baseline) { mutableStateOf(false) }
+    var choosingAction by remember(row, baseline) { mutableStateOf(false) }
+    var confirmingRemoval by remember(row, baseline) { mutableStateOf(false) }
     fun draft(amount: BigDecimal = stockAmount, completed: Boolean = done) = ShoppingDraft(
         row.shoppingText("shopping_list_id").toLong(), row.shoppingText("product_id").toLongOrNull(),
         row.shoppingText("note"), amount, unit.toLongOrNull(), completed)
     Column {
         Row(Modifier.fillMaxWidth().heightIn(min = if (inStore) 80.dp else 64.dp)
-            .combinedClickable(enabled = enabled, onClick = {}, onLongClickLabel = "Remove $name", onLongClick = onDelete)
+            .combinedClickable(enabled = canAct, onClick = { if (!done && !noteOnly) choosingAction = true },
+                onLongClickLabel = "Review removal of $name", onLongClick = { confirmingRemoval = true })
             .padding(vertical = 8.dp), verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             Checkbox(done, {
-                if (noteOnly || externalPurchases) onDone(draft(completed = !done))
-                else if (product != null) onPurchase(StockBooking(StockAction.Purchase, row.shoppingText("product_id").toLong(), stockAmount,
-                    location = product.shoppingText("location_id").toLongOrNull()?.takeIf { it > 0 },
-                    store = product.shoppingText("shopping_location_id").toLongOrNull()?.takeIf { it > 0 },
-                    note = row.shoppingText("note")))
-            }, enabled = enabled && (noteOnly || externalPurchases && change==null || (product != null && !done && change == null && canPurchase && stockAmount.signum() > 0)),
+                if (noteOnly || done) onDone(draft(completed = !done))
+                else choosingAction = true
+            }, enabled = canAct,
                 modifier = Modifier.sizeIn(minWidth = 48.dp, minHeight = 48.dp).semantics {
-                    contentDescription = if (noteOnly || externalPurchases) "Mark $name complete" else if (done) "$name added to pantry" else "Add $name to pantry"
+                    contentDescription = if (done) "Mark $name not done" else if (noteOnly) "Mark $name complete" else "Choose action for $name"
                 })
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 Text(name, style = if (inStore) MaterialTheme.typography.titleLarge else MaterialTheme.typography.bodyLarge,
@@ -173,6 +176,28 @@ internal fun ShoppingItem(row: JsonObject, baseline: JsonObject?, snapshot: Shop
             }
         }
         HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+    }
+    if (choosingAction) {
+        AlertDialog(onDismissRequest = { choosingAction = false }, title = { Text(name) },
+            text = { Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                Text("Buying adds this amount to your pantry and marks the item done. If it was already added elsewhere, choose Mark done.")
+                PrimaryButton(onClick = {
+                    choosingAction = false
+                    onPurchase(StockBooking(StockAction.Purchase, row.shoppingText("product_id").toLong(), stockAmount,
+                        location = product?.shoppingText("location_id")?.toLongOrNull()?.takeIf { it > 0 },
+                        store = product?.shoppingText("shopping_location_id")?.toLongOrNull()?.takeIf { it > 0 },
+                        note = row.shoppingText("note")))
+                }, enabled = purchaseEnabled, modifier = Modifier.fillMaxWidth()) { Text("Buy and add to pantry") }
+                SecondaryButton(onClick = { choosingAction = false; onDone(draft(completed = true)) },
+                    enabled = canAct, modifier = Modifier.fillMaxWidth()) { Text("Mark done") }
+            } },
+            confirmButton = {}, dismissButton = { TextButton(onClick = { choosingAction = false }) { Text("Cancel") } })
+    }
+    if (confirmingRemoval) {
+        AlertDialog(onDismissRequest = { confirmingRemoval = false }, title = { Text("Remove $name?") },
+            text = { Text("Remove this item from your shopping list? Your pantry stock will stay the same.") },
+            confirmButton = { PrimaryButton(onClick = { confirmingRemoval = false; onDelete() }, enabled = canAct) { Text("Remove") } },
+            dismissButton = { TextButton(onClick = { confirmingRemoval = false }) { Text("Cancel") } })
     }
     if (editingQuantity) {
         val formatter = LocalQuantityFormatter.current

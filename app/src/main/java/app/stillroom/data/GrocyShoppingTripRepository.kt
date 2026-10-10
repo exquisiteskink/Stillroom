@@ -70,7 +70,6 @@ class GrocyShoppingTripRepository(private val grants:Set<String>?,private val db
     }
     override suspend fun submit():ShoppingTrip=lock.withLock {
         access();var trip=current();check(trip.lines.isNotEmpty()) { "Scan an item first." }
-        check(AddonSettings.parse(db.get("addon-settings","current")).shoppingPurchaseOwner=="stillroom") { "Another scanner owns purchases. Change purchase ownership in Add-on settings before booking this trip." }
         check(cache.capabilities().allows("/stock/products/1/add") && cache.capabilities().requestSupported("POST","/stock/products/1/add")!=false) { "Stock purchasing is disabled or unsupported by this server." }
         if(statuses(trip).confirmed)return@withLock statuses(trip)
         check(trip.lines.none { db.operation(it.id)?.state in setOf("needs-review","in-flight","failed") }) { "Inspect this trip's unconfirmed purchases in Pending changes before continuing." }

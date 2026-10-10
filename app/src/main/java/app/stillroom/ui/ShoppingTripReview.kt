@@ -38,10 +38,9 @@ import java.util.Locale
     }
     if(trip.lines.isNotEmpty() && inspect) {
         val blocked=trip.lines.any { it.state in setOf("needs-review","in-flight","failed") }
-        if(!trip.confirmed)PrimaryButton(onClick=submit,enabled=!busy && !blocked && LocalAddonSettings.current.shoppingPurchaseOwner=="stillroom",modifier=Modifier.fillMaxWidth()) {
+        if(!trip.confirmed)PrimaryButton(onClick=submit,enabled=!busy && !blocked,modifier=Modifier.fillMaxWidth()) {
             Text(if(trip.submitted)"Continue reviewed purchases" else "Confirm ${trip.lines.size} purchases")
         }
-        if(LocalAddonSettings.current.shoppingPurchaseOwner=="external")Text("Another scanner owns purchases. Change purchase ownership in Add-on settings to book this trip.")
         if(trip.submitted) {
             QuietButton(onClick=refresh,enabled=!busy){Text("Refresh trip status")}
             QuietButton(onClick=changes,enabled=!busy){Text("Check changes")}

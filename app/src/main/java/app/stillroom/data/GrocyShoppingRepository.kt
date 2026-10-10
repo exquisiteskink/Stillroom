@@ -78,7 +78,6 @@ class GrocyShoppingRepository(
     override suspend fun purchase(baseline: JsonObject, booking: StockBooking): String {
         access()
         check(StockAccess.canWrite(grants, StockAction.Purchase) && StockAccess.canRead(grants)) { "Stock access denied." }
-        check(AddonSettings.parse(database.get("addon-settings","current")).shoppingPurchaseOwner!="external") { "Another tool owns shopping purchases. Check the item without booking stock." }
         require(booking.action == StockAction.Purchase && booking.productId.toString() == baseline.shoppingText("product_id"))
         require(baseline.shoppingText("done") != "1" && booking.note.orEmpty().length <= 4000)
         return queue("purchase", JsonObject(booking.payload() + ("product_id" to JsonPrimitive(booking.productId))), baseline)
