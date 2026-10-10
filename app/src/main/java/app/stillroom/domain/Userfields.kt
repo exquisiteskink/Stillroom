@@ -46,8 +46,8 @@ object UserfieldTypes {
     fun known(type: String): Boolean = canonical(type) in ALL
 
     /**
-     * Whether Stillroom can change this field's value. Files and images need Grocy's binary file
-     * API (`/files/userfiles/…`), which Stillroom does not use; their values are shown and preserved.
+     * Whether the scalar editor can change this field. File and image replacement is handled
+     * by the dedicated custom-record media editor; scalar edits preserve these values.
      */
     fun editable(type: String): Boolean = known(type) && canonical(type) !in setOf(FILE, IMAGE)
 

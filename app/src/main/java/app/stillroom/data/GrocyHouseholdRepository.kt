@@ -16,18 +16,18 @@ class GrocyHouseholdRepository(private val grants: Set<String>?, private val use
     override suspend fun snapshot(): HouseholdSnapshot {
         var stale = false
         suspend fun read(path: String): List<JsonObject> = rows(path).let { stale = stale || it.second; it.first }
-        val chores = if (HouseholdAccess.has(grants,"CHORES")) {
+        val chores = if (cache.capabilities().enabled("CHORES") && HouseholdAccess.has(grants,"CHORES")) {
             val master = read("/objects/chores").associateBy { it.houseId("id") }
             read("/chores").map { JsonObject(master[it.houseId("chore_id")].orEmpty() + it) }
                 .filter { HouseholdAccess.parent(grants) || (it.houseText("active") != "0" && it.houseId("next_execution_assigned_to_user_id") == userId) }
         } else emptyList()
-        val tasks = if (HouseholdAccess.has(grants,"TASKS")) read("/tasks").filter { it.houseText("done") != "1" } else emptyList()
-        val categories = if (HouseholdAccess.has(grants,"TASKS")) read("/objects/task_categories") else emptyList()
+        val tasks = if (cache.capabilities().enabled("TASKS") && HouseholdAccess.has(grants,"TASKS")) read("/tasks") else emptyList()
+        val categories = if (cache.capabilities().enabled("TASKS") && HouseholdAccess.has(grants,"TASKS")) read("/objects/task_categories") else emptyList()
         val loadedUsers = if (HouseholdAccess.canReadUsers(grants)) {
             runCatching { read("/users") }.getOrDefault(emptyList())
         } else emptyList()
         val users = householdMembers(loadedUsers, chores, tasks)
-        return HouseholdSnapshot(chores,tasks,categories,users,stale)
+        return HouseholdSnapshot(chores,tasks.filter { it.houseText("done")!="1" },categories,users,stale,tasks.filter { it.houseText("done")=="1" })
     }
     private suspend fun queue(method: String, path: String, payload: JsonObject, read: String): String {
         check(operations().none { it.path == path && it.state in setOf("pending","in-flight","needs-review","guarded") }) { "An operation for this record is awaiting confirmation. Review pending changes." }
@@ -55,6 +55,17 @@ class GrocyHouseholdRepository(private val grants: Set<String>?, private val use
         fields["assigned_to_user_id"]?.let { if (it !is JsonNull) require(fields.houseId("assigned_to_user_id")?.let { id -> id > 0 } == true) }
         return queue(if (id == null) "POST" else "PUT", "/objects/tasks" + (id?.let { "/$it" } ?: ""), fields, "/tasks")
     }
+    override suspend fun createTaskCategory(name: String): Long {
+        requireGrant("TASKS"); requireGrant("MASTER_DATA_EDIT")
+        val trimmed=name.trim()
+        require(trimmed.isNotBlank()) { "Enter a category name." }
+        val operation=queue("POST","/objects/task_categories",buildJsonObject { put("name",trimmed) },"/objects/task_categories")
+        cache.drain()
+        val result=cache.outboxRecords().firstOrNull { it.clientOperationId==operation }
+        check(result?.state=="confirmed") { "Category creation is awaiting confirmation. Review pending changes before trying again." }
+        return result.responsePayload?.let { Json.parseToJsonElement(it).jsonObject.houseId("created_object_id") }
+            ?.takeIf { it>0 } ?: error("Grocy confirmed the category without its ID. Refresh categories before continuing.")
+    }
     override suspend fun deleteTask(id: Long): String {
         requireGrant("TASKS"); requireGrant("MASTER_DATA_EDIT"); require(id > 0)
         return queue("DELETE","/objects/tasks/$id",JsonObject(emptyMap()),"/tasks")
@@ -71,7 +82,17 @@ class GrocyHouseholdRepository(private val grants: Set<String>?, private val use
     }
     override suspend fun completeTask(id: Long): String {
         requireGrant("TASKS"); requireGrant("TASKS_MARK_COMPLETED"); require(id > 0)
+        check(operations().none { it.path=="/tasks/$id/undo" && it.state in setOf("pending","in-flight","needs-review","guarded") }) { "Resolve this task’s pending change first." }
         return queue("POST","/tasks/$id/complete",JsonObject(emptyMap()),"/tasks")
+    }
+    override suspend fun completedTasks(): List<JsonObject> {
+        requireGrant("TASKS")
+        return rows("/objects/tasks").first.filter { it.houseText("done")=="1" }
+    }
+    override suspend fun reopenTask(id: Long): String {
+        requireGrant("TASKS"); requireGrant("TASKS_UNDO_EXECUTION"); require(id>0)
+        check(operations().none { it.path in setOf("/tasks/$id/complete","/tasks/$id/undo") && it.state in setOf("pending","in-flight","needs-review","guarded") }) { "Resolve this task's pending change first." }
+        return queue("POST","/tasks/$id/undo",JsonObject(emptyMap()),"/tasks")
     }
     override suspend fun history(id: Long): List<JsonObject> {
         requireGrant("CHORES"); requireGrant("MASTER_DATA_EDIT"); require(id > 0)
@@ -102,6 +123,6 @@ class GrocyHouseholdRepository(private val grants: Set<String>?, private val use
     }
     override suspend fun operations() = pending().filter {
         it.path.startsWith("/chores/") || it.path.startsWith("/objects/chores") ||
-            it.path.startsWith("/tasks/") || it.path.startsWith("/objects/tasks")
+            it.path.startsWith("/tasks/") || it.path.startsWith("/objects/tasks") || it.path.startsWith("/objects/task_categories")
     }
 }

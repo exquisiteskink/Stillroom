@@ -14,8 +14,8 @@ android {
         applicationId = "app.stillroom"
         minSdk = 26
         targetSdk = 35
-        versionCode = 2
-        versionName = "0.2"
+        versionCode = 3
+        versionName = "0.3"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
     buildFeatures { compose = true; buildConfig = true }
@@ -245,5 +245,50 @@ tasks.register<JacocoCoverageVerification>("catalogCoverageVerification") {
     dependsOn("catalogCoverageReport")
     executionData(layout.buildDirectory.file("outputs/unit_test_code_coverage/debugUnitTest/testDebugUnitTest.exec"))
     classDirectories.setFrom(catalogClasses)
+    violationRules { rule { limit { counter = "LINE"; minimum = "0.80".toBigDecimal() } } }
+}
+
+// Foundation coverage is scoped to protocol/domain/repository code; Compose and account wiring
+// are verified separately. Existing feature gates remain unchanged.
+val addonClasses = fileTree(layout.buildDirectory.dir("tmp/kotlin-classes/debug")) {
+    include("app/stillroom/domain/Addon*.class", "app/stillroom/domain/ServerCapabilities*.class",
+        "app/stillroom/domain/Grocycode*.class", "app/stillroom/domain/BarcodeMetadata*.class",
+        "app/stillroom/domain/LookupProductDefaults*.class", "app/stillroom/domain/CustomRecords*.class",
+        "app/stillroom/domain/ManageCustomRecords*.class", "app/stillroom/domain/UserfileReference*.class",
+        "app/stillroom/data/GrocyCompatibilityRepository*.class", "app/stillroom/data/CompatibilityObservation*.class",
+        "app/stillroom/data/GrocyCustomRecordsRepository*.class", "app/stillroom/data/GrocyFiles*.class",
+        "app/stillroom/data/BarcodeBuddyClient*.class", "app/stillroom/data/BarcodeBuddyReceipts*.class")
+}
+tasks.register<JacocoReport>("addonCoverageReport") {
+    dependsOn("testDebugUnitTest")
+    executionData(layout.buildDirectory.file("outputs/unit_test_code_coverage/debugUnitTest/testDebugUnitTest.exec"))
+    classDirectories.setFrom(addonClasses)
+    sourceDirectories.setFrom(files("src/main/java"))
+    reports { xml.required.set(true); html.required.set(true) }
+}
+tasks.register<JacocoCoverageVerification>("addonCoverageVerification") {
+    dependsOn("addonCoverageReport")
+    executionData(layout.buildDirectory.file("outputs/unit_test_code_coverage/debugUnitTest/testDebugUnitTest.exec"))
+    classDirectories.setFrom(addonClasses)
+    violationRules { rule { limit { counter = "LINE"; minimum = "0.80".toBigDecimal() } } }
+}
+
+// Priority-one protocol/domain and local timer persistence; UI is checked by Robolectric.
+val priorityOneClasses = fileTree(layout.buildDirectory.dir("tmp/kotlin-classes/debug")) {
+    include("app/stillroom/domain/CookingTimer*.class", "app/stillroom/domain/CookingSession*.class",
+        "app/stillroom/domain/TripLine*.class", "app/stillroom/domain/ShoppingTrip*.class", "app/stillroom/domain/ManageShoppingTrip*.class",
+        "app/stillroom/data/GrocyShoppingTripRepository*.class", "app/stillroom/background/CookingTimerStore*.class")
+}
+tasks.register<JacocoReport>("priorityOneCoverageReport") {
+    dependsOn("testDebugUnitTest")
+    executionData(layout.buildDirectory.file("outputs/unit_test_code_coverage/debugUnitTest/testDebugUnitTest.exec"))
+    classDirectories.setFrom(priorityOneClasses)
+    sourceDirectories.setFrom(files("src/main/java"))
+    reports { xml.required.set(true); html.required.set(true) }
+}
+tasks.register<JacocoCoverageVerification>("priorityOneCoverageVerification") {
+    dependsOn("priorityOneCoverageReport")
+    executionData(layout.buildDirectory.file("outputs/unit_test_code_coverage/debugUnitTest/testDebugUnitTest.exec"))
+    classDirectories.setFrom(priorityOneClasses)
     violationRules { rule { limit { counter = "LINE"; minimum = "0.80".toBigDecimal() } } }
 }

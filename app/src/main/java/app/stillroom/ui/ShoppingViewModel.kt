@@ -22,9 +22,15 @@ class ShoppingViewModel(private val accounts: AndroidAccountsRepository) : ViewM
             if (!state.value.denied) refresh()
         }
     } } }
+    fun externalRefresh()=execute { }
     fun refresh() = execute { it.sync() }
     fun save(draft: ShoppingDraft, baseline: JsonObject?) = execute { it.save(draft, baseline); pending(it); it.sync() }
     fun delete(row: JsonObject) = execute { it.delete(row); pending(it); it.sync() }
+    fun removeChecked(rows: List<JsonObject>) = execute { shopping ->
+        rows.filter { it.shoppingText("done") == "1" }.forEach { shopping.delete(it) }
+        pending(shopping)
+        shopping.sync()
+    }
     fun createList(name: String) = execute { it.createList(name); pending(it); it.sync() }
     fun purchase(row: JsonObject, booking: StockBooking) = execute { it.purchase(row, booking); pending(it); it.sync() }
     fun acceptServer(id: String) = execute { it.acceptServer(id) }

@@ -53,6 +53,10 @@ class MutationTransport(timeoutMillis: Long = 15_000) {
 }
 
 internal fun validatePath(path: String) {
+    if(path.startsWith("/stock/barcodes/external-lookup/")) {
+        require(Regex("^/stock/barcodes/external-lookup/(?:[A-Za-z0-9_~+-]|%[0-9A-Fa-f]{2}){1,1536}\\?add=false$").matches(path))
+        return
+    }
     require(path.startsWith("/") && !path.startsWith("//") && !path.contains("..") && !path.contains("%") && !path.contains("\\") && !path.contains("://") && !path.contains("#"))
 }
 internal fun jsonValue(payload: String): JsonElement {
@@ -79,8 +83,20 @@ class CachedGrocyRepository(
 ) {
     private val drainLock = Mutex()
 
+    internal fun capabilities(): app.stillroom.domain.ServerCapabilities {
+        fun objectAt(path:String)=database.get(path,"current")?.let { runCatching { Json.parseToJsonElement(it) as? JsonObject }.getOrNull() } ?: JsonObject(emptyMap())
+        val config=objectAt("/system/config")
+        val spec=objectAt("/openapi/specification")
+        return if(config.isEmpty() && spec.isEmpty())app.stillroom.domain.ServerCapabilities() else app.stillroom.domain.ServerCapabilities.parse(config,spec)
+    }
+    internal fun requireSupported(method:String,path:String) { check(capabilities().requestSupported(method,path)!=false) { "This operation is not exposed by this Grocy server." } }
+    internal fun requireEnabled(path:String) { check(capabilities().allows(path)) { "This feature is disabled in Grocy." } }
+    private fun requireReadOnly(path:String) {
+        check(!path.substringBefore('?').endsWith("/printlabel") && !path.startsWith("/print/") && !path.contains("/external-lookup/")) { "This action must be requested explicitly." }
+    }
+
     suspend fun read(path: String): CachedRead = withContext(Dispatchers.IO) {
-        validatePath(path)
+        validatePath(path); requireReadOnly(path); requireEnabled(path)
         try {
             val (status, payload) = transport.request(address, key, "GET", path)
             if (status in setOf(401,403)) database.put("background","access-denied","true")
@@ -107,7 +123,7 @@ class CachedGrocyRepository(
 
     /** A guard must use a fresh observation, never an offline cache fallback. */
     suspend fun readFresh(path: String): JsonElement? = withContext(Dispatchers.IO) {
-        validatePath(path)
+        validatePath(path); requireReadOnly(path); requireEnabled(path)
         val (status, payload) = transport.request(address, key, "GET", path)
         if (status in setOf(401,403)) database.put("background","access-denied","true")
         if (status == 404) return@withContext null
@@ -120,17 +136,18 @@ class CachedGrocyRepository(
 
     suspend fun enqueue(method: String, path: String, payload: String, readPath: String, expectedPayload: String? = null, operationId: String? = null, guarded: Boolean = false): String = withContext(Dispatchers.IO) {
         require(method in setOf("POST", "PUT", "DELETE", "PATCH"))
-        validatePath(path); validatePath(readPath); jsonValue(payload)
+        validatePath(path); validatePath(readPath); requireEnabled(path); requireSupported(method,path); jsonValue(payload)
         expectedPayload?.let { jsonValue(it) }
         val id = operationId?.also { require(UUID.fromString(it).toString() == it) } ?: UUID.randomUUID().toString()
         database.enqueue(OutboxOperation(id, method, path, payload, readPath, expectedPayload, state = if (guarded) "guarded" else "pending"))
         id
     }
 
-    suspend fun drain(guardedOperation: String? = null) = withContext(Dispatchers.IO) {
+    suspend fun drain(guardedOperation: String? = null, onlyGuarded:Boolean=false) = withContext(Dispatchers.IO) {
         drainLock.withLock {
-        for (operation in database.operations().filter { it.state == "pending" || (it.state == "guarded" && it.clientOperationId == guardedOperation) }) {
+        for (operation in database.operations().filter { (!onlyGuarded && it.state == "pending") || (it.state == "guarded" && it.clientOperationId == guardedOperation) }) {
             currentCoroutineContext().ensureActive()
+            if (!capabilities().allows(operation.path) || capabilities().requestSupported(operation.method,operation.path)==false) continue
             if (!database.claim(operation.clientOperationId, guarded = operation.state == "guarded")) continue
             var requested = false
             try {
@@ -151,7 +168,7 @@ class CachedGrocyRepository(
                 database.finish(operation.clientOperationId, state, if (state == "confirmed") null else failureDetail(status, response), if (state == "confirmed") response else null)
             } catch (error: CancellationException) {
                 // Nothing was sent yet, so the row can be tried again. After request() starts, Grocy may have applied it.
-                if (!requested) runCatching { database.releaseClaim(operation.clientOperationId) }
+                if (!requested) runCatching { database.releaseClaim(operation.clientOperationId, guarded=operation.state=="guarded") }
                 else runCatching { database.finish(operation.clientOperationId, "needs-review", "Interrupted HTTP outcome.") }
                 throw error
             } catch (error: Exception) {

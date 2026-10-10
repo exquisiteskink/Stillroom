@@ -39,6 +39,8 @@ data class ShoppingOperation(
 @Dao
 interface AccountDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE) fun put(row: CachedRow)
+    @Query("SELECT * FROM cached_rows WHERE resource=:resource") fun resourceRows(resource:String): List<CachedRow>
+    @Query("SELECT resource FROM cached_rows WHERE row_id='current'") fun cachedResources(): List<String>
     @Query("SELECT payload FROM cached_rows WHERE resource=:resource AND row_id=:rowId") fun get(resource: String, rowId: String): String?
     @Insert(onConflict = OnConflictStrategy.IGNORE) fun enqueue(operation: OutboxOperation): Long
     @Insert(onConflict = OnConflictStrategy.REPLACE) fun shopping(operation: ShoppingOperation)
@@ -51,6 +53,7 @@ interface AccountDao {
     @Query("UPDATE outbox SET state='in-flight' WHERE clientOperationId=:id AND state='guarded'") fun claimGuarded(id: String): Int
     /** Puts a claimed row back to pending. Used only when cancellation happened before the HTTP call started. */
     @Query("UPDATE outbox SET state='pending', detail=NULL WHERE clientOperationId=:id AND state='in-flight'") fun releaseClaim(id: String): Int
+    @Query("UPDATE outbox SET state='guarded', detail=NULL WHERE clientOperationId=:id AND state='in-flight'") fun releaseGuardedClaim(id:String):Int
     @Query("UPDATE outbox SET state='confirmed', observedPayload=:payload WHERE clientOperationId=:id AND state='guarded'") fun confirmGuarded(id: String, payload: String)
     @Query("UPDATE outbox SET state=:state, detail=:detail, responsePayload=:responsePayload WHERE clientOperationId=:id AND state IN ('in-flight','needs-review')") fun finish(id: String, state: String, detail: String?, responsePayload: String?)
     @Query("UPDATE outbox SET state='needs-review', detail='Interrupted request; read server state before resolving.' WHERE state='in-flight'") fun recover()
@@ -78,6 +81,8 @@ class AccountDatabase(context: Context, id: AccountId, namespace: String = "acco
     private fun checkOpen() = check(!closed) { "This account cache is closed." }
     @Synchronized override fun put(resource: String, rowId: String, payload: String) { checkOpen(); room.rows().put(CachedRow(resource, rowId, payload)) }
     @Synchronized override fun get(resource: String, rowId: String): String? { checkOpen(); return room.rows().get(resource, rowId) }
+    @Synchronized fun resourceRows(resource:String): List<CachedRow> { checkOpen(); return room.rows().resourceRows(resource) }
+    @Synchronized fun cachedResources(): List<String> { checkOpen(); return room.rows().cachedResources() }
     @Synchronized fun enqueue(operation: OutboxOperation) { checkOpen(); val previous = room.rows().operation(operation.clientOperationId)
         require(previous == null || (previous.method == operation.method && previous.path == operation.path && previous.payload == operation.payload && previous.readPath == operation.readPath && previous.expectedPayload == operation.expectedPayload)) { "Operation identity cannot be reused for a different request." }
         room.rows().enqueue(operation)
@@ -85,7 +90,7 @@ class AccountDatabase(context: Context, id: AccountId, namespace: String = "acco
     @Synchronized fun operations(): List<OutboxOperation> { checkOpen(); return room.rows().operations() }
     @Synchronized fun operation(id: String): OutboxOperation? { checkOpen(); return room.rows().operation(id) }
     @Synchronized fun claim(id: String, guarded: Boolean = false): Boolean { checkOpen(); return (if (guarded) room.rows().claimGuarded(id) else room.rows().claim(id)) == 1 }
-    @Synchronized fun releaseClaim(id: String): Boolean { checkOpen(); return room.rows().releaseClaim(id) == 1 }
+    @Synchronized fun releaseClaim(id: String,guarded:Boolean=false): Boolean { checkOpen(); return (if(guarded)room.rows().releaseGuardedClaim(id) else room.rows().releaseClaim(id)) == 1 }
     @Synchronized fun confirmGuarded(id: String, payload: String) { checkOpen(); room.rows().confirmGuarded(id, payload) }
     @Synchronized fun finish(id: String, state: String, detail: String? = null, responsePayload: String? = null) { checkOpen(); room.rows().finish(id, state, detail, responsePayload) }
     @Synchronized fun reconcile(id: String, payload: String, confirmed: Boolean) {

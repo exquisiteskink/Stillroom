@@ -215,6 +215,7 @@ private fun StockDetail(state: StockUiState, id: Long, model: StockViewModel, gr
     if (product == null) { ErrorState("Could not load this product.", model::refresh); return }
     Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
     Text(product.text("name"), style = MaterialTheme.typography.titleLarge)
+    GrocyMediaPreview("productpictures",product.text("picture_file_name"),true)
     KitchenError(state.error)
     if(state.busy) TaskProgress()
     if(product.text("description").isNotBlank()) Text(product.text("description"))
@@ -280,7 +281,7 @@ private fun Journal(state: StockUiState, product: Long?, model: StockViewModel, 
 }
 
 @Composable
-internal fun StockForm(state: StockUiState, product: JsonObject, book: (StockBooking) -> Unit, clearBookingOutcome: () -> Unit, grants: Set<String>?, scannerActions: Boolean, scanAction:StockAction?=null) {
+internal fun StockForm(state: StockUiState, product: JsonObject, book: (StockBooking) -> Unit, clearBookingOutcome: () -> Unit, grants: Set<String>?, scannerActions: Boolean, scanAction:StockAction?=null,barcode:BarcodeMetadata?=null,stockEntryId:String?=null,submitLabel:String?=null) {
     var chosenAction by remember(product.text("id"), scannerActions) {
         mutableStateOf(if (!scannerActions && StockAccess.canWrite(grants, StockAction.Consume)) StockAction.Consume else StockAction.entries.firstOrNull { StockAccess.canWrite(grants, it) } ?: StockAction.Purchase)
     }
@@ -289,25 +290,33 @@ internal fun StockForm(state: StockUiState, product: JsonObject, book: (StockBoo
     val boundOperation=state.bookingOperation ?: unresolved?.clientOperationId
     val submitted = boundOperation != null
     val enabled = !state.busy && !submitted
-    var amount by remember { mutableStateOf("1") }
-    var unit by remember { mutableStateOf<Long?>(null) }
+    var amount by remember { mutableStateOf(if(stockEntryId!=null) "1" else barcode?.amount ?: "1") }
+    var unit by remember { mutableStateOf(if(stockEntryId!=null)null else barcode?.unit) }
     var location by remember { mutableStateOf<Long?>(null) }
     var destination by remember { mutableStateOf<Long?>(null) }
     var date by remember { mutableStateOf("") }
-    var price by remember { mutableStateOf("") }
+    var price by remember { mutableStateOf(barcode?.price.orEmpty()) }
+    var store by remember { mutableStateOf(barcode?.store) }
+    var totalPrice by remember { mutableStateOf(barcode?.price!=null) }
     var error by remember { mutableStateOf<String?>(null) }
-    var showPrice by remember { mutableStateOf(false) }
+    var showPrice by remember { mutableStateOf(barcode?.price!=null) }
     if(scanAction==null) ChoiceField("Stock action",StockAction.entries.filter { StockAccess.canWrite(grants,it) && (!scannerActions || it in setOf(StockAction.Purchase,StockAction.Consume)) }.map { it.ordinal.toLong() to stockActionLabel(it) },chosenAction.ordinal.toLong(),{ selected-> selected?.let { chosenAction=StockAction.entries[it.toInt()] } },enabled=enabled)
     val stockUnit = product.text("qu_id_stock").toLong()
     val conversions = state.rows("/objects/quantity_unit_conversions_resolved").filter { it.text("product_id") == product.text("id") && it.text("to_qu_id") == stockUnit.toString() }
     val selectedUnit = unit ?: stockUnit
+    val labeledEntry=stockEntryId?.takeIf { action==StockAction.Consume }
+    if(labeledEntry!=null)Text("Using stock entry $labeledEntry. Quantity must be one entry.")
     val factor = if (selectedUnit == stockUnit) BigDecimal.ONE else conversions.find { it.text("from_qu_id") == selectedUnit.toString() }?.decimal("factor")
     ChoiceField("Quantity unit",state.rows("/objects/quantity_units").filter { it.text("id") == stockUnit.toString() || conversions.any { conversion -> conversion.text("from_qu_id") == it.text("id") } }.map { it.text("id").toLong() to it.text("name") },selectedUnit,{unit=it},enabled=enabled)
     val parsedQuantity = fractions.parse(amount, Locale.getDefault())
     val quantityError=if(parsedQuantity==null || (parsedQuantity.value.signum()<=0 && !(action==StockAction.Inventory && parsedQuantity.value.signum()==0))) "Enter a positive quantity" else null
     val purchaseFields=action==StockAction.Purchase || action==StockAction.Inventory
-    val dateError=if(!purchaseFields) null else if(date.isNotBlank() && runCatching { LocalDate.parse(date) }.isFailure) "Use YYYY-MM-DD" else if(scannerActions && action==StockAction.Purchase && date.isBlank()) "Enter the package due date" else null
-    val priceError=if(!purchaseFields) null else if(price.isNotBlank() && (price.toBigDecimalOrNull()==null || price.toBigDecimalOrNull()!!.signum()<0)) "Enter a price of zero or more" else null
+    val dueDates=LocalServerCapabilities.current.enabled("STOCK_BEST_BEFORE_DATE_TRACKING")
+    val prices=LocalServerCapabilities.current.enabled("STOCK_PRICE_TRACKING")
+    val dateError=if(!purchaseFields || !dueDates) null else if(date.isNotBlank() && runCatching { LocalDate.parse(date) }.isFailure) "Use YYYY-MM-DD" else if(scannerActions && action==StockAction.Purchase && date.isBlank()) "Enter the package due date" else null
+    val tare=if(product.text("enable_tare_weight_handling")=="1")product.decimal("tare_weight") ?: BigDecimal.ZERO else BigDecimal.ZERO
+    val reviewedPrice=if(price.isNotBlank() && purchaseFields && prices)runCatching { reviewedStockPrice(price.toBigDecimal(),parsedQuantity!!.value,factor!!,totalPrice,tare) }.getOrNull() else null
+    val priceError=if(!purchaseFields || !prices || price.isBlank())null else if(price.toBigDecimalOrNull()?.signum()?.let { it>=0 }!=true)"Enter a price of zero or more" else if(reviewedPrice==null)"Enter a valid quantity above the tare weight." else null
     LabeledTextField(amount, { amount = it;error=null }, label = if (action == StockAction.Inventory) "New total quantity" else "Quantity",supportingText=quantityError ?: "Decimals and fractions accepted",isError=quantityError!=null,enabled=enabled,modifier=Modifier.fillMaxWidth())
     parsedQuantity?.let { Text("Input: ${quantity(it.value)} · stock quantity: ${quantity(it.value.multiply(factor ?: BigDecimal.ONE))}") }
     val locationChoices=state.rows("/objects/locations").map { it.text("id").toLong() to it.text("name") }
@@ -316,24 +325,29 @@ internal fun StockForm(state: StockUiState, product: JsonObject, book: (StockBoo
     }
     if (action == StockAction.Transfer) ChoiceField("To location (required)",locationChoices,destination,{destination=it},enabled=enabled)
     if (action == StockAction.Purchase || action == StockAction.Inventory) {
-        if (scannerActions) Text("Read the due date from the package.")
-        LabeledTextField(date, { date = it;error=null }, label = if(scannerActions) "Due date (required)" else "Due date (optional)",supportingText=dateError ?: "YYYY-MM-DD",isError=date.isNotBlank() && dateError!=null,enabled=enabled,modifier=Modifier.fillMaxWidth())
-        if(scannerActions) QuietButton(onClick={showPrice=!showPrice},enabled=enabled) { Text(if(showPrice) "Hide price" else "Add price") }
-        if(!scannerActions || showPrice) LabeledTextField(price, { price = it;error=null }, label = "Price per stock unit (optional)",supportingText=priceError,isError=priceError!=null,enabled=enabled,modifier=Modifier.fillMaxWidth())
+        if(barcode?.store!=null)ChoiceField("Store",state.rows("/objects/shopping_locations").map { it.text("id").toLong() to it.text("name") },store,{store=it},allowNone=true,enabled=enabled)
+        if (scannerActions && dueDates) Text("Read the due date from the package.")
+        if(dueDates)LabeledTextField(date, { date = it;error=null }, label = if(scannerActions) "Due date (required)" else "Due date (optional)",supportingText=dateError ?: "YYYY-MM-DD",isError=date.isNotBlank() && dateError!=null,enabled=enabled,modifier=Modifier.fillMaxWidth())
+        if(scannerActions && prices) QuietButton(onClick={showPrice=!showPrice},enabled=enabled) { Text(if(showPrice) "Hide price" else "Add price") }
+        if(prices && (!scannerActions || showPrice)) {
+            if(barcode!=null)ChoiceField("Price type",listOf(0L to "Price per stock unit",1L to "Total purchase price"),if(totalPrice)1L else 0L,{totalPrice=it==1L},enabled=enabled)
+            LabeledTextField(price, { price = it;error=null }, label = if(totalPrice)"Total purchase price (optional)" else "Price per stock unit (optional)",supportingText=priceError,isError=priceError!=null,enabled=enabled,modifier=Modifier.fillMaxWidth())
+            if(totalPrice && reviewedPrice!=null)Text("Price per stock unit: ${reviewedPrice.stripTrailingZeros().toPlainString()}",style=MaterialTheme.typography.bodySmall)
+        }
     }
     if (product.text("enable_tare_weight_handling") == "1" && action != StockAction.Consume && action != StockAction.Spoilage && action != StockAction.Open) Text("Tare handling: purchase/inventory quantity is gross weight. Grocy calculates net stock. Transfer is unavailable.")
     if(action==StockAction.Transfer && (location==null || destination==null || location==destination)) Text("Choose two different locations.",color=MaterialTheme.colorScheme.onSurfaceVariant)
     error?.let { Text(it,color=MaterialTheme.colorScheme.error) }
     scanBookingOutcome(boundOperation,state.operations)?.let { Text(it,modifier=Modifier.semantics { liveRegion=androidx.compose.ui.semantics.LiveRegionMode.Polite }) }
     if(!scannerActions && state.operations.any { it.clientOperationId==state.bookingOperation && it.state=="confirmed" }) QuietButton(onClick=clearBookingOutcome,enabled=!state.busy) { Text("Record another change") }
-    if(scannerActions && action==StockAction.Purchase && runCatching { LocalDate.parse(date) }.isFailure) Text("Enter the package due date to add stock.",color=MaterialTheme.colorScheme.onSurfaceVariant)
+    if(scannerActions && dueDates && action==StockAction.Purchase && runCatching { LocalDate.parse(date) }.isFailure) Text("Enter the package due date to add stock.",color=MaterialTheme.colorScheme.onSurfaceVariant)
     PrimaryButton(onClick = {
         try {
             val parsed = fractions.parse(amount, Locale.getDefault()) ?: error("Invalid quantity")
-            val booking = StockBooking(action, product.text("id").toLong(), parsed.value, factor ?: error("No unit conversion"), location, destination, date.takeIf { purchaseFields && it.isNotBlank() }, price.takeIf { purchaseFields && it.isNotBlank() }?.toBigDecimal())
+            val booking = StockBooking(action, product.text("id").toLong(), parsed.value, factor ?: error("No unit conversion"), location, destination, date.takeIf { purchaseFields && dueDates && it.isNotBlank() }, reviewedPrice,note=barcode?.note?.takeIf { it.isNotBlank() },store=store.takeIf { purchaseFields },stockEntryId=labeledEntry,reviewedStockUnit=stockUnit)
             booking.payload(); error = null; book(booking)
         } catch (_: Exception) { error = "Enter a valid quantity, decimal price, date, and required locations." }
-    }, enabled = enabled && quantityError==null && priceError==null && dateError==null && (action!=StockAction.Transfer || (location!=null && destination!=null && location!=destination)) && factor != null && (!scannerActions || action != StockAction.Purchase || runCatching { java.time.LocalDate.parse(date) }.isSuccess) && StockAccess.canWrite(grants, action) && !(action == StockAction.Transfer && product.text("enable_tare_weight_handling") == "1") && !(action == StockAction.Open && product.text("disable_open") == "1"), modifier=Modifier.fillMaxWidth()) { Text(if(state.busy) "Saving…" else if(scannerActions) if(action==StockAction.Purchase) "Confirm add" else "Confirm use" else stockActionLabel(action)) }
+    }, enabled = enabled && quantityError==null && priceError==null && dateError==null && (action!=StockAction.Transfer || (location!=null && destination!=null && location!=destination)) && factor != null && (!scannerActions || action != StockAction.Purchase || !dueDates || runCatching { java.time.LocalDate.parse(date) }.isSuccess) && (labeledEntry==null || parsedQuantity?.value?.multiply(factor ?: BigDecimal.ONE)?.compareTo(BigDecimal.ONE)==0) && LocalServerCapabilities.current.allows("/stock/products/${product.text("id")}/${action.endpoint}") && StockAccess.canWrite(grants, action) && !(action == StockAction.Transfer && product.text("enable_tare_weight_handling") == "1") && !(action == StockAction.Open && product.text("disable_open") == "1"), modifier=Modifier.fillMaxWidth()) { Text(if(state.busy) "Saving…" else if(submitLabel!=null)submitLabel else if(scannerActions) if(action==StockAction.Purchase) "Confirm add" else "Confirm use" else stockActionLabel(action)) }
 }
 
 internal fun stockActionLabel(action:StockAction):String = when(action) {
@@ -346,7 +360,7 @@ internal fun stockActionLabel(action:StockAction):String = when(action) {
 }
 
 @Composable
-internal fun ScannerStockReview(state:StockUiState,id:Long,model:StockViewModel,grants:Set<String>?,action:StockAction) {
+internal fun ScannerStockReview(state:StockUiState,id:Long,model:StockViewModel,grants:Set<String>?,action:StockAction,barcode:BarcodeMetadata?=null,stockEntryId:String?=null,draftPurchase:((StockBooking)->Unit)?=null) {
     val detail=state.resources["/stock/products/$id"] as? JsonObject
     val product=(detail?.get("product") as? JsonObject)
     if(product==null || state.selected!=id) {
@@ -354,10 +368,14 @@ internal fun ScannerStockReview(state:StockUiState,id:Long,model:StockViewModel,
         return
     }
     Text(product.text("name"),style=MaterialTheme.typography.titleLarge)
+    GrocyMediaPreview("productpictures",product.text("picture_file_name"),true)
     Text("In stock: ${quantity(detail.decimal("stock_amount"))} ${detail["quantity_unit_stock"]?.jsonObject?.text("name").orEmpty()}")
     KitchenWhisper(if(state.stale) "Showing last synced stock." else null)
     KitchenError(state.error)
-    key(id,action) { StockForm(state,product,model::book,model::clearBookingOutcome,grants,true,action) }
+    key(id,action,barcode,stockEntryId) {
+        val formState=if(draftPurchase!=null)state.copy(bookingOperation=null,operations=emptyList()) else state
+        StockForm(formState,product,draftPurchase ?: model::book,model::clearBookingOutcome,grants,true,action,barcode,stockEntryId,if(draftPurchase!=null)"Add to trip review" else null)
+    }
 }
 
 /** Pantry → Add product / Edit product, using the shared record editor. */

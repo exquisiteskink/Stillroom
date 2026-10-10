@@ -16,12 +16,12 @@ class GrocyRecipeRepository(private val grants:Set<String>?,private val db:Accou
         if(StockAccess.canRead(grants)) entities.add("recipes_pos_resolved")
         if(RecipeAccess.mealPlan(grants)) entities.addAll(listOf("meal_plan","meal_plan_sections"))
         if(ShoppingAccess.allowed(grants)) entities.addAll(listOf("shopping_lists","shopping_list"))
-        for(e in entities) {
+        for(e in entities.filter { cache.capabilities().allows("/objects/$it") }) {
             val path="/objects/$e"
             val value=if(fresh)cache.readFresh(path)!! else cache.read(path).let { stale=stale||it.stale;Json.parseToJsonElement(it.payload) }
             resources[e]=value.jsonArray.map { it.jsonObject }
         }
-        if(StockAccess.canRead(grants)) {
+        if(cache.capabilities().enabled("STOCK") && StockAccess.canRead(grants)) {
             val value=if(fresh)cache.readFresh("/stock")!! else cache.read("/stock").let { stale=stale||it.stale;Json.parseToJsonElement(it.payload) }
             resources["stock"]=value.jsonArray.map { it.jsonObject }
         }

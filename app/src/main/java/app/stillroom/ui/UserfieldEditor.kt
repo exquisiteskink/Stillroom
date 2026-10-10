@@ -59,9 +59,10 @@ internal fun UserfieldEditor(field: UserfieldDefinition, value: String, onChange
             }
         }
         else -> Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            // File, image and unknown types: shown, never written.
+            // Media loads only through the account-bound Grocy file API. Unknown values stay untouched.
             Text(label, style = MaterialTheme.typography.labelLarge)
             Text(UserfieldText.render(field.type, JsonPrimitive(value), androidx.compose.runtime.remember { app.stillroom.fractions.QuantityFormatter() }, java.util.Locale.getDefault()) ?: "Not set")
+            if(field.canonicalType in setOf(UserfieldTypes.FILE,UserfieldTypes.IMAGE))GrocyMediaPreview("userfiles",value,field.canonicalType==UserfieldTypes.IMAGE)
             UserfieldTypes.reason(field)?.let { Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant) }
         }
     }

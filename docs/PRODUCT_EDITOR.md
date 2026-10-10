@@ -73,3 +73,5 @@ File and image uploads are not done. Grocy stores them through `PUT /files/userf
 
 - File/image upload or removal; deleting or editing existing barcodes; editing sub-product (parent) links, tare weight, freezing days, due type and picture.
 - No phone, emulator or live Grocy server was used. Repository behaviour is tested against a MockWebServer that stands in for Grocy (`ProductEditorIntegrationTest`).
+
+Product and userfield images can now be previewed, and userfield files saved, through the compatibility foundation. File/image replacement in this product editor still uses Grocy; the separate custom-record editor supports uploads. See [ADDON_COMPATIBILITY.md](ADDON_COMPATIBILITY.md).

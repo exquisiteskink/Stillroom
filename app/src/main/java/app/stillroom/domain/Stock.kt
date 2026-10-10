@@ -26,17 +26,19 @@ data class StockBooking(
     val action: StockAction, val productId: Long, val amount: BigDecimal,
     val factor: BigDecimal = BigDecimal.ONE, val location: Long? = null,
     val destination: Long? = null, val date: String? = null, val price: BigDecimal? = null,
-    val note: String? = null, val store: Long? = null, val recipeId: Long? = null,
+    val note: String? = null, val store: Long? = null, val recipeId: Long? = null, val stockEntryId:String?=null, val reviewedStockUnit:Long?=null,
 ) {
     fun path(): String { require(productId > 0); return "/stock/products/$productId/${action.endpoint}" }
     fun payload(): JsonObject {
         require(productId > 0 && factor.signum() > 0)
+        require(reviewedStockUnit==null || reviewedStockUnit>0)
         require(amount.signum() > 0 || (action == StockAction.Inventory && amount.signum() == 0))
         require(location == null || location > 0)
         require(price == null || price.signum() >= 0)
         require(store == null || store > 0)
         require(recipeId == null || (recipeId > 0 && action == StockAction.Consume))
         require(note == null || note.length <= 5000)
+        stockEntryId?.let { require(it.matches(Regex("[A-Za-z0-9_-]{1,128}")) && action in setOf(StockAction.Consume,StockAction.Open) && amount.multiply(factor).compareTo(BigDecimal.ONE)==0) { "A stock-entry label uses exactly one entry." } }
         date?.let { require(runCatching { LocalDate.parse(it) }.isSuccess) { "Invalid due date." } }
         if (action == StockAction.Transfer) require(location != null && destination != null && destination > 0 && location != destination)
         return buildJsonObject {
@@ -48,6 +50,7 @@ data class StockBooking(
                 else -> Unit
             }
             recipeId?.let { put("recipe_id", it) }
+            stockEntryId?.let { put("stock_entry_id",it) }
             if (action != StockAction.Transfer && action != StockAction.Open) location?.let { put("location_id", it) }
             if (action == StockAction.Purchase || action == StockAction.Inventory) {
                 date?.let { put("best_before_date", it) }
@@ -122,4 +125,13 @@ class ManageStock(private val repository: StockRepository) {
     suspend fun undo(id: Long) = repository.undo(id)
     suspend fun undoTransaction(id: String) = repository.undoTransaction(id)
     suspend fun operations() = repository.operations()
+}
+
+/** Grocy barcode last_price is a total; stock/add expects a price per stock unit. */
+fun reviewedStockPrice(price:BigDecimal,amount:BigDecimal,factor:BigDecimal,total:Boolean,tare:BigDecimal=BigDecimal.ZERO):BigDecimal {
+    require(price.signum()>=0 && factor.signum()>0 && tare.signum()>=0)
+    if(!total)return price
+    val net=amount.multiply(factor).subtract(tare)
+    require(net.signum()>0) { "The gross quantity must exceed the tare weight." }
+    return price.divide(net,java.math.MathContext.DECIMAL128)
 }

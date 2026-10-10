@@ -12,7 +12,7 @@ class GrocyCatalogRepository(private val grants:Set<String>?,private val db:Acco
         return schema["ExposedEntity"]!!.jsonObject["enum"]!!.jsonArray.map { it.jsonPrimitive.content }.toSet()
     }
     override suspend fun snapshot():CatalogSnapshot {
-        val available=CatalogEntity.entries.filter { it.readable(grants) }
+        val available=CatalogEntity.entries.filter { it.readable(grants) && cache.capabilities().allows("/objects/${it.entity}") }
         if(available.isEmpty())return CatalogSnapshot()
         val exposed=exposed();var stale=false;val resources=linkedMapOf<String,List<JsonObject>>();val unavailable=mutableListOf<String>()
         suspend fun read(path:String,entity:String) {
@@ -23,11 +23,11 @@ class GrocyCatalogRepository(private val grants:Set<String>?,private val db:Acco
         }
         if("userfields" in exposed)read("/objects/userfields","userfields")
         // Product editor choices: groups for the product form, barcodes to catch duplicates before sending.
-        if(CatalogEntity.Products.readable(grants)) {
+        if(CatalogEntity.Products.readable(grants) && cache.capabilities().enabled("STOCK")) {
             if("product_groups" in exposed)read("/objects/product_groups","product_groups")
             if("product_barcodes" in exposed)read("/objects/product_barcodes","product_barcodes")
         }
-        if(HouseholdAccess.has(grants,"BATTERIES") && "batteries" in exposed)read("/batteries","battery_status")
+        if(cache.capabilities().enabled("BATTERIES") && HouseholdAccess.has(grants,"BATTERIES") && "batteries" in exposed)read("/batteries","battery_status")
         return CatalogSnapshot(resources,stale,unavailable)
     }
     private suspend fun queue(method:String,path:String,payload:JsonObject,read:String,operationId:String?=null):String {

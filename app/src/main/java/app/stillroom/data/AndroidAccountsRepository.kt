@@ -1,7 +1,7 @@
 package app.stillroom.data
 
 import android.content.Context
-import app.stillroom.domain.Account
+import app.stillroom.domain.*
 import app.stillroom.domain.AccountCache
 import app.stillroom.domain.AccountId
 import app.stillroom.domain.AccountState
@@ -21,6 +21,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import kotlinx.serialization.json.*
 
 class AndroidAccountsRepository(
     private val context: Context,
@@ -32,11 +33,15 @@ class AndroidAccountsRepository(
     private val mutableState = MutableStateFlow(AccountState(store.list().map { it.account }))
     override val state = mutableState.asStateFlow()
     override val preferredAccountId: AccountId? get() = store.preferred()
+    private val addonKeys by lazy { EncryptedAccountStore(context,"${namespace}_addons") }
     private val pending = mutableSetOf<Job>()
     private var generation = 0L
     private var session: Session? = null
 
     private class Session(val account: Account, val cache: AccountDatabase, val grocy: CachedGrocyRepository) {
+        val compatibility = GrocyCompatibilityRepository(cache,grocy)
+        val buddyReceipts = BarcodeBuddyReceipts(cache)
+        val trip = GrocyShoppingTripRepository(account.permissions,cache,grocy)
         val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
         val shopping = GrocyShoppingRepository(cache, grocy, GrocyStockRepository(account.permissions, grocy) { emptyList() }, account.permissions)
         fun close() { scope.cancel(); cache.close() }
@@ -88,6 +93,7 @@ class AndroidAccountsRepository(
                 } catch (error: Exception) { cache.close(); throw error }
             }
             app.stillroom.background.HouseholdWork.accountChanged(context)
+            app.stillroom.background.CookingTimerStore(context).accountChanged(account.id)
             account
         } finally { synchronized(lock) { pending.remove(job) } }
     }
@@ -109,6 +115,8 @@ class AndroidAccountsRepository(
             if (session?.account?.id == id) { session?.close(); session = null }
             // Closed leases reject even a non-cooperative late writer; deleted caches cannot be resurrected.
             AccountDatabase.delete(context, id, namespace)
+            app.stillroom.background.CookingTimerStore(context).removeAccount(id)
+            addonKeys.delete(id)
             store.delete(id)
             val remaining = state.value.accounts.filterNot { it.id == id }
             mutableState.value = AccountState(remaining, state.value.active?.takeUnless { it.id == id })
@@ -149,12 +157,14 @@ class AndroidAccountsRepository(
         block(app.stillroom.domain.ManageHousehold(repository))
     }
 
+    suspend fun <T> withShoppingTrip(block:suspend(ManageShoppingTrip)->T):T = inSession { bound -> block(ManageShoppingTrip(bound.trip)) }
     suspend fun <T> withScanner(block: suspend (app.stillroom.domain.ManageScanner) -> T): T = inSession { bound ->
         val saved = synchronized(lock) { store.read(bound.account.id) }
         val transport = MutationTransport()
+        val settings=AddonSettings.parse(bound.cache.get("addon-settings","current"))
         val repository = GrocyScanRepository(bound.account.permissions, bound.cache, bound.grocy, { path ->
             transport.request(bound.account.address, saved.apiKey, "GET", path)
-        })
+        },publicFallbackEnabled=settings.publicLookup)
         block(app.stillroom.domain.ManageScanner(repository))
     }
 
@@ -193,6 +203,49 @@ class AndroidAccountsRepository(
     suspend fun refreshToday(): app.stillroom.domain.TodaySnapshot = inSession { bound ->
         val today=CachedTodayRepository(bound.account,bound.cache)
         today.refresh(bound.grocy);today.snapshot()
+    }
+
+    suspend fun observeGrocy(force:Boolean=false):CompatibilityObservation = inSession { it.compatibility.poll(force) }
+    suspend fun addonSettings():AddonSettings = inSession { AddonSettings.parse(it.cache.get("addon-settings","current")) }
+    suspend fun saveAddonSettings(settings:AddonSettings,key:String,clearKey:Boolean=false) = inSession { bound ->
+        settings.validated()
+        synchronized(lock) {
+            check(session===bound) { "Account context changed." }
+            require(key.none { it.isISOControl() }) { "Enter a valid BarcodeBuddy API key." }
+            if(key.isNotBlank() || clearKey)check(HouseholdAccess.has(bound.account.permissions,"ADMIN")) { "Only administrators can change BarcodeBuddy credentials." }
+            if(key.isNotBlank())addonKeys.save(SavedAccount(bound.account,key.trim()))
+            else if(clearKey)addonKeys.delete(bound.account.id)
+            val configured=!clearKey && (key.isNotBlank() || runCatching { addonKeys.read(bound.account.id) }.isSuccess)
+            bound.cache.put("addon-settings","current",settings.copy(barcodeBuddyConfigured=configured).json())
+        }
+    }
+    suspend fun barcodeBuddyMode():String = withBarcodeBuddy { it.mode() }
+    suspend fun sendBarcodeBuddy(code:ScanCode):String = inSession { bound ->
+        val settings=AddonSettings.parse(bound.cache.get("addon-settings","current"))
+        check(HouseholdAccess.has(bound.account.permissions,"ADMIN")) { "BarcodeBuddy scans require an administrator account." }
+        check(settings.barcodeBuddyConfigured && settings.barcodeBuddyUrl.isNotBlank()) { "Configure BarcodeBuddy first." }
+        val saved=synchronized(lock) { addonKeys.read(bound.account.id) }
+        val client=BarcodeBuddyClient(ServerAddress.parse(settings.barcodeBuddyUrl,settings.barcodeBuddyInsecure),saved.apiKey)
+        bound.buddyReceipts.submit(code,client::scan) { bound.compatibility.poll(true) }
+    }
+    suspend fun barcodeBuddyReceipts():List<Pair<String,String>> = inSession { it.buddyReceipts.pending() }
+    suspend fun reviewBarcodeBuddyReceipt(id:String) = inSession { it.buddyReceipts.reviewed(id) }
+    suspend fun grocyFile(group:String,name:String):ByteArray = inSession { bound ->
+        check(when(group) { "productpictures"->StockAccess.canRead(bound.account.permissions);"recipepictures"->RecipeAccess.allowed(bound.account.permissions);"userfiles"->StockAccess.canRead(bound.account.permissions) || HouseholdAccess.has(bound.account.permissions,"MASTER_DATA_EDIT");else->false }) { "File access denied." }
+        bound.grocy.requireCacheAccess()
+        val saved=synchronized(lock) { store.read(bound.account.id) }
+        try { GrocyFiles(bound.account.address,saved.apiKey).read(group,name) } catch(e:GrocyFailure) { bound.grocy.recordDenial(e.status);throw e }
+    }
+    private suspend fun <T> withBarcodeBuddy(block:suspend(BarcodeBuddyClient)->T):T = inSession { bound ->
+        check(HouseholdAccess.has(bound.account.permissions,"ADMIN")) { "BarcodeBuddy requires an administrator account." }
+        val settings=AddonSettings.parse(bound.cache.get("addon-settings","current"))
+        check(settings.barcodeBuddyConfigured && settings.barcodeBuddyUrl.isNotBlank()) { "Configure BarcodeBuddy first." }
+        val saved=synchronized(lock) { addonKeys.read(bound.account.id) }
+        block(BarcodeBuddyClient(ServerAddress.parse(settings.barcodeBuddyUrl,settings.barcodeBuddyInsecure),saved.apiKey))
+    }
+    suspend fun <T> withCustomRecords(block:suspend(ManageCustomRecords)->T):T = inSession { bound ->
+        val saved=synchronized(lock) { store.read(bound.account.id) }
+        block(ManageCustomRecords(GrocyCustomRecordsRepository(bound.account.permissions,bound.cache,bound.grocy,GrocyFiles(bound.account.address,saved.apiKey))))
     }
 
     override fun currentCache(): AccountCache = synchronized(lock) { session?.cache ?: error("No account is active.") }

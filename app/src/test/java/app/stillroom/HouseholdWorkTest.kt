@@ -64,4 +64,15 @@ class HouseholdWorkTest {
         assertTrue(runCatching { ReminderPreferences(context).save(true,"bad","07:00") }.isFailure)
         HouseholdWork.updateSoon(context);HouseholdWork.accountChanged(context)
     }
+    @Test fun personalTaskDueTodayCanTriggerTheCachedDailyReminder()=runBlocking {
+        val prefs=ReminderPreferences(context);prefs.save(true,"23:59","00:00")
+        val address=ServerAddress.parse("example.org")
+        val account=Account(AccountId.of(address,4),address,4,"member","4.7.1",setOf("TASKS"))
+        val task=buildJsonObject { put("id",1);put("name","My task");put("done",0);put("assigned_to_user_id",4);put("due_date",LocalDate.now().toString()) }
+        val snapshot=TodaySnapshot(account=account,tasks=listOf(task))
+        worker(snapshot).doWork()
+        assertEquals(1,context.getSystemService(NotificationManager::class.java).activeNotifications.size)
+        assertTrue(prefs.delivered(account.id.value,LocalDate.now().toString()))
+    }
+
 }
