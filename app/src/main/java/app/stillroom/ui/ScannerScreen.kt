@@ -15,6 +15,7 @@ import kotlinx.coroutines.flow.first
 fun ScannerScreen(model:ScannerViewModel,stock:StockViewModel,account:Account,onReviewChanges:()->Unit={},onExit:()->Unit={}) {
     val state by model.state.collectAsState()
     val stockState by stock.state.collectAsState()
+    var reviewingTrip by remember(account.id) { mutableStateOf(false) }
     var manual by remember(account.id) { mutableStateOf("") }
     var manualFormat by remember(account.id) { mutableStateOf(ScanFormat.Manual) }
     var manualExpanded by remember(account.id) { mutableStateOf(false) }
@@ -28,7 +29,23 @@ fun ScannerScreen(model:ScannerViewModel,stock:StockViewModel,account:Account,on
     }
     if(state.denied || !StockAccess.canRead(account.permissions)) { PermissionDeniedState(); return }
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).imePadding().padding(16.dp), verticalArrangement=Arrangement.spacedBy(16.dp)) {
-        Row(horizontalArrangement=Arrangement.spacedBy(8.dp)) {
+        if(StockAccess.canWrite(account.permissions,StockAction.Purchase)) {
+            Row(horizontalArrangement=Arrangement.spacedBy(8.dp)) {
+                FilterChip(!state.tripMode,{model.tripMode(false)},{Text("Single item")},enabled=!locked && state.result==null && product==null)
+                FilterChip(state.tripMode,{model.tripMode(true)},{Text("Shopping trip")},enabled=!locked && state.result==null && product==null)
+            }
+        }
+
+        // This call remains in composition during review; analysis pauses without losing the session.
+        CameraScanner(onCodes=model::detected,active=state.result==null && state.candidates.isEmpty() && !locked && !manualExpanded && !reviewingTrip && !(state.tripMode && state.trip.submitted))
+        if(state.tripMode)ShoppingTripReview(state.trip,stockState,state.busy,model::editTrip,model::removeTripLine,model::submitTrip,model::newTrip,model::loadTrip,onReviewChanges,reviewing={reviewingTrip=it})
+        if(!state.tripMode && (LocalAddonSettings.current.barcodeBuddyConfigured || state.useBarcodeBuddy) && HouseholdAccess.has(account.permissions,"ADMIN")) {
+            Row(horizontalArrangement=Arrangement.spacedBy(8.dp)) {
+                FilterChip(!state.useBarcodeBuddy,{model.useBarcodeBuddy(false)},{Text("Stillroom")},enabled=!locked && state.result==null && product==null)
+                FilterChip(state.useBarcodeBuddy,{model.useBarcodeBuddy(true)},{Text("BarcodeBuddy")},enabled=LocalAddonSettings.current.barcodeBuddyConfigured && !locked && state.result==null && product==null)
+            }
+        }
+        if(!state.useBarcodeBuddy && !state.tripMode)Row(horizontalArrangement=Arrangement.spacedBy(8.dp)) {
             listOf(StockAction.Purchase to "Add stock",StockAction.Consume to "Use stock").filter { StockAccess.canWrite(account.permissions,it.first) }.forEach { (action,label) ->
                 FilterChip(state.action==action,{model.setAction(action)},{Text(label)},enabled=!locked && product==null)
             }
@@ -41,15 +58,22 @@ fun ScannerScreen(model:ScannerViewModel,stock:StockViewModel,account:Account,on
             KitchenError(it)
             if(state.lastCode!=null && state.result==null) QuietButton(onClick=model::retryLookup,enabled=!locked) { Text("Try lookup again") }
         }
-        // This call remains in composition during review; analysis pauses without losing the session.
-        CameraScanner(onCodes=model::detected,active=state.result==null && state.candidates.isEmpty() && !locked && !manualExpanded)
         if(product!=null) {
             LaunchedEffect(product) { stock.state.first { !it.busy }; stock.select(product) }
-            ScannerStockReview(stockState,product,stock,account.permissions,state.action)
+            ScannerStockReview(stockState,product,stock,account.permissions,state.action,state.result?.barcodes?.singleOrNull { it.productId==product },state.result?.grocycode?.stockId,if(state.tripMode)model::addToTrip else null)
             if(stockState.bookingOperation!=null || stockState.operations.any { it.path=="/stock/products/$product/${state.action.endpoint}" && it.state in setOf("pending","guarded","in-flight","needs-review") }) QuietButton(onClick=onReviewChanges,enabled=!locked) { Text("Check changes") }
         } else if(state.result!=null) {
             val result=state.result!!
-            if(result.productIds.isNotEmpty()) {
+            if(state.useBarcodeBuddy) {
+                Text("Send ${result.code.raw} to BarcodeBuddy",style=MaterialTheme.typography.titleLarge)
+                Text("Current shared mode: ${state.buddyMode}. BarcodeBuddy will process this scan using its mode at submission time.")
+                Text("This can change Grocy stock or shopping records.")
+                state.buddyMessage?.let { Text(it) }
+                PrimaryButton(onClick=model::sendBarcodeBuddy,enabled=!locked && !state.buddySubmitted,modifier=Modifier.fillMaxWidth()) { Text("Send scan to BarcodeBuddy") }
+            } else if(result.grocycode!=null && result.grocycode.entity!="p") {
+                Text("Grocy ${when(result.grocycode.entity) { "c"->"chore";"b"->"battery";else->"recipe" }} label: ${result.grocycode.id}")
+                GrocyBrowserButton("Open labeled item in Grocy",when(result.grocycode.entity) { "c"->"choresoverview";"b"->"batteriesoverview";else->"recipe/${result.grocycode.id}" })
+            } else if(result.productIds.isNotEmpty()) {
                 Text("Choose a product",style=MaterialTheme.typography.titleLarge)
                 result.productIds.forEach { id ->
                     val name=stockState.rows("/objects/products").firstOrNull { it.text("id")==id.toString() }?.text("name") ?: "Product $id"
@@ -71,7 +95,7 @@ fun ScannerScreen(model:ScannerViewModel,stock:StockViewModel,account:Account,on
             if(manualExpanded) {
                 LabeledTextField(manual,{manual=it},label="Barcode or QR text",singleLine=true,modifier=Modifier.fillMaxWidth().testTag("manual-barcode"))
                 ChoiceField("Code format",listOf(0L to "Barcode",1L to "UPC-E",2L to "QR or household code"),when(manualFormat) { ScanFormat.UpcE->1L;ScanFormat.Qr->2L;else->0L }, { value->manualFormat=when(value) { 1L->ScanFormat.UpcE;2L->ScanFormat.Qr;else->ScanFormat.Manual } },enabled=!locked)
-                PrimaryButton(onClick={model.manual(manual,manualFormat)},enabled=!locked && manual.isNotBlank(),modifier=Modifier.fillMaxWidth().testTag("manual-lookup")) { Text("Find product") }
+                PrimaryButton(onClick={model.manual(manual,manualFormat)},enabled=!locked && !reviewingTrip && !(state.tripMode && state.trip.submitted) && manual.isNotBlank(),modifier=Modifier.fillMaxWidth().testTag("manual-lookup")) { Text("Find product") }
             }
         }
         if(state.result!=null || product!=null) {
@@ -85,8 +109,10 @@ fun ScannerScreen(model:ScannerViewModel,stock:StockViewModel,account:Account,on
 private fun ProductReview(result:ScanSuggestion,units:List<Pair<Long,String>>,locations:List<Pair<Long,String>>,products:List<Pair<Long,String>>,busy:Boolean,create:(ScanReview)->Unit,attach:(Long)->Unit) {
     var name by remember(result.code.raw) { mutableStateOf(result.name) }
     var description by remember(result.code.raw) { mutableStateOf(result.description) }
-    var unit by remember(result.code.raw) { mutableStateOf<Long?>(null) }
-    var location by remember(result.code.raw) { mutableStateOf<Long?>(null) }
+    var unit by remember(result.code.raw) { mutableStateOf(result.defaults.stockUnit?.takeIf { id->units.any { it.first==id } }) }
+    var purchaseUnit by remember(result.code.raw) { mutableStateOf(result.defaults.purchaseUnit?.takeIf { id->units.any { it.first==id } }) }
+    var factor by remember(result.code.raw) { mutableStateOf(result.defaults.factor.orEmpty()) }
+    var location by remember(result.code.raw) { mutableStateOf(result.defaults.location?.takeIf { id->locations.any { it.first==id } }) }
     var existing by remember(result.code.raw) { mutableStateOf<Long?>(null) }
     Text("Review new product",style=MaterialTheme.typography.titleLarge)
     Text("Review the details before creating this product.")
@@ -94,10 +120,13 @@ private fun ProductReview(result:ScanSuggestion,units:List<Pair<Long,String>>,lo
     LabeledTextField(name,{name=it},label="Product name (required)",enabled=!busy,isError=name.length>200,supportingText=if(name.length>200) "Use 200 characters or fewer" else null,modifier=Modifier.fillMaxWidth())
     LabeledTextField(description,{description=it},label="Description or brand (optional)",enabled=!busy,isError=description.length>5000,supportingText=if(description.length>5000) "Use 5,000 characters or fewer" else null,modifier=Modifier.fillMaxWidth())
     ChoiceField("Stock unit (required)",units,unit,{unit=it},enabled=!busy)
+    ChoiceField("Purchase unit",units,purchaseUnit ?: unit,{purchaseUnit=it},enabled=!busy)
+    if(purchaseUnit!=null && purchaseUnit!=unit)LabeledTextField(factor,{factor=it},label="Stock units per purchase unit",enabled=!busy,isError=factor.toBigDecimalOrNull()?.signum()!=1,modifier=Modifier.fillMaxWidth())
+    result.defaults.imageUrl?.let { Text("The lookup also suggested a product image. Open Grocy to import it.",style=MaterialTheme.typography.bodySmall) }
     ChoiceField("Location (required)",locations,location,{location=it},enabled=!busy)
     if(units.isEmpty() || locations.isEmpty()) Text("Create the required unit or location in Grocy, then look up the code again.")
     if(name.isBlank() || unit==null || location==null) Text("Enter a name and choose a stock unit and location.",color=MaterialTheme.colorScheme.onSurfaceVariant)
-    PrimaryButton(onClick={create(ScanReview(result.code,name,description,unit!!,location!!))},enabled=!busy && name.isNotBlank() && name.length<=200 && description.length<=5000 && unit!=null && location!=null,modifier=Modifier.fillMaxWidth()) { Text("Create product") }
+    PrimaryButton(onClick={create(ScanReview(result.code,name,description,unit!!,location!!,purchaseUnit ?: unit!!,factor.takeIf { purchaseUnit!=null && purchaseUnit!=unit }))},enabled=!busy && name.isNotBlank() && name.length<=200 && description.length<=5000 && unit!=null && location!=null && (purchaseUnit==null || purchaseUnit==unit || factor.toBigDecimalOrNull()?.signum()==1),modifier=Modifier.fillMaxWidth()) { Text("Create product") }
     Text("Or add this barcode to a product already in Grocy.", style=MaterialTheme.typography.titleMedium)
     if(products.isEmpty()) Text("Loading products…")
     else ChoiceField("Existing product", products, existing, { existing = it }, enabled = !busy)

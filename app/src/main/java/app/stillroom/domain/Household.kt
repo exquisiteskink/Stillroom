@@ -36,15 +36,18 @@ fun choreGroups(rows: List<JsonObject>, userId: Long?, today: LocalDate): Map<St
     }
     return groups
 }
-data class HouseholdSnapshot(val chores: List<JsonObject> = emptyList(), val tasks: List<JsonObject> = emptyList(), val categories: List<JsonObject> = emptyList(), val users: List<JsonObject> = emptyList(), val stale: Boolean = false)
+data class HouseholdSnapshot(val chores: List<JsonObject> = emptyList(), val tasks: List<JsonObject> = emptyList(), val categories: List<JsonObject> = emptyList(), val users: List<JsonObject> = emptyList(), val stale: Boolean = false, val completedTasks: List<JsonObject> = emptyList())
 interface HouseholdRepository {
     suspend fun snapshot(): HouseholdSnapshot
     suspend fun save(id: Long?, fields: JsonObject): String
     suspend fun delete(id: Long): String
     suspend fun saveTask(id: Long?, fields: JsonObject): String
+    suspend fun createTaskCategory(name: String): Long
     suspend fun deleteTask(id: Long): String
     suspend fun completeChore(id: Long): String
     suspend fun completeTask(id: Long): String
+    suspend fun completedTasks(): List<JsonObject> = emptyList()
+    suspend fun reopenTask(id: Long): String = error("Task reopening is unavailable.")
     suspend fun history(id: Long): List<JsonObject>
     suspend fun sync()
     suspend fun operations(): List<PendingChange>
@@ -54,9 +57,12 @@ class ManageHousehold(private val repository: HouseholdRepository) {
     suspend fun save(id: Long?, fields: JsonObject) = repository.save(id, fields)
     suspend fun delete(id: Long) = repository.delete(id)
     suspend fun saveTask(id: Long?, fields: JsonObject) = repository.saveTask(id, fields)
+    suspend fun createTaskCategory(name: String) = repository.createTaskCategory(name)
     suspend fun deleteTask(id: Long) = repository.deleteTask(id)
     suspend fun completeChore(id: Long) = repository.completeChore(id)
     suspend fun completeTask(id: Long) = repository.completeTask(id)
+    suspend fun completedTasks() = repository.completedTasks()
+    suspend fun reopenTask(id: Long) = repository.reopenTask(id)
     suspend fun history(id: Long) = repository.history(id)
     suspend fun sync() = repository.sync()
     suspend fun operations() = repository.operations()

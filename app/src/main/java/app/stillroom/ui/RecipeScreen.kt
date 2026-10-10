@@ -87,7 +87,7 @@ private fun number(amount:BigDecimal)=Json.parseToJsonElement(amount.toPlainStri
     LaunchedEffect(Unit){model.refresh()}
     LaunchedEffect(state.openRecipeId) {
         val id=state.openRecipeId ?: return@LaunchedEffect
-        selected=id; mealPlan=false; cooking=false; model.clearOpen()
+        selected=id; mealPlan=false; cooking=state.resumeCooking; model.clearOpen()
     }
     LaunchedEffect(state.openMealId, s.rows("meal_plan")) {
         val id=state.openMealId ?: return@LaunchedEffect
@@ -109,13 +109,16 @@ private fun number(amount:BigDecimal)=Json.parseToJsonElement(amount.toPlainStri
                 Column(verticalArrangement=Arrangement.spacedBy(16.dp)) {
                     Row(horizontalArrangement=Arrangement.spacedBy(8.dp)) {
                         FilterChip(selected=!mealPlan,onClick={mealPlan=false},label={Text("Recipes")})
-                        if(RecipeAccess.mealPlan(account.permissions))FilterChip(selected=mealPlan,onClick={mealPlan=true},label={Text("Meal plan")})
+                        if(LocalServerCapabilities.current.enabled("RECIPES_MEALPLAN") && RecipeAccess.mealPlan(account.permissions))FilterChip(selected=mealPlan,onClick={mealPlan=true},label={Text("Meal plan")})
                     }
                     KitchenWhisper(if(s.stale)"Showing saved recipes. Pull down to reload when you're online." else null)
                     KitchenError(state.error ?: imageError)
                     KitchenWhisper(if(needsReview)"A recipe change needs review. Open Settings → Review pending changes." else null)
                     if(mealPlan) PrimaryButton(onClick={newMeal=true}, modifier=Modifier.fillMaxWidth()){Text("Add meal")}
                     else {
+                        val savedCook=app.stillroom.background.CookingTimerStore(context).session(account.id)
+                        val activeRecipe=savedCook?.let { saved -> s.normal().firstOrNull { it.recipeId("id")==saved.recipe } }
+                        if(activeRecipe!=null)SecondaryButton(onClick={selected=activeRecipe.recipeId("id");cooking=true},modifier=Modifier.fillMaxWidth()) { Text("Resume cooking: ${activeRecipe.recipeText("name")}") }
                         PrimaryButton(onClick={newRecipe=true}, modifier=Modifier.fillMaxWidth()){Text("Add recipe")}
                         QuietButton(onClick={importing=!importing}){Text(if(importing) "Cancel import" else "Import recipe")}
                         if(importing) {
@@ -171,7 +174,7 @@ private fun number(amount:BigDecimal)=Json.parseToJsonElement(amount.toPlainStri
             }
             else if(cooking) {
                 item { Text(row.recipeText("name"),style=MaterialTheme.typography.headlineMedium) }
-                item { CookingMode(row,s) }
+                item { CookingMode(row,s,account) { cooking=false;selected=null } }
             } else {
                 item {
                     val bitmap=rememberDownsampledImage(picture)
@@ -184,7 +187,12 @@ private fun number(amount:BigDecimal)=Json.parseToJsonElement(amount.toPlainStri
                     KitchenError(state.error ?: imageError)
                     KitchenWhisper(if(needsReview) "A recipe change needs review in Settings → Pending changes." else if(state.operations.any { it.state in setOf("pending", "in-flight") }) "Recipe change pending confirmation." else null)
                 }
-                item { PrimaryButton(onClick={cooking=true}, modifier=Modifier.fillMaxWidth()){Text("Start cooking")} }
+                item {
+                    val cookingStore=remember(context) { app.stillroom.background.CookingTimerStore(context) }
+                    val resume=cookingStore.session(account.id)?.recipe==row.recipeId("id")
+                    PrimaryButton(onClick={cooking=true}, modifier=Modifier.fillMaxWidth()){Text(if(resume) "Resume cooking" else "Start cooking")}
+                    if(resume)QuietButton(onClick={cookingStore.finishSession(account.id);cooking=true}){Text("Start a new cooking session")}
+                }
                 item { Row { QuietButton(onClick={editor=row}){Text("Edit")};QuietButton(onClick={delete="recipes" to selected!!}){Text("Delete")} } }
                 item { RecipeServings(row, state.busy) { servings -> model.save("recipes", selected, buildJsonObject { put("desired_servings", number(servings)) }) } }
                 item { Text("Serves ${qty(row.recipeDecimal("base_servings") ?: BigDecimal.ONE)} as written", color=MaterialTheme.colorScheme.onSurfaceVariant) }
@@ -296,11 +304,16 @@ private fun number(amount:BigDecimal)=Json.parseToJsonElement(amount.toPlainStri
     }
 }
 
-@Composable private fun CookingMode(row:JsonObject,s:RecipeSnapshot) {
+@Composable private fun CookingMode(row:JsonObject,s:RecipeSnapshot,account:Account,finish:()->Unit) {
     val view=LocalView.current
     DisposableEffect(view) { val previous=view.keepScreenOn;view.keepScreenOn=true;onDispose { view.keepScreenOn=previous } }
-    val steps=remember(row){recipeSteps(row.recipeText("description"))};var index by rememberSaveable { mutableStateOf(0) }
-    var checked by rememberSaveable { mutableStateOf(listOf<Long>()) }
+    val context=LocalContext.current
+    val cookingStore=remember(context) { app.stillroom.background.CookingTimerStore(context) }
+    val recipe=row.recipeId("id")!!
+    val saved=remember(account.id,recipe) { cookingStore.session(account.id)?.takeIf { it.recipe==recipe } }
+    val steps=remember(row){recipeSteps(row.recipeText("description"))};var index by rememberSaveable(account.id.value,recipe) { mutableStateOf(saved?.step ?: 0) }
+    var checked by rememberSaveable(account.id.value,recipe) { mutableStateOf(saved?.checked ?: emptyList<Long>()) }
+    LaunchedEffect(account.id,recipe,index,checked) { cookingStore.saveSession(account.id,CookingSession(recipe,index,checked)) }
     Text("Ingredient checklist",style=MaterialTheme.typography.titleLarge)
     s.rows("recipes_pos").filter { it.recipeId("recipe_id")==row.recipeId("id") }.forEach { ingredient->val id=ingredient.recipeId("id")!!
         val resolved=s.rows("recipes_pos_resolved").find { it.recipeId("recipe_id")==row.recipeId("id") && it.recipeId("recipe_pos_id")==id && it.recipeText("is_nested_recipe_pos")!="1" }
@@ -314,11 +327,10 @@ private fun number(amount:BigDecimal)=Json.parseToJsonElement(amount.toPlainStri
         index=index.coerceIn(0,steps.lastIndex);Text("Step ${index+1} of ${steps.size}",style=MaterialTheme.typography.titleLarge);Text(steps[index],style=MaterialTheme.typography.headlineSmall)
         Row(Modifier.fillMaxWidth(), horizontalArrangement=Arrangement.spacedBy(8.dp)) { SecondaryButton(onClick={index--},enabled=index>0,modifier=Modifier.weight(1f)){Text("Previous")};PrimaryButton(onClick={index++},enabled=index<steps.lastIndex,modifier=Modifier.weight(1f)){Text("Next")} }
     }
-    var minutes by rememberSaveable { mutableStateOf("5") };var timers by rememberSaveable { mutableStateOf(listOf<Long>()) };var now by remember { mutableLongStateOf(android.os.SystemClock.elapsedRealtime()) }
-    LaunchedEffect(timers) { while(timers.isNotEmpty()) { now=android.os.SystemClock.elapsedRealtime();delay(1000) } }
-    LabeledTextField(minutes,{minutes=it},label = "Timer minutes", isError = minutes.toLongOrNull()?.let { it in 1..1440 } != true, supportingText = "Enter 1 to 1440 minutes.")
-    SecondaryButton(onClick={timers=timers+(android.os.SystemClock.elapsedRealtime()+minutes.toLong()*60000)},enabled=minutes.toLongOrNull()?.let { it in 1..1440 }==true){Text("Start timer for step ${index+1}")}
-    timers.forEachIndexed { timer,deadline->Row { val remaining=((deadline-now).coerceAtLeast(0)+999)/1000;Text("Timer ${timer+1}: ${if(remaining==0L)"Done" else "${remaining/60}:${(remaining%60).toString().padStart(2,'0')}"}");QuietButton(onClick={timers=timers.filterIndexed { i,_->i!=timer }}){Text("Dismiss")} } }
+    CookingTimerPanel(account,recipe,index)
+    QuietButton(onClick={cookingStore.finishSession(account.id);finish()}){Text("Finish cooking session")}
+    Text("Finishing the session keeps existing timers running. Use the stock review to record cooking consumption.",style=MaterialTheme.typography.bodySmall)
+
 }
 
 @Composable internal fun ImportRecipeReview(draft:RecipeImport,s:RecipeSnapshot,busy:Boolean,load:()->Unit,close:()->Unit,save:(JsonObject,List<JsonObject>)->Unit) {

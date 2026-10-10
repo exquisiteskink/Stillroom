@@ -42,6 +42,12 @@ class ShellViewModel(
         }
     }
 
+    /** Server availability can temporarily require Today even when the user hid it. */
+    internal fun selectAvailableSection(section:Section) {
+        previousPages.clear()
+        mutableState.value=state.value.copy(selectedSection=section,page=ShellPage.Sections)
+    }
+
     fun openPage(page: ShellPage) {
         if (page == state.value.page) return
         if (page == ShellPage.Sections) previousPages.clear()

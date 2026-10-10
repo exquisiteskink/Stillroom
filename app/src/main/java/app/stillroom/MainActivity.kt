@@ -81,6 +81,14 @@ class MainActivity : ComponentActivity() {
             }
         }
     }
+    private val addons: app.stillroom.ui.AddonViewModel by viewModels {
+        object : androidx.lifecycle.ViewModelProvider.Factory {
+            override fun <T : androidx.lifecycle.ViewModel> create(modelClass: Class<T>): T {
+                @Suppress("UNCHECKED_CAST")
+                return app.stillroom.ui.AddonViewModel((application as StillroomApplication).accounts) as T
+            }
+        }
+    }
     private val today: app.stillroom.ui.TodayViewModel by viewModels {
         object : androidx.lifecycle.ViewModelProvider.Factory {
             override fun <T : androidx.lifecycle.ViewModel> create(modelClass: Class<T>): T {
@@ -90,8 +98,14 @@ class MainActivity : ComponentActivity() {
         }
     }
     private var pendingDestination by androidx.compose.runtime.mutableStateOf<String?>(null)
+    private var pendingCooking:Pair<String,Long>?=null
     private fun receiveRecipe(intent: android.content.Intent?) {
-        intent?.getStringExtra("stillroom_destination")?.takeIf { it in setOf("chores","shopping","scan","today") }?.let { pendingDestination=it }
+        intent?.getStringExtra("stillroom_destination")?.takeIf { it in setOf("chores","shopping","scan","today","tasks") }?.let { pendingDestination=it }
+        if(intent?.getStringExtra("stillroom_destination")=="cooking") {
+            val id=intent.getLongExtra("stillroom_recipe_id",0)
+            val owner=intent.getStringExtra("stillroom_cooking_account")
+            if(id>0 && owner!=null) { pendingCooking=owner to id;pendingDestination="cooking" }
+        }
         if(intent?.action==android.content.Intent.ACTION_SEND && intent.type=="text/plain") {
             intent.getStringExtra(android.content.Intent.EXTRA_TEXT)?.takeIf { it.length<=4096 }?.trim()?.let { text ->
                 val url=Regex("https?://[^\\s]+").find(text)?.value ?: return
@@ -119,7 +133,11 @@ class MainActivity : ComponentActivity() {
                         "meals"->app.stillroom.domain.Section.Meals
                         else->app.stillroom.domain.Section.Today
                     }
-                    if(target=="scan")model.openPage(app.stillroom.ui.ShellPage.Scanner)
+                    if(target=="cooking") {
+                        pendingCooking?.takeIf { it.first==active.id.value && app.stillroom.domain.RecipeAccess.allowed(active.permissions) }?.let { recipes.openCooking(it.second);model.setSectionVisible(app.stillroom.domain.Section.Meals,true);model.selectSection(app.stillroom.domain.Section.Meals) }
+                        pendingCooking=null
+                    }
+                    else if(target=="scan")model.openPage(app.stillroom.ui.ShellPage.Scanner)
                     else { model.setSectionVisible(section,true);model.selectSection(section) }
                     pendingDestination=null
                 }
@@ -138,7 +156,7 @@ class MainActivity : ComponentActivity() {
                 contentResolver, Settings.Global.ANIMATOR_DURATION_SCALE, 1f,
             ) == 0f
             StillroomTheme(settings.theme, settings.dynamicColor, settings.reducedMotion || systemReducedMotion) {
-                StillroomShell(state, model, accountState, accounts, stock, shopping, household, scanner, recipes, catalog, today) {
+                StillroomShell(state, model, accountState, accounts, stock, shopping, household, scanner, recipes, catalog, today, addons) {
                     app.stillroom.ui.PendingChangesScreen((application as StillroomApplication).accounts)
                 }
             }

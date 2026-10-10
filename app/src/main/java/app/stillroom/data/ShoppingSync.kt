@@ -30,6 +30,7 @@ internal class ShoppingSync(private val db: AccountDatabase, private val cache: 
     suspend fun drain() {
         for (saved in db.shoppingOperations().filter { it.state in setOf("pending", "purchased", "needs-review") }) {
             currentCoroutineContext().ensureActive()
+            if(saved.kind=="purchase" && saved.state=="pending" && AddonSettings.parse(db.get("addon-settings","current")).shoppingPurchaseOwner=="external")continue
             try {
                 when (saved.state) {
                     "pending" -> prepare(saved)

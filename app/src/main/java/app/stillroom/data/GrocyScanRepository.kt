@@ -42,7 +42,7 @@ class OpenFoodFactsLookup(private val origin: String = "https://world.openfoodfa
 
 class GrocyScanRepository(private val grants:Set<String>?,private val db:AccountDatabase,
     private val cache:CachedGrocyRepository,private val external:suspend(String)->Pair<Int,String>,
-    private val publicLookup:suspend(String)->JsonObject? = OpenFoodFactsLookup()::lookup): ScanRepository {
+    private val publicLookup:suspend(String)->JsonObject? = OpenFoodFactsLookup()::lookup,private val publicFallbackEnabled:Boolean=true): ScanRepository {
     private fun access()=check(StockAccess.canRead(grants)) { "Stock access denied." }
     private suspend fun rows(path:String,fresh:Boolean=false): Pair<List<JsonObject>,Boolean> {
         if(fresh) return cache.readFresh(path)!!.jsonArray.map { it.jsonObject } to false
@@ -53,11 +53,19 @@ class GrocyScanRepository(private val grants:Set<String>?,private val db:Account
     private fun JsonObject.id(key:String)=value(key).toLongOrNull()
     override suspend fun lookup(code:ScanCode):ScanSuggestion {
         access();code.validated()
+        if(code.raw.startsWith("grcy:")) {
+            val parsed=Grocycode.parse(code.raw) ?: error("This Grocycode is invalid or unsupported.")
+            if(parsed.entity=="p") {
+                cache.readFresh("/objects/products/${parsed.id}") ?: error("This product no longer exists.")
+                return ScanSuggestion(code,"Grocy label",productIds=listOf(parsed.id),grocycode=parsed)
+            }
+            return ScanSuggestion(code,"Grocy label",grocycode=parsed)
+        }
         val (barcodes,stale)=rows("/objects/product_barcodes")
-        val ids=barcodes.filter { it.value("barcode")==code.raw }.mapNotNull { it.id("product_id") }.distinct()
-        if(ids.isNotEmpty()) return ScanSuggestion(code,"Grocy",productIds=ids,stale=stale)
+        val matches=barcodes.filter { it.value("barcode")==code.raw }.mapNotNull(BarcodeMetadata::parse)
+        val ids=matches.map { it.productId }.distinct()
+        if(ids.isNotEmpty()) return ScanSuggestion(code,"Grocy",productIds=ids,stale=stale,barcodes=matches)
         check(!stale) { "Refresh Grocy before looking up an unknown barcode." }
-        if(!code.publicLookup) return ScanSuggestion(code,"Manual review")
         val config=cache.read("/system/config")
         check(!config.stale) { "Refresh Grocy's lookup settings before external lookup." }
         val enabled=Json.parseToJsonElement(config.payload).jsonObject.value("STOCK_BARCODE_LOOKUP_PLUGIN").isNotBlank()
@@ -65,17 +73,20 @@ class GrocyScanRepository(private val grants:Set<String>?,private val db:Account
             val specification=cache.read("/openapi/specification")
             val paths=Json.parseToJsonElement(specification.payload).jsonObject["paths"]?.jsonObject
             if(!specification.stale && paths?.containsKey("/stock/barcodes/external-lookup/{barcode}")==true) {
-                val response = try { external("/stock/barcodes/external-lookup/${code.publicCode}?add=false") }
+                val response = try { external("/stock/barcodes/external-lookup/${java.net.URLEncoder.encode(code.publicCode,"UTF-8").replace("+","%20").replace(".","%2E")}?add=false") }
                     catch(error:CancellationException) { throw error }
                     catch(_:Exception) { 0 to "" }
                 val (status,body)=response
                 if(status in setOf(401,403)) { cache.recordDenial(status); throw GrocyFailure(status) }
                 if(status in 200..299) {
                     val value=runCatching { Json.parseToJsonElement(body) as? JsonObject }.getOrNull()
-                    if(value?.value("name")?.isNotBlank()==true) return suggestion(code,"Grocy external lookup",value.value("name"),"")
+                    if(value?.value("name")?.isNotBlank()==true) return suggestion(code,"Grocy external lookup",value.value("name"),value.value("description")).copy(defaults=LookupProductDefaults(
+                        value.id("location_id")?.takeIf { it>0 },value.id("qu_id_stock")?.takeIf { it>0 },value.id("qu_id_purchase")?.takeIf { it>0 },
+                        value.value("__qu_factor_purchase_to_stock").takeIf { it.toBigDecimalOrNull()?.signum()==1 },value.value("__barcode").takeIf { it.isNotBlank() },value.value("__image_url").takeIf { it.isNotBlank() }))
                 }
             }
         }
+        if(!code.publicLookup || !publicFallbackEnabled)return ScanSuggestion(code,"Manual review")
         var stalePublic = false
         val product = try {
             publicLookup(code.publicCode).also { value -> value?.let { db.put("scanner-public",code.publicCode,it.toString()) } }
@@ -94,9 +105,11 @@ class GrocyScanRepository(private val grants:Set<String>?,private val db:Account
     }
     override suspend fun create(review:ScanReview):String {
         access();check(HouseholdAccess.has(grants,"MASTER_DATA_EDIT")) { "Product creation access denied." }
-        require(review.unit>0 && review.location>0)
+        require(review.unit>0 && review.purchaseUnit>0 && review.location>0)
+        require(review.purchaseUnit==review.unit || review.purchaseToStockFactor!=null) { "Review a conversion factor for the purchase unit." }
+        review.purchaseToStockFactor?.let { require(it.toBigDecimalOrNull()?.signum()==1) { "Enter a conversion factor above zero." } }
         review.code.validated();require(review.name.isNotBlank() && review.name.length<=200 && review.description.length<=5000)
-        require(rows("/objects/quantity_units",true).first.any { it.id("id")==review.unit }) { "Choose an existing Grocy stock unit." }
+        require(rows("/objects/quantity_units",true).first.mapNotNull { it.id("id") }.containsAll(listOf(review.unit,review.purchaseUnit))) { "Choose an existing Grocy stock unit." }
         require(rows("/objects/locations",true).first.any { it.id("id")==review.location }) { "Choose an existing Grocy location." }
         check(rows("/objects/product_barcodes",true).first.none { it.value("barcode")==review.code.raw }) { "This barcode now exists in Grocy. Look it up again." }
         check(db.operations().none { it.method=="POST" && it.path=="/objects/products" && it.state!="failed" && db.get("scanner-review",it.clientOperationId)==review.code.raw }) { "This barcode already has a reviewed creation. Inspect Pending changes." }
@@ -105,9 +118,12 @@ class GrocyScanRepository(private val grants:Set<String>?,private val db:Account
         db.put("scanner-review",operation,review.code.raw)
         val fields=buildJsonObject {
             put("name",review.name.trim());put("description",review.description);put("location_id",review.location)
-            put("qu_id_stock",review.unit);put("qu_id_purchase",review.unit);put("qu_id_consume",review.unit);put("qu_id_price",review.unit)
+            put("qu_id_stock",review.unit);put("qu_id_purchase",review.purchaseUnit);put("qu_id_consume",review.unit);put("qu_id_price",review.unit)
             put("min_stock_amount",0)
         }
+        if(review.purchaseUnit!=review.unit && review.purchaseToStockFactor!=null)db.put("scanner-conversion",operation,buildJsonObject {
+            put("from_qu_id",review.purchaseUnit);put("to_qu_id",review.unit);put("factor",review.purchaseToStockFactor)
+        }.toString())
         return cache.enqueue("POST","/objects/products",fields.toString(),"/objects/products",operationId=operation)
     }
     override suspend fun attach(productId: Long, code: ScanCode): String {
@@ -126,6 +142,16 @@ class GrocyScanRepository(private val grants:Set<String>?,private val db:Account
         for(operation in db.operations().filter { it.method=="POST" && it.path=="/objects/products" && it.state=="confirmed" }) {
             val code=db.get("scanner-review",operation.clientOperationId) ?: continue
             val id=operation.responsePayload?.let { Json.parseToJsonElement(it).jsonObject.id("created_object_id") } ?: continue
+            db.get("scanner-conversion",operation.clientOperationId)?.let { text ->
+                val conversion=Json.parseToJsonElement(text).jsonObject
+                val conversionId=UUID.nameUUIDFromBytes((operation.clientOperationId+":conversion").toByteArray()).toString()
+                if(db.operation(conversionId)==null) {
+                    val existing=rows("/objects/quantity_unit_conversions",true).first.firstOrNull { it.id("product_id")==id && it.id("from_qu_id")==conversion.id("from_qu_id") && it.id("to_qu_id")==conversion.id("to_qu_id") }
+                    val path=existing?.id("id")?.let { "/objects/quantity_unit_conversions/$it" } ?: "/objects/quantity_unit_conversions"
+                    val payload=buildJsonObject { if(existing==null) { put("product_id",id);put("from_qu_id",conversion["from_qu_id"]!!);put("to_qu_id",conversion["to_qu_id"]!!) };put("factor",Json.parseToJsonElement(conversion.value("factor"))) }
+                    cache.enqueue(if(existing==null)"POST" else "PUT",path,payload.toString(),"/objects/quantity_unit_conversions",operationId=conversionId)
+                }
+            }
             cache.enqueue("POST","/objects/product_barcodes",buildJsonObject { put("product_id",id);put("barcode",code) }.toString(),"/objects/product_barcodes",operationId=followUp(operation.clientOperationId))
         }
         cache.drain()
@@ -133,6 +159,7 @@ class GrocyScanRepository(private val grants:Set<String>?,private val db:Account
     override suspend fun createdProduct(operation:String):Long? {
         access()
         if(db.operation(followUp(operation))?.state!="confirmed") return null
+        if(db.get("scanner-conversion",operation)!=null && db.operation(UUID.nameUUIDFromBytes((operation+":conversion").toByteArray()).toString())?.state!="confirmed")return null
         return db.operation(operation)?.responsePayload?.let { Json.parseToJsonElement(it).jsonObject.id("created_object_id") }
     }
     override suspend fun operations():List<PendingChange> { access();return db.operations().filter { db.get("scanner-review",it.clientOperationId)!=null || it.path=="/objects/product_barcodes" }.map { PendingChange(it.clientOperationId,it.method,it.path,it.state,it.detail,false) } }

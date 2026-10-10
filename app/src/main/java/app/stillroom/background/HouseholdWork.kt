@@ -62,7 +62,8 @@ class HouseholdWorker(context:Context,parameters:WorkerParameters):CoroutineWork
         val account=snapshot.account ?: return
         val day=LocalDate.now().toString()
         if(prefs.delivered(account.id.value,day))return
-        if(snapshot.chores.isEmpty() && snapshot.expiring.isEmpty())return
+        val dueTasks=duePersonalTasks(snapshot,LocalDate.now())
+        if(snapshot.chores.isEmpty() && snapshot.expiring.isEmpty() && dueTasks.isEmpty())return
         if(Build.VERSION.SDK_INT>=33 && ContextCompat.checkSelfPermission(applicationContext,Manifest.permission.POST_NOTIFICATIONS)!=PackageManager.PERMISSION_GRANTED)return
         val manager=applicationContext.getSystemService(NotificationManager::class.java)
         if(!manager.areNotificationsEnabled())return
@@ -70,7 +71,7 @@ class HouseholdWorker(context:Context,parameters:WorkerParameters):CoroutineWork
         val intent=Intent(applicationContext,MainActivity::class.java).putExtra("stillroom_destination","today")
         val click=PendingIntent.getActivity(applicationContext,501,intent,PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
         val notification=NotificationCompat.Builder(applicationContext,"household-due").setSmallIcon(android.R.drawable.ic_popup_reminder)
-            .setContentTitle("Stillroom · ${account.username}").setContentText("Cached: ${snapshot.chores.size} due chores, ${snapshot.expiring.size} foods due or expired.")
+            .setContentTitle("Stillroom · ${account.username}").setContentText("Cached: ${dueTasks.size} due tasks, ${snapshot.chores.size} due chores, ${snapshot.expiring.size} foods due or expired.")
             .setContentIntent(click).setAutoCancel(true).setVisibility(NotificationCompat.VISIBILITY_PRIVATE).build()
         manager.notify(501,notification);prefs.mark(account.id.value,day)
     }

@@ -18,17 +18,19 @@ open class HouseholdWidget:AppWidgetProvider() {
 class ChoresWidget:HouseholdWidget()
 class ShoppingWidget:HouseholdWidget()
 class ScanWidget:HouseholdWidget()
+class TasksWidget:HouseholdWidget()
 object WidgetRenderer {
     fun update(context:Context,snapshot:TodaySnapshot) {
         val manager=AppWidgetManager.getInstance(context)
-        val definitions=listOf(Triple(ChoresWidget::class.java,"Chores","chores"),Triple(ShoppingWidget::class.java,"Shopping","shopping"),Triple(ScanWidget::class.java,"Scan","scan"))
+        val definitions=listOf(Triple(TasksWidget::class.java,"Tasks","tasks"),Triple(ChoresWidget::class.java,"Chores","chores"),Triple(ShoppingWidget::class.java,"Shopping","shopping"),Triple(ScanWidget::class.java,"Scan","scan"))
         for((type,title,target)in definitions) {
             val ids=manager.getAppWidgetIds(ComponentName(context,type))
             if(ids.isEmpty())continue
-            val permission=!snapshot.accessDenied && when(target) { "chores"->HouseholdAccess.has(snapshot.account?.permissions,"CHORES");"shopping"->ShoppingAccess.allowed(snapshot.account?.permissions);else->snapshot.scan }
+            val permission=!snapshot.accessDenied && when(target) { "tasks"->HouseholdAccess.has(snapshot.account?.permissions,"TASKS");"chores"->HouseholdAccess.has(snapshot.account?.permissions,"CHORES");"shopping"->ShoppingAccess.allowed(snapshot.account?.permissions);else->snapshot.scan }
             val body=when {
                 snapshot.account==null->"Open Stillroom and connect an account."
                 !permission->"Access denied for this account."
+                target=="tasks"->tasksForUser(snapshot.tasks,snapshot.account!!).take(5).joinToString("\n") { it.houseText("name") }.ifBlank { "No open personal tasks in cache." }
                 target=="chores"->snapshot.chores.take(4).joinToString("\n") { it.catalogText("chore_name") }.ifBlank { "No due chores in cache." }
                 target=="shopping"->snapshot.lists.take(4).joinToString("\n") { list->"${list.catalogText("name")}: ${snapshot.shopping.count { it.catalogId("shopping_list_id")==list.catalogId("id") }} items" }.ifBlank { "No cached shopping lists." }
                 else->"Barcode, QR, or manual entry"

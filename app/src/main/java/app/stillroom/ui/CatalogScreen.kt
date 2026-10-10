@@ -22,16 +22,19 @@ private fun CatalogEntity.singular(): String = when(this) {
 
 private enum class HouseholdTab { Chores, Tasks, Catalog }
 
-@Composable fun HouseholdHub(household:HouseholdViewModel,catalog:CatalogViewModel?,account:Account) {
-    var tab by remember { mutableStateOf(HouseholdTab.Chores) }
+@Composable fun HouseholdHub(household:HouseholdViewModel,catalog:CatalogViewModel?,account:Account,initialTasks:Boolean=false) {
+    var tab by remember { mutableStateOf(if(initialTasks) HouseholdTab.Tasks else HouseholdTab.Chores) }
+    val capabilities=LocalServerCapabilities.current
+    val tabs=HouseholdTab.entries.filter { when(it) { HouseholdTab.Chores->capabilities.enabled("CHORES");HouseholdTab.Tasks->capabilities.enabled("TASKS");HouseholdTab.Catalog->catalog!=null } }
+    if(tab !in tabs)tab=tabs.firstOrNull() ?: HouseholdTab.Catalog
     val hasCatalog=catalog!=null && CatalogEntity.entries.any { it.readable(account.permissions) }
     Column(Modifier.fillMaxSize()) {
         Row(
             Modifier.horizontalScroll(rememberScrollState()).padding(horizontal=16.dp, vertical=8.dp),
             horizontalArrangement=Arrangement.spacedBy(8.dp),
         ) {
-            FilterChip(tab==HouseholdTab.Chores, { tab=HouseholdTab.Chores }, { Text("Chores") })
-            FilterChip(tab==HouseholdTab.Tasks, { tab=HouseholdTab.Tasks }, { Text("Tasks") })
+            if(capabilities.enabled("CHORES"))FilterChip(tab==HouseholdTab.Chores, { tab=HouseholdTab.Chores }, { Text("Chores") })
+            if(capabilities.enabled("TASKS"))FilterChip(tab==HouseholdTab.Tasks, { tab=HouseholdTab.Tasks }, { Text("Tasks") })
             if(hasCatalog) FilterChip(tab==HouseholdTab.Catalog, { tab=HouseholdTab.Catalog }, { Text("Records") })
         }
         Box(Modifier.weight(1f).fillMaxWidth()) {
@@ -45,7 +48,7 @@ private enum class HouseholdTab { Chores, Tasks, Catalog }
 }
 @Composable fun CatalogScreen(model:CatalogViewModel,account:Account) {
     val state by model.state.collectAsState();val s=state.snapshot
-    val entities=CatalogEntity.entries.filter { it.readable(account.permissions) }
+    val entities=CatalogEntity.entries.filter { it.readable(account.permissions) && LocalServerCapabilities.current.allows("/objects/${it.entity}") }
     if(entities.isEmpty()){PermissionDeniedState();return}
     var entity by remember { mutableStateOf(entities.first()) };var menu by remember { mutableStateOf(false) }
     var edit by remember { mutableStateOf<JsonObject?>(null) };var create by remember { mutableStateOf(false) };var deletion by remember { mutableStateOf<Long?>(null) }

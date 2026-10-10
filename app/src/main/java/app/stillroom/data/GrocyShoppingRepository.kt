@@ -17,7 +17,7 @@ class GrocyShoppingRepository(
     private fun access() = check(ShoppingAccess.allowed(grants)) { "Shopping access denied." }
     override suspend fun snapshot(): ShoppingSnapshot {
         access(); val resources = mutableMapOf<String, JsonArray>(); var stale = false
-        for (entity in listOf("shopping_lists", "shopping_list", "products", "quantity_units", "quantity_unit_conversions_resolved", "shopping_locations", "product_groups", "products_last_purchased", "locations")) {
+        for (entity in listOf("shopping_lists", "shopping_list", "products", "quantity_units", "quantity_unit_conversions_resolved", "shopping_locations", "product_groups", "products_last_purchased", "locations").filter { cached.capabilities().allows("/objects/$it") }) {
             val read = cached.read("/objects/$entity")
             resources[entity] = Json.parseToJsonElement(read.payload).jsonArray; stale = stale || read.stale
         }
@@ -78,6 +78,7 @@ class GrocyShoppingRepository(
     override suspend fun purchase(baseline: JsonObject, booking: StockBooking): String {
         access()
         check(StockAccess.canWrite(grants, StockAction.Purchase) && StockAccess.canRead(grants)) { "Stock access denied." }
+        check(AddonSettings.parse(database.get("addon-settings","current")).shoppingPurchaseOwner!="external") { "Another tool owns shopping purchases. Check the item without booking stock." }
         require(booking.action == StockAction.Purchase && booking.productId.toString() == baseline.shoppingText("product_id"))
         require(baseline.shoppingText("done") != "1" && booking.note.orEmpty().length <= 4000)
         return queue("purchase", JsonObject(booking.payload() + ("product_id" to JsonPrimitive(booking.productId))), baseline)

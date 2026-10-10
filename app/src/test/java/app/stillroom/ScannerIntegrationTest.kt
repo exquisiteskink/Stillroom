@@ -47,9 +47,9 @@ class ScannerIntegrationTest {
             assertEquals("/api/v2/product/00123457?fields=product_name,brands",request.path)
             assertNull(request.getHeader("GROCY-API-KEY"));assertNull(request.getHeader("Authorization"));assertEquals(0L,request.bodySize)
             assertTrue(request.getHeader("User-Agent")!!.startsWith("Stillroom/"));repeat(2) { server.takeRequest() }
-            server.enqueue(MockResponse().setBody("[]"))
+            server.enqueue(MockResponse().setBody("[]"));server.enqueue(MockResponse().setBody("{}"))
             assertEquals("Manual review",repo.lookup(ScanCode("household://private-shelf",ScanFormat.Qr)).source)
-            assertEquals(1,off.requestCount);server.takeRequest()
+            assertEquals(1,off.requestCount);repeat(2){server.takeRequest()}
             server.enqueue(MockResponse().setBody("[]"));server.enqueue(MockResponse().setBody("""{"STOCK_BARCODE_LOOKUP_PLUGIN":"enabled"}"""))
             server.enqueue(MockResponse().setBody("""{"paths":{"/stock/barcodes/external-lookup/{barcode}":{}}}"""));server.enqueue(MockResponse().setResponseCode(403))
             try { repo.lookup(code);fail("Denied lookup fell back to OFF") } catch(e:GrocyFailure) { assertEquals(403,e.status) }

@@ -16,6 +16,7 @@ class CatalogViewModel(private val accounts:AndroidAccountsRepository):ViewModel
         work?.cancel();identity=next.active;ui.reset(CatalogUiState())
         if(next.active!=null && CatalogEntity.entries.any { it.readable(next.active.permissions) })refresh()
     } } } }
+    fun externalRefresh()=execute { }
     fun refresh()=execute { it.sync() }
     fun save(entity:CatalogEntity,id:Long?,fields:JsonObject,custom:JsonObject,extras:ProductExtras=ProductExtras())=execute { r->
         publish { it.copy(outcome=null) }

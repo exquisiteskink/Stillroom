@@ -12,7 +12,7 @@ data class ScannerUiState(val candidates:List<ScanCode> = emptyList(),val lastCo
     val result:ScanSuggestion?=null,val product:Long?=null,val units:List<Pair<Long,String>> = emptyList(),
     val locations:List<Pair<Long,String>> = emptyList(),val operations:List<PendingChange> = emptyList(),
     val busy:Boolean=false,val denied:Boolean=true,val error:String?=null,
-    val action:StockAction=StockAction.Purchase,val createOperation:String?=null)
+    val action:StockAction=StockAction.Purchase,val createOperation:String?=null,val useBarcodeBuddy:Boolean=false,val buddyMode:String?=null,val buddySubmitted:Boolean=false,val buddyMessage:String?=null,val tripMode:Boolean=false,val trip:ShoppingTrip=ShoppingTrip())
 class ScannerViewModel(private val accounts:AndroidAccountsRepository):ViewModel() {
     private val ui=AccountBoundState(ScannerUiState())
     val state=ui.flow
@@ -25,13 +25,36 @@ class ScannerViewModel(private val accounts:AndroidAccountsRepository):ViewModel
             ui.reset(ScannerUiState(denied=!StockAccess.canRead(current.active?.permissions)))
         }
     } } }
+    fun loadTrip()=execute { val trip=accounts.withShoppingTrip { it.snapshot() };publish { it.copy(trip=trip) } }
+    fun tripMode(enabled:Boolean) {
+        if(state.value.busy || state.value.result!=null || state.value.product!=null)return
+        if(enabled && !StockAccess.canWrite(identity?.permissions,StockAction.Purchase))return
+        ui.update { it.copy(tripMode=enabled,useBarcodeBuddy=if(enabled)false else it.useBarcodeBuddy,action=if(enabled)StockAction.Purchase else it.action) }
+        if(enabled)loadTrip()
+    }
+    fun addToTrip(booking:StockBooking)=execute {
+        check(state.value.tripMode)
+        val trip=accounts.withShoppingTrip { it.add(booking) }
+        publish { it.copy(trip=trip,result=null,product=null,candidates=emptyList(),createOperation=null) }
+    }
+    fun editTrip(id:String,amount:java.math.BigDecimal,date:String?,price:java.math.BigDecimal?)=execute {
+        val trip=accounts.withShoppingTrip { it.edit(id,amount,date,price) };publish { it.copy(trip=trip) }
+    }
+    fun removeTripLine(id:String)=execute { val trip=accounts.withShoppingTrip { it.remove(id) };publish { it.copy(trip=trip) } }
+    fun newTrip()=execute { val trip=accounts.withShoppingTrip { it.newTrip() };publish { it.copy(trip=trip) } }
+    fun submitTrip()=execute {
+        try { val trip=accounts.withShoppingTrip { it.submit() };publish { it.copy(trip=trip) } }
+        finally { val trip=accounts.withShoppingTrip { it.snapshot() };publish { it.copy(trip=trip) } }
+    }
     fun detected(codes:List<ScanCode>) {
+        if(state.value.tripMode && state.value.trip.submitted)return
         if(state.value.busy || state.value.denied || state.value.product!=null || state.value.result!=null || state.value.candidates.isNotEmpty()) return
         val candidates=session.offer(codes)
         if(candidates.size==1) choose(candidates.single())
         else if(candidates.isNotEmpty()) ui.update { it.copy(candidates=candidates,error=null) }
     }
     fun manual(raw:String,format:ScanFormat=ScanFormat.Manual) {
+        if(state.value.busy || (state.value.tripMode && state.value.trip.submitted))return
         try {
             val code=ScanCode(raw.trim(),format).validated()
             if(session.offer(listOf(code)).isEmpty()) { ui.update { it.copy(error="Already read. Choose Scan same code again to repeat.") };return }
@@ -41,10 +64,32 @@ class ScannerViewModel(private val accounts:AndroidAccountsRepository):ViewModel
     fun choose(code:ScanCode)=execute { scanner ->
         session.choose(code)
         publish { it.copy(lastCode=code,candidates=emptyList(),result=null,product=null) }
-        scanner.sync()
+        if(state.value.useBarcodeBuddy && !state.value.tripMode) {
+            val settings=accounts.addonSettings()
+            check(settings.barcodeBuddyConfigured && settings.barcodeBuddyUrl.isNotBlank()) { "Configure BarcodeBuddy in Settings first." }
+            val mode=accounts.barcodeBuddyMode()
+            publish { it.copy(result=ScanSuggestion(code,"BarcodeBuddy review"),buddyMode=mode,buddySubmitted=false,buddyMessage=null) }
+            return@execute
+        }
+        if(!state.value.tripMode)scanner.sync()
         val result=scanner.lookup(code)
-        val choices=if(result.productIds.isEmpty() && HouseholdAccess.has(identity?.permissions,"MASTER_DATA_EDIT")) scanner.choices() else emptyList<Pair<Long,String>>() to emptyList()
+        val choices=if(result.grocycode==null && result.productIds.isEmpty() && HouseholdAccess.has(identity?.permissions,"MASTER_DATA_EDIT")) scanner.choices() else emptyList<Pair<Long,String>>() to emptyList()
         publish { it.copy(result=result,product=automaticScanProduct(result.productIds),units=choices.first,locations=choices.second) }
+        if(state.value.tripMode && result.productIds.size==1) {
+            val trip=accounts.withShoppingTrip { it.addScan(result) }
+            publish { it.copy(trip=trip,result=null,product=null) }
+        }
+    }
+    fun useBarcodeBuddy(enabled:Boolean) {
+        if(!state.value.busy && state.value.result==null && state.value.product==null && HouseholdAccess.has(identity?.permissions,"ADMIN"))ui.update { it.copy(useBarcodeBuddy=enabled,tripMode=if(enabled)false else it.tripMode) }
+    }
+    fun sendBarcodeBuddy()=execute {
+        val code=state.value.result?.code ?: return@execute
+        if(!state.value.useBarcodeBuddy || state.value.buddySubmitted)return@execute
+        publish { it.copy(buddySubmitted=true) }
+        try { val message=accounts.sendBarcodeBuddy(code);publish { it.copy(buddyMessage=message) } }
+        catch(e:CancellationException){throw e}
+        catch(_:Exception){publish { it.copy(buddyMessage="Scan outcome is not confirmed. Check BarcodeBuddy and Grocy, then review it in Add-on settings. It will not be resent automatically.") }}
     }
     fun setAction(action:StockAction) {
         if(!state.value.busy && action in setOf(StockAction.Purchase,StockAction.Consume) && StockAccess.canWrite(identity?.permissions,action))
@@ -55,7 +100,7 @@ class ScannerViewModel(private val accounts:AndroidAccountsRepository):ViewModel
     fun scanNext(identical:Boolean=false) {
         if(state.value.busy || scanCreationLocked(state.value.createOperation,state.value.product)) return
         if(identical) state.value.lastCode?.let(session::scanAnotherIdentical)
-        ui.update { it.copy(result=null,product=null,candidates=emptyList(),error=null,createOperation=null) }
+        ui.update { it.copy(result=null,product=null,candidates=emptyList(),error=null,createOperation=null,buddyMode=null,buddySubmitted=false,buddyMessage=null) }
     }
     fun attach(productId:Long)=execute { scanner ->
         val code=state.value.result?.code ?: return@execute

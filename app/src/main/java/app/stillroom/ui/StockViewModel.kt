@@ -53,6 +53,7 @@ class StockViewModel(
             }
         }
     }
+    fun externalRefresh()=execute { reloadAll() }
     fun refresh() = execute {
         accounts.drainStock()
         reloadAll()
@@ -187,7 +188,7 @@ class StockViewModel(
 }
 
 /** Product userfield definitions and product group names for Shown details; both optional. */
-internal val OPTIONAL_PATHS = listOf("/objects/userfields", "/objects/product_groups")
+internal val OPTIONAL_PATHS = listOf("/objects/shopping_locations", "/objects/userfields", "/objects/product_groups")
 
 internal fun JsonObject.text(key: String): String = (get(key) as? JsonPrimitive)?.contentOrNull.orEmpty()
 internal fun JsonObject.decimal(key: String) = text(key).toBigDecimalOrNull() ?: java.math.BigDecimal.ZERO

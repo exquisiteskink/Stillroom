@@ -11,7 +11,7 @@ class GrocyStockRepository(
 ) : StockRepository {
     override suspend fun read(path: String): StockRead {
         check(StockAccess.canRead(grants)) { "Stock access denied." }
-        require(path in setOf("/stock", "/stock/volatile", "/objects/products", "/objects/locations", "/objects/quantity_units", "/objects/product_barcodes", "/objects/stock_log", "/objects/quantity_unit_conversions_resolved", "/objects/userfields", "/objects/product_groups") ||
+        require(path in setOf("/stock", "/stock/volatile", "/objects/products", "/objects/locations", "/objects/quantity_units", "/objects/product_barcodes", "/objects/stock_log", "/objects/quantity_unit_conversions_resolved", "/objects/userfields", "/objects/product_groups", "/objects/shopping_locations") ||
             path.matches(Regex("/stock/products/[1-9][0-9]*(/(locations|entries|price-history))?")) ||
             path.matches(Regex("/stock/locations/[1-9][0-9]*/entries")) || path == "/openapi/specification")
         val response = cached.read(path)

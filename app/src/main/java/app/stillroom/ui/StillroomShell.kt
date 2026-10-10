@@ -62,6 +62,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -93,13 +94,41 @@ private fun Section.icon(): ImageVector = when (this) {
 }
 
 @Composable
-fun StillroomShell(state: ShellUiState, model: ShellViewModel, accounts: AccountUiState = AccountUiState(), accountModel: AccountViewModel? = null, stockModel: StockViewModel? = null, shoppingModel: ShoppingViewModel? = null, householdModel: HouseholdViewModel? = null, scannerModel: ScannerViewModel? = null, recipeModel: RecipeViewModel? = null, catalogModel: CatalogViewModel? = null, todayModel: TodayViewModel? = null, pendingChanges: @Composable () -> Unit = {}) {
+fun StillroomShell(state: ShellUiState, model: ShellViewModel, accounts: AccountUiState = AccountUiState(), accountModel: AccountViewModel? = null, stockModel: StockViewModel? = null, shoppingModel: ShoppingViewModel? = null, householdModel: HouseholdViewModel? = null, scannerModel: ScannerViewModel? = null, recipeModel: RecipeViewModel? = null, catalogModel: CatalogViewModel? = null, todayModel: TodayViewModel? = null, addonModel:AddonViewModel?=null, pendingChanges: @Composable () -> Unit = {}) {
     val active = accounts.accounts.active
     LaunchedEffect(active?.id) { model.accountChanged(active?.id?.value, active?.restricted == true) }
-    val navigationState = if (active?.restricted == true) state.copy(preferences = state.preferences.copy(visibleSections = setOf(Section.Today, Section.Household))) else state
+    val addonState=addonModel?.state?.collectAsState()?.value?.takeIf { it.account?.id==active?.id }
+    val capabilities=addonState?.observation?.capabilities ?: app.stillroom.domain.ServerCapabilities()
+    val lifecycle=androidx.lifecycle.compose.LocalLifecycleOwner.current.lifecycle
+    androidx.compose.runtime.DisposableEffect(lifecycle,addonModel) {
+        val observer=androidx.lifecycle.LifecycleEventObserver { _,_->addonModel?.foreground(lifecycle.currentState.isAtLeast(androidx.lifecycle.Lifecycle.State.STARTED)) }
+        lifecycle.addObserver(observer)
+        addonModel?.foreground(lifecycle.currentState.isAtLeast(androidx.lifecycle.Lifecycle.State.STARTED))
+        onDispose { lifecycle.removeObserver(observer);addonModel?.foreground(false) }
+    }
+    LaunchedEffect(active?.id,addonState?.revision,state.selectedSection,state.page) {
+        if(addonState!=null && addonState.revision>0 && state.page==ShellPage.Sections)when(state.selectedSection) {
+            Section.Today->todayModel?.load()
+            Section.Pantry->if(capabilities.enabled("STOCK"))stockModel?.externalRefresh()
+            Section.Shop->if(capabilities.enabled("SHOPPINGLIST"))shoppingModel?.externalRefresh()
+            Section.Meals->if(capabilities.enabled("RECIPES"))recipeModel?.externalRefresh()
+            Section.Household->{householdModel?.externalRefresh();catalogModel?.externalRefresh()}
+        }
+    }
+    val baseNavigation = if (active?.restricted == true) state.copy(preferences = state.preferences.copy(visibleSections = setOf(Section.Today, Section.Household))) else state
+    val serverSections=baseNavigation.preferences.visibleSections.filter { section->when(section) {
+        Section.Today,Section.Household->true
+        Section.Pantry->capabilities.enabled("STOCK")
+        Section.Shop->capabilities.enabled("SHOPPINGLIST")
+        Section.Meals->capabilities.enabled("RECIPES")
+    } }.toSet().ifEmpty { setOf(Section.Today) }
+    val navigationState=baseNavigation.copy(preferences=baseNavigation.preferences.copy(visibleSections=serverSections))
+    LaunchedEffect(serverSections,state.selectedSection,state.page) {
+        if(state.page==ShellPage.Sections && state.selectedSection !in serverSections)model.selectAvailableSection(serverSections.first())
+    }
     BackHandler(enabled = state.page != ShellPage.Sections) { model.back() }
     val quantities = remember(state.preferences.quantityStyle) { QuantityFormatter(state.preferences.quantityStyle) }
-    androidx.compose.runtime.CompositionLocalProvider(LocalQuantityFormatter provides quantities) {
+    androidx.compose.runtime.CompositionLocalProvider(LocalQuantityFormatter provides quantities,LocalServerCapabilities provides capabilities,LocalAddonModel provides addonModel,LocalAddonSettings provides (addonState?.settings ?: app.stillroom.domain.AddonSettings())) {
     Surface(modifier = Modifier.fillMaxSize().testTag("shell"), color = MaterialTheme.colorScheme.background) {
         BoxWithConstraints(Modifier.fillMaxSize().safeDrawingPadding()) {
             val tablet = maxWidth >= 600.dp
@@ -184,7 +213,7 @@ private fun SectionSidebar(state: ShellUiState, model: ShellViewModel) {
                 NavigationDrawerItem(
                     label = { Text(section.name) },
                     selected = state.selectedSection == section && state.page == ShellPage.Sections,
-                    onClick = { model.selectSection(section) },
+                    onClick = { model.selectAvailableSection(section) },
                     icon = { Icon(section.icon(), contentDescription = null) },
                     colors = NavigationDrawerItemDefaults.colors(
                         selectedContainerColor = MaterialTheme.colorScheme.primaryContainer,
@@ -212,7 +241,7 @@ private fun SectionBottomBar(state: ShellUiState, model: ShellViewModel) {
                 sections.forEach { section ->
                     FilterChip(
                         selected = state.selectedSection == section && state.page == ShellPage.Sections,
-                        onClick = { model.selectSection(section) },
+                        onClick = { model.selectAvailableSection(section) },
                         label = { Text(section.name) },
                         leadingIcon = { Icon(section.icon(), contentDescription = null) },
                         colors = FilterChipDefaults.filterChipColors(
@@ -239,7 +268,7 @@ private fun SectionBottomBar(state: ShellUiState, model: ShellViewModel) {
             sections.forEach { section ->
                 NavigationBarItem(
                     selected = state.selectedSection == section && state.page == ShellPage.Sections,
-                    onClick = { model.selectSection(section) },
+                    onClick = { model.selectAvailableSection(section) },
                     icon = { Icon(section.icon(), contentDescription = null) },
                     label = { Text(section.name) },
                     colors = NavigationBarItemDefaults.colors(
@@ -258,11 +287,20 @@ private fun SectionBottomBar(state: ShellUiState, model: ShellViewModel) {
 
 @Composable
 private fun ShellContent(state: ShellUiState, model: ShellViewModel, accounts: AccountUiState, accountModel: AccountViewModel?, stockModel: StockViewModel?, shoppingModel: ShoppingViewModel?, householdModel: HouseholdViewModel?, scannerModel: ScannerViewModel?, recipeModel: RecipeViewModel?, catalogModel: CatalogViewModel?, todayModel: TodayViewModel?, pendingChanges: @Composable () -> Unit) {
+    var householdTasks by remember(accounts.accounts.active?.id) { mutableStateOf(false) }
     val pane = @Composable {
-        when (state.page) {
+        val disabled=when {
+            state.page==ShellPage.Scanner->!LocalServerCapabilities.current.enabled("STOCK")
+            state.page==ShellPage.Search->!LocalServerCapabilities.current.enabled("STOCK")
+            state.page==ShellPage.Sections->when(state.selectedSection) { Section.Pantry->!LocalServerCapabilities.current.enabled("STOCK");Section.Shop->!LocalServerCapabilities.current.enabled("SHOPPINGLIST");Section.Meals->!LocalServerCapabilities.current.enabled("RECIPES");else->false }
+            else->false
+        }
+        if(disabled)Column(Modifier.padding(16.dp)) { Text("This feature is disabled in Grocy.");QuietButton(onClick={model.selectAvailableSection(Section.Today)}){Text("Go to Today")} }
+        else when (state.page) {
             ShellPage.PendingChanges -> Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp)) { pendingChanges() }
             ShellPage.Settings -> Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp).widthIn(max = 720.dp)) {
                 ShellSettings(state, model, accounts.accounts.active?.restricted == true)
+                LocalAddonModel.current?.let { HorizontalDivider(Modifier.padding(vertical=8.dp));AddonSettingsScreen(it) }
                 val active = accounts.accounts.active
                 if (active != null && stockModel != null && StockAccess.canRead(active.permissions)) {
                     HorizontalDivider(Modifier.padding(vertical = 8.dp))
@@ -286,8 +324,8 @@ private fun ShellContent(state: ShellUiState, model: ShellViewModel, accounts: A
                 } else StockScreen(stockModel, accounts.accounts.active.permissions, searchAll = true)
             }
             ShellPage.Scanner -> if (accounts.accounts.active == null) EmptyState(message = "$DisconnectedMessage Scanning will be available after connection.", onConnect = { model.openPage(ShellPage.Accounts) })
-                else if (stockModel != null && scannerModel != null) androidx.compose.runtime.key(accounts.accounts.active.id) { ScannerScreen(scannerModel, stockModel, accounts.accounts.active, onReviewChanges = { model.openPage(ShellPage.PendingChanges) }, onExit = model::back) } else if (state.selectedSection == Section.Household && householdModel != null) androidx.compose.runtime.key(accounts.accounts.active.id) { HouseholdHub(householdModel, catalogModel, accounts.accounts.active) } else ConnectedPlaceholder(accounts.accounts.active)
-            ShellPage.Sections -> if (accounts.accounts.active == null) EmptyState(onConnect = { model.openPage(ShellPage.Accounts) }) else if (state.selectedSection == Section.Today && todayModel != null) androidx.compose.runtime.key(accounts.accounts.active.id) { TodayScreen(todayModel, accounts.accounts.active, model::selectSection, openRecipe = { id -> recipeModel?.openRecipe(id); model.selectSection(Section.Meals) }, openMeal = { id -> recipeModel?.openMeal(id); model.selectSection(Section.Meals) }) } else if (state.selectedSection == Section.Meals && recipeModel != null) androidx.compose.runtime.key(accounts.accounts.active.id) { RecipeScreen(recipeModel, accounts.accounts.active) } else if (state.selectedSection == Section.Shop && shoppingModel != null) androidx.compose.runtime.key(accounts.accounts.active.id) { ShoppingScreen(shoppingModel, accounts.accounts.active.permissions) } else if (state.selectedSection == Section.Pantry && stockModel != null) StockScreen(stockModel, accounts.accounts.active.permissions) else if (state.selectedSection == Section.Household && householdModel != null) androidx.compose.runtime.key(accounts.accounts.active.id) { HouseholdHub(householdModel, catalogModel, accounts.accounts.active) } else ConnectedPlaceholder(accounts.accounts.active)
+                else if (stockModel != null && scannerModel != null) androidx.compose.runtime.key(accounts.accounts.active.id) { ScannerScreen(scannerModel, stockModel, accounts.accounts.active, onReviewChanges = { model.openPage(ShellPage.PendingChanges) }, onExit = model::back) } else if (state.selectedSection == Section.Household && householdModel != null) androidx.compose.runtime.key(accounts.accounts.active.id) { HouseholdHub(householdModel, catalogModel, accounts.accounts.active, initialTasks = householdTasks) } else ConnectedPlaceholder(accounts.accounts.active)
+            ShellPage.Sections -> if (accounts.accounts.active == null) EmptyState(onConnect = { model.openPage(ShellPage.Accounts) }) else if (state.selectedSection == Section.Today && todayModel != null) androidx.compose.runtime.key(accounts.accounts.active.id) { TodayScreen(todayModel, accounts.accounts.active, { section -> householdTasks = false; model.selectSection(section) }, openRecipe = { id -> recipeModel?.openRecipe(id); model.selectSection(Section.Meals) }, openMeal = { id -> recipeModel?.openMeal(id); model.selectSection(Section.Meals) }, openTasks = { householdTasks = true; model.selectSection(Section.Household) }) } else if (state.selectedSection == Section.Meals && recipeModel != null) androidx.compose.runtime.key(accounts.accounts.active.id) { RecipeScreen(recipeModel, accounts.accounts.active) } else if (state.selectedSection == Section.Shop && shoppingModel != null) androidx.compose.runtime.key(accounts.accounts.active.id) { ShoppingScreen(shoppingModel, accounts.accounts.active.permissions) } else if (state.selectedSection == Section.Pantry && stockModel != null) StockScreen(stockModel, accounts.accounts.active.permissions) else if (state.selectedSection == Section.Household && householdModel != null) androidx.compose.runtime.key(accounts.accounts.active.id) { HouseholdHub(householdModel, catalogModel, accounts.accounts.active, initialTasks = householdTasks) } else ConnectedPlaceholder(accounts.accounts.active)
         }
     }
     Box(Modifier.fillMaxSize(), contentAlignment = Alignment.TopCenter) {
@@ -390,7 +428,7 @@ private fun KitchenReminderSettings() {
     val quietHoursValid = startValid && endValid
     Text("Kitchen reminders", style = MaterialTheme.typography.titleLarge, modifier = Modifier.semantics { heading() })
     Text(
-        "Check due chores and food to use once a day, outside quiet hours.",
+        "Check due tasks, chores and food to use once a day, outside quiet hours.",
         style = MaterialTheme.typography.bodyLarge,
         color = MaterialTheme.colorScheme.onSurfaceVariant,
     )

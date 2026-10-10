@@ -121,11 +121,19 @@ fun HouseholdTasksScreen(model: HouseholdViewModel, account: Account) {
     var deleting by remember { mutableStateOf<Long?>(null) }
     LaunchedEffect(Unit) { model.refresh() }
     val locale = Locale.getDefault()
-    val canComplete = HouseholdAccess.has(account.permissions, "TASKS_MARK_COMPLETED")
+    var completed by remember { mutableStateOf(false) }
+    var categoryFilter by remember { mutableStateOf<Long?>(null) }
+    val visibleTasks=(if(completed)state.snapshot.completedTasks else state.snapshot.tasks).filter { categoryFilter==null || it.houseId("category_id")==categoryFilter }
+    val canComplete = HouseholdAccess.has(account.permissions, if(completed) "TASKS_UNDO_EXECUTION" else "TASKS_MARK_COMPLETED")
     KitchenList(state.busy, model::refresh, spacedBy = 0.dp) {
         item {
             Column(Modifier.padding(bottom = 8.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
                 Text("Tasks", style = MaterialTheme.typography.headlineSmall)
+                Row(horizontalArrangement=Arrangement.spacedBy(8.dp)) {
+                    FilterChip(!completed,{completed=false},{Text("Open tasks")})
+                    FilterChip(completed,{completed=true;model.loadCompletedTasks()},{Text("Completed tasks")},enabled=!state.busy)
+                }
+                ChoiceField("Filter by task category",state.snapshot.categories.mapNotNull { it.houseId("id")?.let { id -> id to it.houseText("name") } },categoryFilter,{categoryFilter=it},allowNone=true,noneLabel="All categories")
                 KitchenWhisper(if (state.snapshot.stale) "Showing the last task list." else null)
                 KitchenError(state.error)
                 if (parent && HouseholdAccess.has(account.permissions, "TASKS")) {
@@ -135,14 +143,14 @@ fun HouseholdTasksScreen(model: HouseholdViewModel, account: Account) {
             }
         }
         if (HouseholdAccess.has(account.permissions, "TASKS")) {
-            if (state.snapshot.tasks.isEmpty()) item {
+            if (visibleTasks.isEmpty()) item {
                 when {
                     state.busy -> Text("Loading tasks…")
                     state.error != null -> ErrorState(state.error!!, model::refresh)
-                    else -> Text("No open tasks", color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(vertical = 16.dp))
+                    else -> Text(if(completed) "No completed tasks" else "No open tasks", color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(vertical = 16.dp))
                 }
             }
-            state.snapshot.tasks.groupBy { it.houseId("category_id") }.forEach { (category, tasks) ->
+            visibleTasks.groupBy { it.houseId("category_id") }.forEach { (category, tasks) ->
                 item {
                     KitchenSectionTitle(
                         state.snapshot.categories.firstOrNull { it.houseId("id") == category }?.houseText("name") ?: "Uncategorized",
@@ -151,14 +159,14 @@ fun HouseholdTasksScreen(model: HouseholdViewModel, account: Account) {
                 }
                 items(tasks, key = { it.houseText("id") + it.houseText("name") }) { task ->
                     val id = task.houseId("id")!!
-                    val waiting = state.operations.any { it.path == "/tasks/$id/complete" && it.state in setOf("pending", "in-flight", "needs-review") }
+                    val waiting = state.operations.any { it.path in setOf("/tasks/$id/complete","/tasks/$id/undo") && it.state in setOf("pending", "in-flight", "needs-review") }
                     val assigned = state.snapshot.users.firstOrNull { it.houseId("id") == task.houseId("assigned_to_user_id") }
                         ?: task["assigned_to_user"] as? JsonObject
                     KitchenCheckRow(
                         name = task.houseText("name"),
-                        checked = false,
+                        checked = completed,
                     waiting = waiting,
-                        onCheckedChange = { checked -> if (checked && canComplete) model.completeTask(id) },
+                        onCheckedChange = { checked -> if (checked!=completed && canComplete) { if(completed)model.reopenTask(id) else model.completeTask(id) } },
                         due = houseDueDay(task.houseText("due_date"), locale),
                         detail = listOfNotNull(householdAssigneeName(assigned).takeIf { it.isNotBlank() }, task.houseText("description").takeIf { it.isNotBlank() }).joinToString("\n").takeIf { it.isNotBlank() },
                         enabled = canComplete && !state.busy && !waiting,
@@ -178,6 +186,9 @@ fun HouseholdTasksScreen(model: HouseholdViewModel, account: Account) {
             { creating = false; editing = null },
             { fields -> model.saveTask(taskId, fields); creating = false; editing = null },
             onDelete = taskId?.let { id -> { deleting = id; creating = false; editing = null } },
+            onCreateCategory = if (parent) model::createTaskCategory else null,
+            createdCategoryId = state.createdTaskCategory,
+            categoryError = state.error,
         )
     }
     deleting?.let { id ->
@@ -266,7 +277,7 @@ private fun ChoreEditor(
 }
 
 @Composable
-private fun TaskEditor(
+internal fun TaskEditor(
     row: JsonObject?,
     categories: List<JsonObject>,
     users: List<JsonObject>,
@@ -274,12 +285,24 @@ private fun TaskEditor(
     close: () -> Unit,
     save: (JsonObject) -> Unit,
     onDelete: (() -> Unit)? = null,
+    onCreateCategory: ((String) -> Unit)? = null,
+    createdCategoryId: Long? = null,
+    categoryError: String? = null,
 ) {
     var name by remember { mutableStateOf(row?.houseText("name").orEmpty()) }
     var description by remember { mutableStateOf(row?.houseText("description").orEmpty()) }
     var due by remember { mutableStateOf(row?.houseText("due_date")?.take(10).orEmpty()) }
     var category by remember { mutableStateOf(row?.houseId("category_id")) }
     var assigned by remember { mutableStateOf(row?.houseId("assigned_to_user_id")) }
+    var addingCategory by remember { mutableStateOf(false) }
+    var categoryName by remember { mutableStateOf("") }
+    var lastCreatedCategory by remember { mutableStateOf(createdCategoryId) }
+    LaunchedEffect(createdCategoryId) {
+        if (createdCategoryId != null && createdCategoryId != lastCreatedCategory) {
+            category=createdCategoryId; lastCreatedCategory=createdCategoryId
+            addingCategory=false; categoryName=""
+        }
+    }
     val valid = name.isNotBlank() && (due.isBlank() || runCatching { LocalDate.parse(due) }.isSuccess)
     AlertDialog(onDismissRequest = close, title = { Text(if (row == null) "Add task" else "Edit task") }, text = {
         Column(Modifier.imePadding().verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(16.dp)) {
@@ -287,11 +310,19 @@ private fun TaskEditor(
             LabeledTextField(description, { description = it }, label = "Notes", modifier = Modifier.fillMaxWidth())
             LabeledTextField(due, { due = it }, label = "Due date (optional)", isError = due.isNotBlank() && !runCatching { LocalDate.parse(due) }.isSuccess, supportingText = "Use YYYY-MM-DD.", modifier = Modifier.fillMaxWidth())
             ChoiceField("Task category", categories.mapNotNull { item -> item.houseId("id")?.let { it to item.houseText("name") } }, category, { category = it }, allowNone = true, enabled = !busy)
+            if (onCreateCategory != null) {
+                if (addingCategory) {
+                    LabeledTextField(categoryName, { categoryName=it }, "Category name", modifier=Modifier.fillMaxWidth())
+                    categoryError?.let { Text(it,color=MaterialTheme.colorScheme.error) }
+                    SecondaryButton(onClick={ onCreateCategory(categoryName.trim()) }, enabled=!busy && categoryName.isNotBlank()) { Text("Create category") }
+                    QuietButton(onClick={ addingCategory=false; categoryName="" },enabled=!busy) { Text("Cancel new category") }
+                } else QuietButton(onClick={ addingCategory=true },enabled=!busy) { Text("New category") }
+            }
             ChoiceField("Assign to", users.mapNotNull { user -> user.houseId("id")?.let { it to householdAssigneeName(user).ifBlank { "User $it" } } }, assigned, { assigned = it }, allowNone = true, noneLabel = "Anyone", enabled = !busy)
             if (onDelete != null) QuietButton(onClick = onDelete, enabled = !busy) { Text("Delete") }
         }
     }, confirmButton = {
-        PrimaryButton(enabled = valid && !busy, onClick = {
+        PrimaryButton(enabled = valid && !busy && !addingCategory, onClick = {
             save(buildJsonObject {
                 put("name", name.trim()); put("description", description)
                 if (due.isBlank()) put("due_date", JsonNull) else put("due_date", due)

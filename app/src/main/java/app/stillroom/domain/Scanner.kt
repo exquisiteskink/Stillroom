@@ -46,8 +46,8 @@ class ScanSession {
     fun choose(code: ScanCode) { code.validated();seen.add(code.raw) }
     fun scanAnotherIdentical(code: ScanCode) { seen.remove(code.raw) }
 }
-data class ScanSuggestion(val code: ScanCode,val source: String,val name: String = "",val description: String = "",val productIds: List<Long> = emptyList(),val stale: Boolean = false)
-data class ScanReview(val code: ScanCode,val name: String,val description: String,val unit: Long,val location: Long)
+data class ScanSuggestion(val code: ScanCode,val source: String,val name: String = "",val description: String = "",val productIds: List<Long> = emptyList(),val stale: Boolean = false,val barcodes:List<BarcodeMetadata> = emptyList(),val defaults:LookupProductDefaults=LookupProductDefaults(),val grocycode:Grocycode?=null)
+data class ScanReview(val code: ScanCode,val name: String,val description: String,val unit: Long,val location: Long,val purchaseUnit:Long=unit,val purchaseToStockFactor:String?=null)
 interface ScanRepository {
     suspend fun lookup(code: ScanCode): ScanSuggestion
     suspend fun choices(): Pair<List<Pair<Long,String>>,List<Pair<Long,String>>>
