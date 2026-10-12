@@ -14,15 +14,18 @@ import java.time.LocalDate
 import java.util.Locale
 
 @Composable internal fun ShoppingTripReview(trip:ShoppingTrip,stock:StockUiState,busy:Boolean,
-    edit:(String,BigDecimal,String?,BigDecimal?)->Unit,remove:(String)->Unit,submit:()->Unit,newTrip:()->Unit,refresh:()->Unit,changes:()->Unit,reviewing:(Boolean)->Unit={}) {
+    edit:(String,BigDecimal,String?,BigDecimal?)->Unit,remove:(String)->Unit,submit:()->Unit,newTrip:()->Unit,refresh:()->Unit,changes:()->Unit,reviewing:(Boolean)->Unit={},abandon:()->Unit={}) {
     var expanded by remember(trip.id) { mutableStateOf(false) }
     val inspect=expanded || trip.submitted
     LaunchedEffect(inspect) { reviewing(inspect) }
     DisposableEffect(Unit) { onDispose { reviewing(false) } }
     var editing by remember(trip.id) { mutableStateOf<TripLine?>(null) }
     var clear by remember(trip.id) { mutableStateOf(false) }
+    var abandoning by remember(trip.id) { mutableStateOf(false) }
+    val unsent=trip.lines.count { it.state!="confirmed" }
+    val saved=trip.lines.count { it.state=="confirmed" }
     Text("Shopping trip review",style=MaterialTheme.typography.titleLarge)
-    Text(if(trip.submitted)"${trip.lines.count { it.state=="confirmed" }} of ${trip.lines.size} purchases confirmed in Grocy." else "Scan items and review each quantity. Stock changes only after you confirm the trip.")
+    Text(if(trip.submitted)"$saved of ${trip.lines.size} purchases confirmed in Grocy." else "Scan items and review each quantity. Stock changes only after you confirm the trip.")
     if(trip.lines.isNotEmpty() && !trip.submitted)QuietButton(onClick={expanded=!expanded},enabled=!busy) { Text(if(expanded)"Return to scanning" else "Review ${trip.lines.size} scanned items") }
     if(inspect)trip.lines.forEach { line ->
         HorizontalDivider()
@@ -47,9 +50,12 @@ import java.util.Locale
         }
         if(trip.confirmed)SecondaryButton(onClick=newTrip,enabled=!busy){Text("Start another trip")}
         else if(!trip.submitted)QuietButton(onClick={clear=true},enabled=!busy){Text("Discard trip draft")}
+        else QuietButton(onClick={abandoning=true},enabled=!busy){Text("Abandon unfinished trip")}
     }
     if(clear)AlertDialog(onDismissRequest={clear=false},title={Text("Discard this trip draft?")},text={Text("No stock has been booked from this draft.")},
         confirmButton={PrimaryButton(onClick={newTrip();clear=false},enabled=!busy){Text("Discard draft")}},dismissButton={QuietButton(onClick={clear=false}){Text("Cancel")}})
+    if(abandoning)AlertDialog(onDismissRequest={abandoning=false},title={Text("Abandon this trip?")},text={Text("$saved purchases are already saved in Grocy and stay saved. The other $unsent lines will not be booked again: a line that was never sent is marked as not sent, and a line whose result is uncertain stays in Pending changes for review.")},
+        confirmButton={PrimaryButton(onClick={abandon();abandoning=false},enabled=!busy){Text("Abandon trip")}},dismissButton={QuietButton(onClick={abandoning=false}){Text("Keep trip")}})
     editing?.let { line -> TripLineEditor(line,busy,{editing=null}) { amount,date,price -> edit(line.id,amount,date,price);editing=null } }
 }
 

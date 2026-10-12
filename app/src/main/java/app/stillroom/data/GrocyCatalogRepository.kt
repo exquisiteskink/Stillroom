@@ -48,11 +48,11 @@ class GrocyCatalogRepository(private val grants:Set<String>?,private val db:Acco
         // Reference and custom-field validation uses confirmed Grocy metadata, not invented values.
         val refs=CatalogFields.fields(entity).filter { it.kind==CatalogKind.Reference && it.name in fields && fields[it.name]!=JsonNull }
         for(ref in refs) {
-            val rows=cache.readFresh("/objects/${ref.reference}")!!.jsonArray
+            val rows=cache.readFresh("/objects/${ref.reference}")?.jsonArray ?: error("Grocy did not return ${ref.label.lowercase()} records.")
             require(rows.any { it.jsonObject.catalogId("id")==fields.catalogId(ref.name) }) { "Choose an existing ${ref.label.lowercase()}." }
         }
         if(userfields.isNotEmpty() || id==null) {
-            val definitions=UserfieldDefinition.parse(cache.readFresh("/objects/userfields")!!.jsonArray.map { it.jsonObject },entity.entity)
+            val definitions=UserfieldDefinition.parse(cache.readFresh("/objects/userfields")?.jsonArray?.map { it.jsonObject } ?: error("Grocy did not return custom-field definitions."),entity.entity)
             for((name,value)in userfields) {
                 val field=definitions.singleOrNull { it.name==name } ?: error("Custom-field definition changed. Refresh first.")
                 require(UserfieldTypes.editable(field.type)) { UserfieldTypes.reason(field)!! }

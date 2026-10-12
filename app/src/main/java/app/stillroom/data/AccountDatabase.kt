@@ -57,6 +57,8 @@ interface AccountDao {
     @Query("UPDATE outbox SET state='confirmed', observedPayload=:payload WHERE clientOperationId=:id AND state='guarded'") fun confirmGuarded(id: String, payload: String)
     @Query("UPDATE outbox SET state=:state, detail=:detail, responsePayload=:responsePayload WHERE clientOperationId=:id AND state IN ('in-flight','needs-review')") fun finish(id: String, state: String, detail: String?, responsePayload: String?)
     @Query("UPDATE outbox SET state='needs-review', detail='Interrupted request; read server state before resolving.' WHERE state='in-flight'") fun recover()
+    /** A mutation that was claimed but never sent becomes inert. Guarded rows only: confirmed work and uncertain outcomes are never discarded. */
+    @Query("UPDATE outbox SET state='failed', detail=:detail WHERE clientOperationId=:id AND state='guarded'") fun abandonGuarded(id: String, detail: String): Int
     @Query("UPDATE outbox SET observedPayload=:payload, state=:state WHERE clientOperationId=:id AND state='needs-review'") fun reconcile(id: String, payload: String, state: String)
 }
 
@@ -79,20 +81,27 @@ class AccountDatabase(context: Context, id: AccountId, namespace: String = "acco
         }).build()
     init {
         room.runInTransaction {
-            val settings = room.rows().get("addon-settings", "current")?.let {
-                runCatching { Json.parseToJsonElement(it).jsonObject }.getOrNull()
-            }
-            if (settings?.containsKey("purchase_owner") == true) {
-                // Do not dispatch purchases the old external-tool setting had held back.
-                if ((settings["purchase_owner"] as? JsonPrimitive)?.contentOrNull == "external") {
-                    room.rows().shoppingOperations().filter { it.kind == "purchase" && it.state == "pending" }.forEach {
-                        room.rows().shopping(it.copy(state = "conflict", detail =
-                            "This purchase was paused before the update. Check Grocy and keep its current version before starting a new purchase."))
-                    }
+            if (recoverOperations) { room.rows().recover(); room.rows().recoverShopping(); upgradeLegacyShoppingSettings() }
+        }
+    }
+    /**
+     * Drops the retired global purchase-owner setting and holds the purchases it had paused.
+     * Only the owning session may run it: a background widget or reminder reader opens the same
+     * file with `recoverOperations = false` and must never write another session's outbox.
+     */
+    private fun upgradeLegacyShoppingSettings() {
+        val settings = room.rows().get("addon-settings", "current")?.let {
+            runCatching { Json.parseToJsonElement(it).jsonObject }.getOrNull()
+        }
+        if (settings?.containsKey("purchase_owner") == true) {
+            // Do not dispatch purchases the old external-tool setting had held back.
+            if ((settings["purchase_owner"] as? JsonPrimitive)?.contentOrNull == "external") {
+                room.rows().shoppingOperations().filter { it.kind == "purchase" && it.state == "pending" }.forEach {
+                    room.rows().shopping(it.copy(state = "conflict", detail =
+                        "This purchase was paused before the update. Check Grocy and keep its current version before starting a new purchase."))
                 }
-                room.rows().put(CachedRow("addon-settings", "current", JsonObject(settings - "purchase_owner").toString()))
             }
-            if (recoverOperations) { room.rows().recover(); room.rows().recoverShopping() }
+            room.rows().put(CachedRow("addon-settings", "current", JsonObject(settings - "purchase_owner").toString()))
         }
     }
     private fun checkOpen() = check(!closed) { "This account cache is closed." }
@@ -110,6 +119,8 @@ class AccountDatabase(context: Context, id: AccountId, namespace: String = "acco
     @Synchronized fun releaseClaim(id: String,guarded:Boolean=false): Boolean { checkOpen(); return (if(guarded)room.rows().releaseGuardedClaim(id) else room.rows().releaseClaim(id)) == 1 }
     @Synchronized fun confirmGuarded(id: String, payload: String) { checkOpen(); room.rows().confirmGuarded(id, payload) }
     @Synchronized fun finish(id: String, state: String, detail: String? = null, responsePayload: String? = null) { checkOpen(); room.rows().finish(id, state, detail, responsePayload) }
+    /** True only when a never-sent guarded mutation was made inert. */
+    @Synchronized fun abandonGuarded(id: String, detail: String): Boolean { checkOpen(); return room.rows().abandonGuarded(id, detail) == 1 }
     @Synchronized fun reconcile(id: String, payload: String, confirmed: Boolean) {
         checkOpen(); room.rows().reconcile(id, payload, if (confirmed) "confirmed" else "needs-review")
     }

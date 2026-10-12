@@ -138,6 +138,26 @@ class AddonCompatibilityIntegrationTest {
             AccountDatabase(context,id,ns).withClosed { db ->assertEquals("pending",db.shoppingOperation("new")!!.state) }
         } finally { AccountDatabase.delete(context,id,ns) }
     }
+    /** Widget and reminder readers share the file but are not the owning session: they never upgrade it. */
+    @Test fun backgroundReaderNeverRunsTheLegacyShoppingUpgrade()=runBlocking(Dispatchers.IO) {
+        val address=ServerAddress.parse("example.org");val id=AccountId.of(address,1)
+        val ns="shopping-upgrade-bg-${java.util.UUID.randomUUID()}"
+        try {
+            AccountDatabase(context,id,ns).withClosed { db ->
+                db.put("addon-settings","current","""{"purchase_owner":"external","public_lookup":false}""")
+                db.queueShopping(ShoppingOperation("held","purchase","shopping_list",1,"{}","{}"))
+            }
+            AccountDatabase(context,id,ns,recoverOperations=false).withClosed { db ->
+                assertEquals("pending",db.shoppingOperation("held")!!.state)
+                assertTrue(Json.parseToJsonElement(db.get("addon-settings","current")!!).jsonObject.containsKey("purchase_owner"))
+            }
+            // The owning foreground opener still performs the upgrade exactly once.
+            AccountDatabase(context,id,ns).withClosed { db ->
+                assertEquals("conflict",db.shoppingOperation("held")!!.state)
+                assertFalse(Json.parseToJsonElement(db.get("addon-settings","current")!!).jsonObject.containsKey("purchase_owner"))
+            }
+        } finally { AccountDatabase.delete(context,id,ns) }
+    }
     @Test fun uncertainBuddyReceiptSurvivesRestartAndBlocksDuplicateUntilReviewed()=runBlocking(Dispatchers.IO) {
         fixture { _,db,_,_->
             val receipts=BarcodeBuddyReceipts(db)

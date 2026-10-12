@@ -69,6 +69,20 @@ class PriorityOneUiTest {
         compose.onNodeWithText("Check changes").assertExists()
         compose.onNodeWithText("Start another trip").assertDoesNotExist();compose.onNodeWithText("Edit Milk").assertDoesNotExist()
     }
+    /** An unfinished submitted trip is no longer a dead end, but abandoning is confirmed first. */
+    @Test fun unfinishedTripCanBeAbandonedAfterConfirmation() {
+        var abandoned=0
+        compose.setContent { StillroomTheme { Column(Modifier.verticalScroll(rememberScrollState())) {
+            ShoppingTripReview(ShoppingTrip("trip",listOf(line("confirmed"),line("guarded"),line("needs-review")),true),StockUiState(),false,
+                {_,_,_,_->},{},{fail("Repeated unknown purchase")},{fail("Start another trip")},{},{},abandon={abandoned++})
+        } } }
+        compose.onNodeWithText("1 of 3 purchases confirmed in Grocy.").assertExists()
+        compose.onNodeWithText("Abandon unfinished trip").performScrollTo().performClick()
+        compose.onNodeWithText("Keep trip").performClick();compose.runOnIdle { assertEquals(0,abandoned) }
+        compose.onNodeWithText("Abandon unfinished trip").performScrollTo().performClick()
+        compose.onNodeWithText("1 purchases are already saved in Grocy and stay saved. The other 2 lines will not be booked again: a line that was never sent is marked as not sent, and a line whose result is uncertain stays in Pending changes for review.").assertExists()
+        compose.onNodeWithText("Abandon trip").performClick();compose.runOnIdle { assertEquals(1,abandoned) }
+    }
     @Test fun editingTripPreservesUnchangedExactDecimal() {
         var saved:BigDecimal?=null
         compose.setContent { StillroomTheme { TripLineEditor(line(),false,{}) { amount,_,_->saved=amount } } }

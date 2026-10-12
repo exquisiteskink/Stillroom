@@ -77,6 +77,28 @@ class ShoppingTripIntegrationTest {
         assertTrue(runCatching { repo().submit() }.isFailure);assertTrue(runCatching { repo().newTrip() }.isFailure)
         assertEquals(2,posts.get())
     }
+    /** The uncertain line stays for review, but an unfinished trip is no longer a dead end. */
+    @Test fun abandoningAnUnfinishedTripKeepsConfirmedPurchasesAndMakesUnsentLinesInert()=runBlocking(Dispatchers.IO) {
+        failSecond=true;val repository=repo()
+        repository.add(booking(1));repository.add(booking(2));repository.add(booking(3))
+        val partial=repository.submit()
+        val guardedId=partial.lines.single { it.state=="guarded" }.id
+        val uncertainId=partial.lines.single { it.state=="needs-review" }.id
+        val confirmedId=partial.lines.single { it.state=="confirmed" }.id
+        // Abandoning a draft or an already confirmed trip is refused.
+        assertTrue(runCatching { repository.abandon() }.isSuccess)
+        assertTrue(runCatching { repo().abandon() }.isFailure)
+        val fresh=repo().snapshot();assertFalse(fresh.submitted);assertTrue(fresh.lines.isEmpty());assertNotEquals(partial.id,fresh.id)
+        assertEquals(2,posts.get())
+        // Nothing is ever replayed: the never-sent line is inert, the uncertain line still needs review.
+        cache.drain();assertEquals(2,posts.get())
+        assertEquals("failed",db.operation(guardedId)!!.state)
+        assertTrue(db.operation(guardedId)!!.detail!!.contains("never sent") || db.operation(guardedId)!!.detail!!.contains("Abandoned"))
+        assertEquals("needs-review",db.operation(uncertainId)!!.state)
+        assertEquals("confirmed",db.operation(confirmedId)!!.state)
+        // The fresh trip is usable again.
+        repository.add(booking(4));assertTrue(repo().submit().confirmed);assertEquals(3,posts.get())
+    }
     @Test fun changedStockUnitBlocksWholeTripBeforeAnyBooking()=runBlocking(Dispatchers.IO) {
         val repository=repo();repository.add(booking(1));repository.add(booking(2));unit=7
         assertTrue(runCatching { repository.submit() }.isFailure)

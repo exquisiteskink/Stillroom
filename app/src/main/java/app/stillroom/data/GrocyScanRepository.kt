@@ -45,7 +45,7 @@ class GrocyScanRepository(private val grants:Set<String>?,private val db:Account
     private val publicLookup:suspend(String)->JsonObject? = OpenFoodFactsLookup()::lookup,private val publicFallbackEnabled:Boolean=true): ScanRepository {
     private fun access()=check(StockAccess.canRead(grants)) { "Stock access denied." }
     private suspend fun rows(path:String,fresh:Boolean=false): Pair<List<JsonObject>,Boolean> {
-        if(fresh) return cache.readFresh(path)!!.jsonArray.map { it.jsonObject } to false
+        if(fresh) return (cache.readFresh(path) ?: error("Grocy did not return $path. Refresh and try again.")).jsonArray.map { it.jsonObject } to false
         val read=cache.read(path)
         return Json.parseToJsonElement(read.payload).jsonArray.map { it.jsonObject } to read.stale
     }

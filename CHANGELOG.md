@@ -1,5 +1,22 @@
 # Changelog
 
+## 0.4.1 — 2026-10-11
+
+A small update: a way out of a shopping trip that could not finish, plus fixes. Download `Stillroom-0.4.1.apk` from [Releases](https://github.com/exquisiteskink/Stillroom/releases/latest) and install it over your official 0.4 release to keep your saved accounts.
+
+### End a shopping trip that could not finish
+
+- If a trip stopped on an uncertain line and could never be completed, the review screen now offers **Abandon unfinished trip**, with a confirmation first.
+- Purchases already confirmed in Grocy stay booked. Lines that were never sent are marked as not sent and will never be booked from that trip; a line whose result is uncertain stays in Pending changes for review.
+
+### Fixes
+
+- Widgets and reminders no longer run the one-time shopping-settings cleanup on your account; only opening the app does that, so a background reader can no longer change saved purchase states.
+- The pantry no longer marks food as due soon when Grocy stored a best-before date the app cannot read; the date is shown exactly as stored.
+- Stock write actions now match Grocy's permissions: the stock overview grant alone no longer offers purchase, consume, open, transfer, inventory, or spoilage; each action needs its own permission or administrator.
+- Scanning and saving no longer crash when a record was deleted in Grocy since the app last loaded it; you get a clear message to refresh instead.
+- A confirmed scan follow-up (new product and barcode) is never sent a second time, even after repeated syncs.
+
 ## 0.4 — 2026-10-10
 
 Shopping is clearer, and removing an item now gives you a chance to cancel. Download `Stillroom-0.4.apk` from [Releases](https://github.com/exquisiteskink/Stillroom/releases/latest) and install it over your official Stillroom release to keep your saved accounts.

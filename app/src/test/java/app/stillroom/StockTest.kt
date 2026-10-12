@@ -16,6 +16,17 @@ class StockTest {
         assertFalse(StockAccess.canWrite(setOf("STOCK_CONSUME"), StockAction.Purchase))
         assertTrue(StockAccess.canWrite(setOf("STOCK_CONSUME"), StockAction.Spoilage))
     }
+    /** Grocy's STOCK grant is the overview read. Writes need their own grant or ADMIN. */
+    @Test fun readOnlyStockGrantsNeverAuthorizeAWrite() {
+        for (action in StockAction.entries) {
+            assertFalse("STOCK alone must not write $action", StockAccess.canWrite(setOf("STOCK"), action))
+            assertFalse("no grants must not write $action", StockAccess.canWrite(null, action))
+            assertTrue(StockAccess.canWrite(setOf("ADMIN"), action))
+            assertTrue(StockAccess.canWrite(setOf(action.permission), action))
+        }
+        assertFalse(StockAccess.canWrite(setOf("STOCK_PURCHASE"), StockAction.Consume))
+        assertTrue(StockAccess.canWrite(setOf("STOCK", "STOCK_PURCHASE"), StockAction.Purchase))
+    }
     @Test fun conversionUsesServerFactorAndNumericPayload() {
         val mutation = StockBooking(StockAction.Purchase, 3, BigDecimal("1.25"), BigDecimal("12"), price = BigDecimal("2.50"))
         val payload = mutation.payload()

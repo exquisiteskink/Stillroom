@@ -13,7 +13,8 @@ import kotlinx.serialization.json.put
 
 object StockAccess {
     fun canRead(grants: Set<String>?) = grants?.any { it == "ADMIN" || it == "STOCK" } == true
-    fun canWrite(grants: Set<String>?, action: StockAction) = canRead(grants) || grants?.contains(action.permission) == true
+    /** Reading stock is not writing it: each action needs its own Grocy grant, or ADMIN. */
+    fun canWrite(grants: Set<String>?, action: StockAction) = grants?.any { it == "ADMIN" || it == action.permission } == true
 }
 enum class StockAction(val endpoint: String, val permission: String) {
     Purchase("add", "STOCK_PURCHASE"), Consume("consume", "STOCK_CONSUME"),
@@ -108,7 +109,8 @@ fun pantryListRequest(volatile: JsonObject?, kind: String): PantryListRequest = 
 fun pantryDue(raw: String, today: LocalDate, locale: java.util.Locale): PantryDueLabel? {
     if (raw.isBlank()) return null
     val date = runCatching { LocalDate.parse(raw.take(10)) }.getOrNull()
-        ?: return PantryDueLabel("use by $raw", PantryDueUrgency.Soon)
+    // An unreadable value says nothing about urgency: show it verbatim rather than claiming it is due.
+        ?: return PantryDueLabel("use by $raw", PantryDueUrgency.None)
     if (date.year >= 2099) return null
     val text = date.format(java.time.format.DateTimeFormatter.ofPattern("MMM d", locale))
     val urgency = when {

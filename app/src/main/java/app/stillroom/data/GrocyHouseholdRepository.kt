@@ -74,7 +74,7 @@ class GrocyHouseholdRepository(private val grants: Set<String>?, private val use
         requireGrant("CHORES"); requireGrant("CHORE_TRACK_EXECUTION"); require(id > 0)
         // Recheck assignment online before accepting child completion; never send a parent identity override.
         if (!HouseholdAccess.parent(grants)) {
-            val current = cache.readFresh("/chores/$id")!!.jsonObject
+            val current = cache.readFresh("/chores/$id")?.jsonObject ?: error("This chore no longer exists in Grocy.")
             val assigned = current["next_execution_assigned_user"] as? JsonObject
             check(assigned?.houseId("id") == userId) { "This chore is no longer assigned to you. Refresh My Chores." }
         }

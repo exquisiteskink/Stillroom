@@ -32,6 +32,8 @@ interface ShoppingTripRepository {
     suspend fun edit(id:String,amount:BigDecimal,date:String?,price:BigDecimal?):ShoppingTrip
     suspend fun remove(id:String):ShoppingTrip
     suspend fun submit():ShoppingTrip
+    /** Abandons a submitted trip that is not fully confirmed. Confirmed purchases stay; lines that were never sent become inert. */
+    suspend fun abandon():ShoppingTrip
     suspend fun newTrip():ShoppingTrip
 }
 class ManageShoppingTrip(private val repository:ShoppingTripRepository) {
@@ -41,5 +43,6 @@ class ManageShoppingTrip(private val repository:ShoppingTripRepository) {
     suspend fun edit(id:String,amount:BigDecimal,date:String?,price:BigDecimal?)=repository.edit(id,amount,date,price)
     suspend fun remove(id:String)=repository.remove(id)
     suspend fun submit()=repository.submit()
+    suspend fun abandon()=repository.abandon()
     suspend fun newTrip()=repository.newTrip()
 }

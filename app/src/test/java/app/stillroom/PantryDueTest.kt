@@ -45,6 +45,13 @@ class PantryDueTest {
         assertEquals(PantryDueUrgency.None, due.urgency)
     }
 
+    /** A value Grocy stored that this parser cannot read is not evidence the food is nearly due. */
+    @Test fun unparseableDateIsNeutralAndNeverClaimsSoon() {
+        val due = pantryDue("10/12/2026", today, locale)!!
+        assertEquals("use by 10/12/2026", due.text)
+        assertEquals(PantryDueUrgency.None, due.urgency)
+    }
+
     @Test fun useSoonUnionsDueOverdueAndExpired() {
         val volatile = Json.parseToJsonElement(
             """{"due_products":[{"product_id":"5"}],"overdue_products":[{"product_id":5}],"expired_products":[{"product_id":6}],"missing_products":[{"product_id":4}]}""",

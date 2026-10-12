@@ -38,7 +38,7 @@ fun ScannerScreen(model:ScannerViewModel,stock:StockViewModel,account:Account,on
 
         // This call remains in composition during review; analysis pauses without losing the session.
         CameraScanner(onCodes=model::detected,active=state.result==null && state.candidates.isEmpty() && !locked && !manualExpanded && !reviewingTrip && !(state.tripMode && state.trip.submitted))
-        if(state.tripMode)ShoppingTripReview(state.trip,stockState,state.busy,model::editTrip,model::removeTripLine,model::submitTrip,model::newTrip,model::loadTrip,onReviewChanges,reviewing={reviewingTrip=it})
+        if(state.tripMode)ShoppingTripReview(state.trip,stockState,state.busy,model::editTrip,model::removeTripLine,model::submitTrip,model::newTrip,model::loadTrip,onReviewChanges,reviewing={reviewingTrip=it},abandon=model::abandonTrip)
         if(!state.tripMode && (LocalAddonSettings.current.barcodeBuddyConfigured || state.useBarcodeBuddy) && HouseholdAccess.has(account.permissions,"ADMIN")) {
             Row(horizontalArrangement=Arrangement.spacedBy(8.dp)) {
                 FilterChip(!state.useBarcodeBuddy,{model.useBarcodeBuddy(false)},{Text("Stillroom")},enabled=!locked && state.result==null && product==null)
