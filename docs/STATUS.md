@@ -2,9 +2,22 @@
 
 Authorized stage: **11 only**, per the user request on 2026-10-07. Stages 0 through 11 are complete.
 
-Current scope: Stages 0–11 and the subsequent 0.3 additions are complete. On 2026-10-10 the user authorized replacing the global shopping purchase-owner setting with per-item buy/mark-done choices and adding confirmation before long-press removal. This is maintenance of existing shopping and scanner behavior; no new feature stage is authorized.
+Current scope: Stages 0–11 and the subsequent 0.3 additions are complete. On 2026-10-11 the user authorized publishing the shopping-trip abandonment and reliability fixes as version 0.4.1. This is maintenance of existing shopping and scanner behavior; no new feature stage is authorized.
 
 Current gate for this maintenance: debug build, full host regression suite, shopping/add-on/priority-one scoped coverage gates, separate Android lint, and diff review. Historical stage gates remain documented below.
+
+## Release 0.4.1 preparation — 2026-10-11
+
+The user authorized committing the uncommitted scan-follow-up and shopping-trip work and publishing version 0.4.1, with an easy-to-understand changelog. Android versionName is 0.4.1; versionCode is 5. User release notes: [CHANGELOG.md](../CHANGELOG.md).
+
+Changes: an **Abandon unfinished trip** action for a submitted shopping trip that stopped on an uncertain line (confirmed purchases stay, never-sent lines become inert, uncertain lines stay in Pending changes, and nothing is replayed); the one-time legacy shopping-settings upgrade now runs only in the owning foreground session, never in widget/reminder readers; required fresh reads that 404 (catalog references, userfield definitions, chore recheck, scan, shopping-trip product revalidation) fail with a clear message instead of a null-pointer crash; the `STOCK` overview grant alone no longer authorizes stock write actions; an unreadable best-before value no longer claims Soon urgency in the pantry; and a confirmed scan follow-up is never re-posted on later syncs. Seven host regression cases were added; the shopping-trip abandon test first failed because the button sat below the Robolectric window bounds and `performClick` silently tapped outside the window — the test now scrolls the node into view first.
+
+Actual validation:
+
+- `mise exec -- ./gradlew :app:assembleDebug :app:testDebugUnitTest :fractions:test :app:shoppingCoverageVerification :app:priorityOneCoverageVerification :app:addonCoverageVerification --max-workers=1` passed. App: **284 cases, 278 passed, 6 skipped, 0 failures/errors**. Fractions: **23 passed** (unchanged Gradle outputs reused). All three existing 80% scoped line-coverage gates passed: shopping **86.62% (272/314)**, priority one **94.38% (168/178)**, add-ons **90.04% (235/261)**. These scopes exclude Compose and are not whole-app coverage or physical-device claims.
+- Signed APK metadata: `app.stillroom`, versionName **0.4.1**, versionCode **5**, minSdk **26**, targetSdk **35**. `apksigner verify --verbose --print-certs` and `zipalign -c -P 16 4` passed. Certificate SHA-256 `35b617c8fd0a8bfa1aad1d63abd4f361629d031007c85a58a3b2df4f28f60d3b` matches the official releases. APK SHA-256: `e2c1ba4b1ca2238aedf3d5b8656cea7c0f7e855ca88c1fe3ef6009f0aa92f1c9`.
+- Separate `mise exec -- ./gradlew :app:lintDebug :app:lintRelease --max-workers=1` passed: debug **0 errors, 42 warnings**, 1 informational finding; release **0 errors, 42 warnings**, 1 informational finding. `git diff --check` passed.
+- **No new live Grocy/add-on, emulator, physical-phone/camera or installation checks ran.** The six live-fixture cases remain skipped.
 
 ## Release 0.4 preparation — 2026-10-10
 

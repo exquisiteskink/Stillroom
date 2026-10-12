@@ -82,6 +82,29 @@ class ScannerIntegrationTest {
             assertEquals("needs-review",repo.operations().single().state)
         } finally { db.close();AccountDatabase.delete(context,id,"scan_create");server.shutdown() }
     }
+    /** A 404 on a required fresh read is a missing record, not a crash. */
+    @Test fun missingServerDataFailsClearlyInsteadOfNullPointer()=runBlocking(Dispatchers.IO) {
+        val server=MockWebServer();server.start(java.net.InetAddress.getByName("127.0.0.1"),0)
+        val address=ServerAddress.parse("http://127.0.0.1:${server.port}",true)
+        val id=AccountId.of(address,1);AccountDatabase.delete(context,id,"scan_missing")
+        val db=AccountDatabase(context,id,"scan_missing")
+        try {
+            val cache=CachedGrocyRepository(db,address,"key",MutationTransport(500))
+            val repo=GrocyScanRepository(setOf("ADMIN"),db,cache,{error("No external lookup")},publicFallbackEnabled=false)
+            server.dispatcher=object:Dispatcher() {
+                override fun dispatch(request:RecordedRequest):MockResponse =
+                    if(request.path!!.endsWith("/objects/quantity_units"))MockResponse().setResponseCode(404).setBody("{}")
+                    else MockResponse().setBody("[]")
+            }
+            val outcome=runCatching { repo.create(ScanReview(ScanCode("00123457",ScanFormat.Ean8),"Reviewed name","",1,2)) }
+            assertTrue(outcome.isFailure)
+            val failure=outcome.exceptionOrNull()!!
+            assertFalse("A missing record must not crash with a null assertion: $failure",failure is NullPointerException)
+            assertTrue(failure is IllegalStateException)
+            assertTrue(failure.message!!.contains("quantity_units"))
+            assertTrue(db.operations().isEmpty())
+        } finally { db.close();AccountDatabase.delete(context,id,"scan_missing");server.shutdown() }
+    }
     @Test fun localGrocyReviewedCreationLookupStockAndUndo()=runBlocking(Dispatchers.IO) {
         val path=System.getenv("STILLROOM_STAGE9_FIXTURES")
         Assume.assumeTrue("Existing local Grocy credentials supplied by stage:9",path!=null)

@@ -42,6 +42,7 @@ class ScannerViewModel(private val accounts:AndroidAccountsRepository):ViewModel
     }
     fun removeTripLine(id:String)=execute { val trip=accounts.withShoppingTrip { it.remove(id) };publish { it.copy(trip=trip) } }
     fun newTrip()=execute { val trip=accounts.withShoppingTrip { it.newTrip() };publish { it.copy(trip=trip) } }
+    fun abandonTrip()=execute { val trip=accounts.withShoppingTrip { it.abandon() };publish { it.copy(trip=trip) } }
     fun submitTrip()=execute {
         try { val trip=accounts.withShoppingTrip { it.submit() };publish { it.copy(trip=trip) } }
         finally { val trip=accounts.withShoppingTrip { it.snapshot() };publish { it.copy(trip=trip) } }

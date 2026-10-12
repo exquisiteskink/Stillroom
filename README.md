@@ -59,7 +59,7 @@ Stillroom is built for **Grocy 4.7**. Pantry and shopping also work with **4.6**
 Install the signed APK from GitHub.
 
 1. On your phone, open **[Releases](https://github.com/exquisiteskink/Stillroom/releases/latest)**.
-2. Download `Stillroom-0.4.apk` (or the newest `Stillroom-*.apk`).
+2. Download `Stillroom-0.4.1.apk` (or the newest `Stillroom-*.apk`).
 3. Open the file. If Android blocks it, allow installs from that browser or Files app, then open the APK again.
 4. Tap **Install**, then open Stillroom.
 5. [Connect to Grocy](#connect-to-grocy) with an API key.
@@ -131,7 +131,7 @@ The **Scan** button in the top bar. Choose **Add stock** or **Use stock**, then 
 
 Camera permission is optional; typing always works. The camera looks up Grocy's barcodes first. For a grocery UPC/EAN it can also ask Grocy's plugin, then [Open Food Facts](https://world.openfoodfacts.org/). Confirm add or confirm use before anything is booked. An unknown barcode can be attached to a product you already have; a wrong attachment is removed in Grocy.
 
-**Shopping trip** saves a draft as you scan several products. Review amounts, prices, and dates before confirming purchases. Trip purchases do not also check off shopping-list items; use one purchase route for the same groceries.
+**Shopping trip** saves a draft as you scan several products. Review amounts, prices, and dates before confirming purchases. If a trip cannot finish because a line's result is uncertain, you can abandon the unfinished trip from the review screen; confirmed purchases stay booked. Trip purchases do not also check off shopping-list items; use one purchase route for the same groceries.
 
 ### Grocy add-ons
 

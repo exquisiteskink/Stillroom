@@ -68,6 +68,21 @@ class GrocyShoppingTripRepository(private val grants:Set<String>?,private val db
         check(!previous.submitted || previous.confirmed) { "Inspect the unfinished trip before starting another." }
         save(ShoppingTrip(UUID.randomUUID().toString()))
     }
+    /**
+     * The only way out of a submitted trip whose outcome is uncertain. [submit] stops at the first
+     * line Grocy did not confirm and leaves the rest `guarded`, which nothing else ever dispatches,
+     * so without this the trip could never be finished or replaced. Confirmed lines keep their
+     * receipts; lines that were never sent are marked inert so no replay is possible; a line whose
+     * outcome is uncertain stays in Pending changes for review.
+     */
+    override suspend fun abandon():ShoppingTrip=lock.withLock {
+        access();val previous=statuses(current())
+        check(previous.submitted && !previous.confirmed) { "Only an unfinished submitted trip can be abandoned." }
+        previous.lines.forEach { line->
+            if(line.state=="guarded")db.abandonGuarded(line.id,"Abandoned before it was sent. Nothing was booked in Grocy.")
+        }
+        save(ShoppingTrip(UUID.randomUUID().toString()))
+    }
     override suspend fun submit():ShoppingTrip=lock.withLock {
         access();var trip=current();check(trip.lines.isNotEmpty()) { "Scan an item first." }
         check(cache.capabilities().allows("/stock/products/1/add") && cache.capabilities().requestSupported("POST","/stock/products/1/add")!=false) { "Stock purchasing is disabled or unsupported by this server." }
@@ -75,7 +90,7 @@ class GrocyShoppingTripRepository(private val grants:Set<String>?,private val db
         check(trip.lines.none { db.operation(it.id)?.state in setOf("needs-review","in-flight","failed") }) { "Inspect this trip's unconfirmed purchases in Pending changes before continuing." }
         // Fresh product metadata validates the reviewed stock unit before any line reaches Grocy.
         for(line in trip.lines.filter { db.operation(it.id)?.state!="confirmed" }) {
-            val product=cache.readFresh("/stock/products/${line.booking.productId}")!!.jsonObject["product"]!!.jsonObject
+            val product=cache.readFresh("/stock/products/${line.booking.productId}")?.jsonObject?.get("product") as? JsonObject ?: error("${line.name} no longer exists in Grocy.")
             check(sameTare(line.tare,tare(product))) { "${line.name}'s tare settings changed. Review it again before booking." }
             check(product.houseId("qu_id_stock")==line.unit) { "${line.name}'s stock unit changed. Review it in Grocy before booking." }
             check(line.booking.date==null || cache.capabilities().enabled("STOCK_BEST_BEFORE_DATE_TRACKING")) { "Due-date tracking was disabled. Clear this draft's due dates before confirming." }
